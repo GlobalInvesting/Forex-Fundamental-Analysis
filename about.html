@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Forex Fundamental Analysis Dashboard</title>
+    <meta name="description" content="Learn about our professional forex fundamental analysis platform, our mission, methodology, and data sources.">
+    <meta name="robots" content="index, follow">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0b0e14;
+            --bg-secondary: #13171f;
+            --bg-card: #1a1f2e;
+            --text-primary: #e1e4e8;
+            --text-secondary: #8b949e;
+            --border: #30363d;
+            --blue: #1e88e5;
+            --green: #26a69a;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .brand-title:hover {
+            color: var(--blue);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        ul {
+            margin-left: 2rem;
+            margin-bottom: 1.25rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+        }
+
+        a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .section {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .highlight-box {
+            background: rgba(30, 136, 229, 0.1);
+            border-left: 4px solid var(--blue);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--green);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="index.html" class="brand-title">Forex Fundamental Analysis</a>
+            <div class="nav-links">
+                <a href="index.html">Dashboard</a>
+                <a href="about.html">About</a>
+                <a href="terms.html">Terms</a>
+                <a href="privacy.html">Privacy</a>
+                <a href="contact.html">Contact</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>About Our Platform</h1>
+
+        <div class="section">
+            <h2>Our Mission</h2>
+            <p>The Forex Fundamental Analysis Dashboard was created to provide traders, investors, and financial professionals with institutional-grade fundamental analysis tools in an accessible, user-friendly format.</p>
+            <p>We believe that understanding the fundamental drivers of currency movements—economic growth, monetary policy, inflation, and trade dynamics—is essential for making informed trading decisions in the foreign exchange market.</p>
+        </div>
+
+        <div class="highlight-box">
+            <p style="margin: 0; font-size: 1.1rem;"><strong>Vision:</strong> To democratize access to professional-grade fundamental analysis tools, empowering traders with the same analytical frameworks used by institutional investors.</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Major Currencies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">9</div>
+                <div class="stat-label">Economic Indicators</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">60s</div>
+                <div class="stat-label">Data Refresh Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Market Coverage</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>What We Provide</h2>
+            <p>Our platform offers comprehensive fundamental analysis across major G10 currencies:</p>
+            <ul>
+                <li><strong>Real-Time FX Rates:</strong> Live exchange rates updated every 60 seconds</li>
+                <li><strong>Economic Indicators Heatmap:</strong> Visual representation of GDP growth, inflation, unemployment, interest rates, and more</li>
+                <li><strong>Currency Strength Scoring:</strong> Quantitative assessment (0-100 scale) based on fundamental factors</li>
+                <li><strong>Central Bank Monitoring:</strong> Track policy rates, meeting schedules, and monetary policy outlook</li>
+                <li><strong>Trade & Current Account Data:</strong> Monitor external balance positions and competitiveness</li>
+                <li><strong>Sentiment Classification:</strong> Systematic categorization into bullish, bearish, or neutral outlooks</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Our Methodology</h2>
+            <p>The fundamental strength scoring system employs a multi-factor quantitative model that evaluates:</p>
+            
+            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Factor Weights</h3>
+            <ul>
+                <li><strong>Monetary Policy Stance (25%):</strong> Interest rate differentials, central bank forward guidance, real interest rates</li>
+                <li><strong>External Balance (25%):</strong> Current account position, trade balance, capital flows</li>
+                <li><strong>Growth Dynamics (20%):</strong> GDP growth relative to trend, industrial production, economic momentum</li>
+                <li><strong>Price Stability (15%):</strong> Inflation deviation from target, core inflation trends, inflation expectations</li>
+                <li><strong>Labor Market (15%):</strong> Unemployment versus natural rate, employment growth, wage pressures</li>
+                <li><strong>Fiscal Position (10%):</strong> Government debt-to-GDP, fiscal deficit, credit ratings</li>
+            </ul>
+
+            <p style="margin-top: 1.5rem;">Scores are dynamically weighted based on market regime, volatility conditions, and relative importance of factors in the current macroeconomic environment.</p>
+        </div>
+
+        <div class="section">
+            <h2>Data Sources</h2>
+            <p>We integrate data from authoritative sources to ensure accuracy and reliability:</p>
+            
+            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Primary Sources</h3>
+            <ul>
+                <li><strong>Central Banks:</strong> Federal Reserve, ECB, BoE, BoJ, RBA, BoC, SNB, RBNZ</li>
+                <li><strong>Statistical Agencies:</strong> National statistical offices for GDP, inflation, and employment data</li>
+                <li><strong>FX Rates:</strong> ExchangeRate-API for real-time foreign exchange quotations</li>
+                <li><strong>Economic Releases:</strong> Official government and central bank publications</li>
+            </ul>
+
+            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Update Frequency</h3>
+            <ul>
+                <li><strong>FX Rates:</strong> 60-second refresh interval</li>
+                <li><strong>Economic Indicators:</strong> 24-hour update cycle</li>
+                <li><strong>Central Bank Policy:</strong> Event-driven updates following announcements</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Technology Stack</h2>
+            <p>Built with modern web technologies for optimal performance:</p>
+            <ul>
+                <li><strong>Frontend:</strong> React 18 for responsive, component-based architecture</li>
+                <li><strong>Styling:</strong> Custom CSS with professional dark theme optimized for extended viewing</li>
+                <li><strong>Data Processing:</strong> Client-side JavaScript calculation engine</li>
+                <li><strong>Hosting:</strong> Static deployment on GitHub Pages with global CDN distribution</li>
+                <li><strong>Performance:</strong> Lightweight, no-build architecture for instant loading</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Who We Serve</h2>
+            <p>Our platform is designed for:</p>
+            <ul>
+                <li><strong>Retail Forex Traders:</strong> Individual traders seeking professional-grade fundamental analysis</li>
+                <li><strong>Financial Professionals:</strong> Analysts, portfolio managers, and financial advisors</li>
+                <li><strong>Students & Educators:</strong> Academic institutions teaching international finance and macroeconomics</li>
+                <li><strong>Researchers:</strong> Individuals studying currency markets and global economic trends</li>
+                <li><strong>Institutional Traders:</strong> Hedge funds, family offices, and trading firms requiring fundamental insights</li>
+            </ul>
+        </div>
+
+        <div class="highlight-box">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.75rem;">Important Disclaimer</h3>
+            <p style="margin: 0;">This platform provides informational and educational content only. It does not constitute financial advice, investment recommendations, or trading signals. All trading involves substantial risk. Users are solely responsible for their trading decisions and should consult licensed financial professionals before making investment decisions.</p>
+        </div>
+
+        <div class="section">
+            <h2>Continuous Improvement</h2>
+            <p>We are committed to ongoing enhancement of the platform. Planned developments include:</p>
+            <ul>
+                <li>Historical data visualization and trend analysis</li>
+                <li>Economic calendar integration</li>
+                <li>Additional currency pairs and emerging market coverage</li>
+                <li>Advanced charting capabilities</li>
+                <li>Customizable alerts and notifications</li>
+                <li>API access for programmatic data retrieval</li>
+                <li>Mobile application development</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Contact & Support</h2>
+            <p>We value feedback from our users and are committed to continuous improvement.</p>
+            <ul>
+                <li><strong>General Inquiries:</strong> <a href="contact.html">Contact Form</a></li>
+                <li><strong>Technical Support:</strong> support@globalinvesting.github.io</li>
+                <li><strong>Data Questions:</strong> data@globalinvesting.github.io</li>
+                <li><strong>Business Inquiries:</strong> business@globalinvesting.github.io</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+            <p>&copy; 2026 Global Investing. All rights reserved.</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="index.html">Dashboard</a> | 
+                <a href="about.html">About</a> | 
+                <a href="terms.html">Terms of Service</a> | 
+                <a href="privacy.html">Privacy Policy</a> | 
+                <a href="contact.html">Contact</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
