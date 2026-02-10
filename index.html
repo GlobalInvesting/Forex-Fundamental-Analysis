@@ -3122,7 +3122,9 @@
                                                                        data.currentAccount !== null && data.currentAccount < -3 ? 'var(--red-strong)' : 
                                                                        'var(--text-primary)' 
                                                             }}>
-                                                                {data.currentAccount !== null && data.currentAccount > 0 ? '+' : ''}{formatValue(data.currentAccount)}%
+                                                                {data.currentAccount !== null && data.currentAccount !== undefined 
+                                                                    ? `${data.currentAccount > 0 ? '+' : ''}${formatValue(data.currentAccount)}%`
+                                                                    : 'N/D'}
                                                             </div>
                                                         </div>
                                                         <div className="metric">
@@ -3132,7 +3134,9 @@
                                                                        data.tradeBalance !== null && data.tradeBalance < -20 ? 'var(--red-strong)' : 
                                                                        'var(--text-primary)' 
                                                             }}>
-                                                                {data.tradeBalance !== null && data.tradeBalance > 0 ? '+' : ''}{formatValue(data.tradeBalance)}B
+                                                                {data.tradeBalance !== null && data.tradeBalance !== undefined 
+                                                                    ? `${data.tradeBalance > 0 ? '+' : ''}${formatValue(data.tradeBalance)}B`
+                                                                    : 'N/D'}
                                                             </div>
                                                         </div>
                                                         <div className="metric">
@@ -3220,50 +3224,60 @@
                             <div>
                                 <div className="section-header">
                                     <div className="section-title">Alertas y Notificaciones</div>
-                                    <div className="section-meta">Eventos relevantes y actualizaciones del mercado</div>
+                                    <div className="section-meta">
+                                        Basadas en datos económicos en tiempo real • 
+                                        <button 
+                                            onClick={() => {
+                                                const newAlerts = generateDynamicAlerts(economicData, forexRates, economicCalendar);
+                                                setDynamicAlerts(newAlerts);
+                                            }}
+                                            style={{ 
+                                                marginLeft: '10px', 
+                                                padding: '5px 10px', 
+                                                cursor: 'pointer',
+                                                background: 'var(--blue)',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                color: 'white',
+                                                fontSize: '0.75rem'
+                                            }}
+                                        >
+                                            Actualizar
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="alerts-container">
-                                    <div className="alert-card alert-warning">
-                                        <div className="alert-icon" style={{ background: 'rgba(255, 111, 0, 0.3)', color: 'var(--orange)' }}>⚠️</div>
-                                        <div className="alert-content">
-                                            <h3>Alerta de Volatilidad - USD</h3>
-                                            <p>IPC de EE.UU. próximamente a las 14:30. Expectativa: datos clave de inflación. Alto impacto esperado en USD y pares principales.</p>
+                                    {dynamicAlerts.length > 0 ? dynamicAlerts.map((alert, index) => (
+                                        <div key={index} className={`alert-card alert-${alert.type}`}>
+                                            <div 
+                                                className="alert-icon" 
+                                                style={{ 
+                                                    background: alert.type === 'warning' ? 'rgba(255, 111, 0, 0.3)' : 
+                                                               alert.type === 'success' ? 'rgba(38, 166, 154, 0.3)' : 
+                                                               'rgba(30, 136, 229, 0.3)',
+                                                    color: alert.type === 'warning' ? 'var(--orange)' : 
+                                                          alert.type === 'success' ? 'var(--green-strong)' : 
+                                                          'var(--blue)'
+                                                }}
+                                            >
+                                                {alert.icon}
+                                            </div>
+                                            <div className="alert-content">
+                                                <h3>{alert.title}</h3>
+                                                <p>{alert.message}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="alert-card alert-success">
-                                        <div className="alert-icon" style={{ background: 'rgba(38, 166, 154, 0.3)', color: 'var(--green-strong)' }}>✓</div>
-                                        <div className="alert-content">
-                                            <h3>Fortaleza Destacada - EUR</h3>
-                                            <p>EUR mantiene nivel de fortaleza superior. Postura hawkish del BCE continúa impulsando la divisa frente al USD.</p>
+                                    )) : (
+                                        <div className="alert-card alert-info">
+                                            <div className="alert-icon" style={{ background: 'rgba(30, 136, 229, 0.3)', color: 'var(--blue)' }}>
+                                                ℹ️
+                                            </div>
+                                            <div className="alert-content">
+                                                <h3>Cargando alertas...</h3>
+                                                <p>Generando alertas basadas en datos económicos actuales.</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="alert-card alert-info">
-                                        <div className="alert-icon" style={{ background: 'rgba(30, 136, 229, 0.3)', color: 'var(--blue)' }}>ℹ️</div>
-                                        <div className="alert-content">
-                                            <h3>Reunión Banco Central - BoJ</h3>
-                                            <p>Banco de Japón próxima reunión programada. Mercado espera mantenimiento de tasa con sesgo hawkish en comunicado oficial.</p>
-                                        </div>
-                                    </div>
-                                    <div className="alert-card alert-warning">
-                                        <div className="alert-icon" style={{ background: 'rgba(255, 111, 0, 0.3)', color: 'var(--orange)' }}>📊</div>
-                                        <div className="alert-content">
-                                            <h3>Monitoreo Fundamental - GBP</h3>
-                                            <p>GBP muestra factores mixtos. Inflación elevada presiona al BoE pero crecimiento débil limita margen de alzas adicionales.</p>
-                                        </div>
-                                    </div>
-                                    <div className="alert-card alert-info">
-                                        <div className="alert-icon" style={{ background: 'rgba(30, 136, 229, 0.3)', color: 'var(--blue)' }}>🌐</div>
-                                        <div className="alert-content">
-                                            <h3>Divergencia Monetaria</h3>
-                                            <p>Diferencial de tasas entre principales bancos centrales en ajuste. Normalización del BoJ añade nueva dinámica al mercado forex.</p>
-                                        </div>
-                                    </div>
-                                    <div className="alert-card alert-success">
-                                        <div className="alert-icon" style={{ background: 'rgba(38, 166, 154, 0.3)', color: 'var(--green-strong)' }}>💰</div>
-                                        <div className="alert-content">
-                                            <h3>Superávit Comercial - CHF</h3>
-                                            <p>Suiza mantiene sólido superávit comercial. Demanda estructural de CHF como refugio seguro continúa siendo factor clave.</p>
-                                        </div>
+                                    )}
                                     </div>
                                 </div>
                             </div>
