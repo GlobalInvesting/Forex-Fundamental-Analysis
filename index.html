@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="google-adsense-account" content="ca-pub-7977942731354565">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">    
     
     <!-- SEO Meta Tags -->
-    <title>Forex Fundamental Analysis Dashboard | Real-Time Economic Indicators & Currency Strength</title>
-    <meta name="description" content="Professional forex fundamental analysis dashboard with real-time economic indicators, central bank data, and currency strength rankings for major pairs. Track GDP, inflation, interest rates, and trade balance.">
-    <meta name="keywords" content="forex analysis, currency strength, economic indicators, forex dashboard, fundamental analysis, forex trading, central bank rates, GDP growth, inflation data, interest rates, forex signals, currency pairs, forex tools">
+    <title>Dashboard de Análisis Fundamental Forex | Indicadores Económicos en Tiempo Real y Fortaleza de Divisas</title>
+    <meta name="description" content="Dashboard profesional de análisis fundamental forex con indicadores económicos en tiempo real, datos de bancos centrales y rankings de fortaleza de divisas para pares principales. Rastrea PIB, inflación, tasas de interés y balanza comercial.">
+    <meta name="keywords" content="análisis forex, fortaleza divisas, indicadores económicos, dashboard forex, análisis fundamental, trading forex, tasas bancos centrales, crecimiento PIB, datos inflación, tasas interés, señales forex, pares divisas, herramientas forex">
     <meta name="author" content="Global Investing">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://globalinvesting.github.io/">
@@ -16,18 +16,18 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://globalinvesting.github.io/">
-    <meta property="og:title" content="Forex Fundamental Analysis Dashboard - Real-Time Currency Analysis">
-    <meta property="og:description" content="Professional-grade fundamental analysis for major currency pairs. Real-time economic indicators, central bank data, and quantitative strength rankings.">
+    <meta property="og:title" content="Dashboard de Análisis Fundamental Forex - Análisis de Divisas en Tiempo Real">
+    <meta property="og:description" content="Análisis fundamental de grado profesional para pares principales de divisas. Indicadores económicos en tiempo real, datos de bancos centrales y rankings cuantitativos de fortaleza.">
     <meta property="og:image" content="https://globalinvesting.github.io/og-image.png">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://globalinvesting.github.io/">
-    <meta property="twitter:title" content="Forex Fundamental Analysis Dashboard">
-    <meta property="twitter:description" content="Professional forex fundamental analysis with real-time data for major currency pairs.">
+    <meta property="twitter:title" content="Dashboard de Análisis Fundamental Forex">
+    <meta property="twitter:description" content="Análisis fundamental profesional de forex con datos en tiempo real para pares principales de divisas.">
     <meta property="twitter:image" content="https://globalinvesting.github.io/og-image.png">
     
-    <!-- Google AdSense - PASTE YOUR CODE BELOW -->
+    <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7977942731354565"
      crossorigin="anonymous"></script>
     
@@ -669,14 +669,14 @@
 
             // Configuración de países (Febrero 2026)
             const countries = [
-                { code: 'USD', name: 'United States', currency: 'US Dollar', flag: '🇺🇸', centralBank: 'Federal Reserve', nextMeeting: 'Mar 19', outlook: 'Neutral' },
-                { code: 'EUR', name: 'Eurozone', currency: 'Euro', flag: '🇪🇺', centralBank: 'European Central Bank', nextMeeting: 'Mar 13', outlook: 'Hawkish' },
-                { code: 'GBP', name: 'United Kingdom', currency: 'British Pound', flag: '🇬🇧', centralBank: 'Bank of England', nextMeeting: 'Mar 20', outlook: 'Neutral' },
-                { code: 'JPY', name: 'Japan', currency: 'Japanese Yen', flag: '🇯🇵', centralBank: 'Bank of Japan', nextMeeting: 'Mar 14', outlook: 'Hawkish' },
-                { code: 'AUD', name: 'Australia', currency: 'Australian Dollar', flag: '🇦🇺', centralBank: 'Reserve Bank of Australia', nextMeeting: 'Apr 1', outlook: 'Hawkish' },
-                { code: 'CAD', name: 'Canada', currency: 'Canadian Dollar', flag: '🇨🇦', centralBank: 'Bank of Canada', nextMeeting: 'Mar 12', outlook: 'Dovish' },
-                { code: 'CHF', name: 'Switzerland', currency: 'Swiss Franc', flag: '🇨🇭', centralBank: 'Swiss National Bank', nextMeeting: 'Mar 21', outlook: 'Neutral' },
-                { code: 'NZD', name: 'New Zealand', currency: 'New Zealand Dollar', flag: '🇳🇿', centralBank: 'Reserve Bank of New Zealand', nextMeeting: 'Apr 9', outlook: 'Neutral' }
+                { code: 'USD', name: 'Estados Unidos', currency: 'Dólar Estadounidense', flag: '🇺🇸', centralBank: 'Reserva Federal', nextMeeting: '19 Mar', outlook: 'Neutral' },
+                { code: 'EUR', name: 'Eurozona', currency: 'Euro', flag: '🇪🇺', centralBank: 'Banco Central Europeo', nextMeeting: '13 Mar', outlook: 'Hawkish' },
+                { code: 'GBP', name: 'Reino Unido', currency: 'Libra Esterlina', flag: '🇬🇧', centralBank: 'Banco de Inglaterra', nextMeeting: '20 Mar', outlook: 'Neutral' },
+                { code: 'JPY', name: 'Japón', currency: 'Yen Japonés', flag: '🇯🇵', centralBank: 'Banco de Japón', nextMeeting: '14 Mar', outlook: 'Hawkish' },
+                { code: 'AUD', name: 'Australia', currency: 'Dólar Australiano', flag: '🇦🇺', centralBank: 'Banco de la Reserva de Australia', nextMeeting: '1 Abr', outlook: 'Hawkish' },
+                { code: 'CAD', name: 'Canadá', currency: 'Dólar Canadiense', flag: '🇨🇦', centralBank: 'Banco de Canadá', nextMeeting: '12 Mar', outlook: 'Dovish' },
+                { code: 'CHF', name: 'Suiza', currency: 'Franco Suizo', flag: '🇨🇭', centralBank: 'Banco Nacional Suizo', nextMeeting: '21 Mar', outlook: 'Neutral' },
+                { code: 'NZD', name: 'Nueva Zelanda', currency: 'Dólar Neozelandés', flag: '🇳🇿', centralBank: 'Banco de la Reserva de Nueva Zelanda', nextMeeting: '9 Abr', outlook: 'Neutral' }
             ];
 
             // Tooltips
@@ -868,8 +868,8 @@
             };
 
             const getSentiment = (strength) => {
-                if (strength >= 60) return 'bullish';
-                if (strength <= 45) return 'bearish';
+                if (strength >= 60) return 'alcista';
+                if (strength <= 45) return 'bajista';
                 return 'neutral';
             };
 
@@ -884,9 +884,9 @@
                 let analysis = [];
 
                 // Contexto según sentimiento
-                if (sentiment === 'bullish') {
+                if (sentiment === 'alcista') {
                     analysis.push(`${currency} muestra fortaleza fundamental respaldada por datos sólidos.`);
-                } else if (sentiment === 'bearish') {
+                } else if (sentiment === 'bajista') {
                     analysis.push(`${currency} enfrenta vientos en contra con fundamentos débiles.`);
                 } else {
                     analysis.push(`${currency} presenta panorama mixto con factores balanceados.`);
@@ -896,7 +896,7 @@
                 if (currency === 'USD') {
                     analysis.push(`Fed mantiene política restrictiva (${data.interestRate}%) pero DXY muestra debilidad estructural por déficit comercial (-$${Math.abs(data.tradeBalance)}B) y fiscal persistente.`);
                 } else if (currency === 'EUR') {
-                    analysis.push(`ECB finaliza ciclo de recortes (${data.interestRate}%), postura hawkish y superávit comercial ($${data.tradeBalance}B) fortalecen EUR vs USD debilitado.`);
+                    analysis.push(`BCE finaliza ciclo de recortes (${data.interestRate}%), postura hawkish y superávit comercial ($${data.tradeBalance}B) fortalecen EUR vs USD debilitado.`);
                 } else if (currency === 'JPY') {
                     analysis.push(`BoJ en ciclo de normalización monetaria (${data.interestRate}%), reducción de carry trades y convergencia de yields con Fed fortalecen JPY.`);
                 } else if (currency === 'CHF') {
@@ -947,27 +947,27 @@
                     <div className="header">
                         <div className="header-content">
                             <div>
-                                <div className="brand-title">Forex Fundamental Analysis</div>
-                                <div className="brand-subtitle">Professional Dashboard</div>
+                                <div className="brand-title">Análisis Fundamental Forex</div>
+                                <div className="brand-subtitle">Dashboard Profesional</div>
                             </div>
                             <div className="page-nav-links">
-                                <a href="about.html">About</a>
-                                <a href="terms.html">Terms</a>
-                                <a href="privacy.html">Privacy</a>
-                                <a href="contact.html">Contact</a>
+                                <a href="about.html">Acerca de</a>
+                                <a href="terms.html">Términos</a>
+                                <a href="privacy.html">Privacidad</a>
+                                <a href="contact.html">Contacto</a>
                             </div>
                             <div className="header-info">
                                 <div className="info-item">
                                     <div className="status-live"></div>
-                                    <span>Live Data</span>
+                                    <span>Datos en Vivo</span>
                                 </div>
                                 {lastUpdate && (
                                     <div className="info-item">
-                                        <span>Updated: {lastUpdate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span>Actualizado: {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
                                 )}
                                 <div className="info-item">
-                                    <span>{countries.length} Major Currencies</span>
+                                    <span>{countries.length} Divisas Principales</span>
                                 </div>
                             </div>
                         </div>
@@ -978,13 +978,13 @@
                             className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
                             onClick={() => setActiveTab('overview')}
                         >
-                            Currency Overview & Analysis
+                            Resumen de Divisas y Análisis
                         </button>
                         <button 
                             className={`nav-tab ${activeTab === 'heatmap' ? 'active' : ''}`}
                             onClick={() => setActiveTab('heatmap')}
                         >
-                            Economic Indicators Heatmap
+                            Mapa de Calor de Indicadores Económicos
                         </button>
                     </div>
 
@@ -992,8 +992,8 @@
                         {activeTab === 'heatmap' && (
                             <div>
                                 <div className="section-header">
-                                    <div className="section-title">Economic Indicators Heatmap</div>
-                                    <div className="section-meta">Color intensity shows relative strength/weakness • Hover over headers for explanations</div>
+                                    <div className="section-title">Mapa de Calor de Indicadores Económicos</div>
+                                    <div className="section-meta">La intensidad del color muestra fortaleza/debilidad relativa • Pase el cursor sobre los encabezados para explicaciones</div>
                                 </div>
                                 <div className="heatmap-container">
                                     <table className="heatmap-table">
@@ -1001,34 +1001,34 @@
                                             <tr>
                                                 <th></th>
                                                 <th className="tooltip-trigger">
-                                                    Overall
+                                                    General
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Síntesis</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Síntesis General</div>
-                                                        Evaluación global de la fortaleza fundamental de la divisa basada en todos los indicadores económicos. Verde = Bullish, Rojo = Bearish, Gris = Neutral.
+                                                        Evaluación global de la fortaleza fundamental de la divisa basada en todos los indicadores económicos. Verde = Alcista, Rojo = Bajista, Gris = Neutral.
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    GDP
+                                                    PIB
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Trillion USD</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Trillones USD</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">PIB Total</div>
                                                         {indicatorTooltips.gdp}
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    GDP Growth
+                                                    Crecimiento PIB
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Annual %</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% Anual</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Crecimiento PIB</div>
                                                         {indicatorTooltips.gdpGrowth}
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Interest Rate
+                                                    Tasa de Interés
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>%</span>
                                                     <div className="tooltip-text">
@@ -1037,16 +1037,16 @@
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Inflation Rate
+                                                    Tasa de Inflación
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>CPI %</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>IPC %</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Inflación</div>
                                                         {indicatorTooltips.inflation}
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Unemployment
+                                                    Desempleo
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>%</span>
                                                     <div className="tooltip-text">
@@ -1055,36 +1055,36 @@
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Current Account
+                                                    Cuenta Corriente
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% of GDP</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% del PIB</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Cuenta Corriente</div>
                                                         {indicatorTooltips.currentAccount}
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Gov Debt
+                                                    Deuda Pública
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% of GDP</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% del PIB</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Deuda Pública</div>
                                                         {indicatorTooltips.debt}
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Trade Balance
+                                                    Balanza Comercial
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Billion USD</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Miles Millones USD</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Balanza Comercial</div>
                                                         {indicatorTooltips.tradeBalance}
                                                     </div>
                                                 </th>
                                                 <th className="tooltip-trigger">
-                                                    Industrial Prod
+                                                    Prod. Industrial
                                                     <br/>
-                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>YoY %</span>
+                                                    <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% Anual</span>
                                                     <div className="tooltip-text">
                                                         <div className="tooltip-title">Producción Industrial</div>
                                                         {indicatorTooltips.production}
@@ -1097,8 +1097,8 @@
                                                 const data = economicData[country.code] || {};
                                                 const strength = calculateStrength(country.code);
                                                 const sentiment = getSentiment(strength);
-                                                const overallColor = sentiment === 'bullish' ? 'var(--green-strong)' : 
-                                                                   sentiment === 'bearish' ? 'var(--red-strong)' : 
+                                                const overallColor = sentiment === 'alcista' ? 'var(--green-strong)' : 
+                                                                   sentiment === 'bajista' ? 'var(--red-strong)' : 
                                                                    'var(--neutral)';
                                                 return (
                                                     <tr key={country.code}>
@@ -1137,11 +1137,11 @@
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.currentAccount, 'currentAccount') }}>
                                                             <span className="cell-value">{data.currentAccount > 0 ? '+' : ''}{data.currentAccount?.toFixed(1)}%</span>
-                                                            <span className="cell-suffix">of GDP</span>
+                                                            <span className="cell-suffix">del PIB</span>
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.debt, 'debt') }}>
                                                             <span className="cell-value">{data.debt?.toFixed(1)}%</span>
-                                                            <span className="cell-suffix">of GDP</span>
+                                                            <span className="cell-suffix">del PIB</span>
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.tradeBalance, 'tradeBalance') }}>
                                                             <span className="cell-value">{data.tradeBalance > 0 ? '+' : ''}{data.tradeBalance?.toFixed(1)}B</span>
@@ -1161,8 +1161,8 @@
                         {activeTab === 'overview' && (
                             <div>
                                 <div className="section-header">
-                                    <div className="section-title">Currency Overview & Fundamental Analysis</div>
-                                    <div className="section-meta">Ranked by fundamental strength • Updated Feb 2026</div>
+                                    <div className="section-title">Resumen de Divisas y Análisis Fundamental</div>
+                                    <div className="section-meta">Ordenadas por fortaleza fundamental • Actualizado Feb 2026</div>
                                 </div>
                                 <div className="currency-grid">
                                     {getSortedCountries().map(country => {
@@ -1183,30 +1183,30 @@
                                                     </div>
                                                     <div className="card-strength">
                                                         <div className="strength-score" style={{ 
-                                                            color: sentiment === 'bullish' ? 'var(--green-strong)' : 
-                                                                   sentiment === 'bearish' ? 'var(--red-strong)' : 
+                                                            color: sentiment === 'alcista' ? 'var(--green-strong)' : 
+                                                                   sentiment === 'bajista' ? 'var(--red-strong)' : 
                                                                    'var(--neutral)' 
                                                         }}>
                                                             {strength}
                                                         </div>
-                                                        <div className="strength-label">Strength</div>
+                                                        <div className="strength-label">Fortaleza</div>
                                                     </div>
                                                 </div>
                                                 <div className="card-body">
                                                     <div className="central-bank">
-                                                        <div className="bank-label">Central Bank</div>
+                                                        <div className="bank-label">Banco Central</div>
                                                         <div className="bank-name">{country.centralBank}</div>
                                                         <div className="bank-info">
                                                             <div className="bank-info-item">
-                                                                <div className="bank-info-label">Rate</div>
+                                                                <div className="bank-info-label">Tasa</div>
                                                                 <div className="bank-info-value">{data.interestRate}%</div>
                                                             </div>
                                                             <div className="bank-info-item">
-                                                                <div className="bank-info-label">Next Meeting</div>
+                                                                <div className="bank-info-label">Próxima Reunión</div>
                                                                 <div className="bank-info-value">{country.nextMeeting}</div>
                                                             </div>
                                                             <div className="bank-info-item">
-                                                                <div className="bank-info-label">Outlook</div>
+                                                                <div className="bank-info-label">Perspectiva</div>
                                                                 <div className="bank-info-value">{country.outlook}</div>
                                                             </div>
                                                         </div>
@@ -1214,7 +1214,7 @@
 
                                                     <div className="metrics-grid">
                                                         <div className="metric">
-                                                            <div className="metric-label">GDP Growth</div>
+                                                            <div className="metric-label">Crecimiento PIB</div>
                                                             <div className="metric-value" style={{ 
                                                                 color: data.gdpGrowth > 1.8 ? 'var(--green-strong)' : 
                                                                        data.gdpGrowth < 1.0 ? 'var(--red-strong)' : 
@@ -1224,7 +1224,7 @@
                                                             </div>
                                                         </div>
                                                         <div className="metric">
-                                                            <div className="metric-label">Inflation</div>
+                                                            <div className="metric-label">Inflación</div>
                                                             <div className="metric-value" style={{ 
                                                                 color: data.inflation >= 1.8 && data.inflation <= 2.5 ? 'var(--green-strong)' : 
                                                                        data.inflation > 3.5 ? 'var(--red-strong)' : 
@@ -1234,7 +1234,7 @@
                                                             </div>
                                                         </div>
                                                         <div className="metric">
-                                                            <div className="metric-label">Unemployment</div>
+                                                            <div className="metric-label">Desempleo</div>
                                                             <div className="metric-value" style={{ 
                                                                 color: data.unemployment < 3.5 ? 'var(--green-strong)' : 
                                                                        data.unemployment > 6 ? 'var(--red-strong)' : 
@@ -1244,7 +1244,7 @@
                                                             </div>
                                                         </div>
                                                         <div className="metric">
-                                                            <div className="metric-label">Current Account</div>
+                                                            <div className="metric-label">Cuenta Corriente</div>
                                                             <div className="metric-value metric-value-small" style={{ 
                                                                 color: data.currentAccount > 2 ? 'var(--green-strong)' : 
                                                                        data.currentAccount < -3 ? 'var(--red-strong)' : 
@@ -1254,7 +1254,7 @@
                                                             </div>
                                                         </div>
                                                         <div className="metric">
-                                                            <div className="metric-label">Trade Balance</div>
+                                                            <div className="metric-label">Balanza Comercial</div>
                                                             <div className="metric-value metric-value-small" style={{ 
                                                                 color: data.tradeBalance > 10 ? 'var(--green-strong)' : 
                                                                        data.tradeBalance < -20 ? 'var(--red-strong)' : 
@@ -1264,7 +1264,7 @@
                                                             </div>
                                                         </div>
                                                         <div className="metric">
-                                                            <div className="metric-label">vs USD Rate</div>
+                                                            <div className="metric-label">Tasa vs USD</div>
                                                             <div className="metric-value metric-value-small">
                                                                 {country.code === 'USD' ? '1.0000' : rate.toFixed(4)}
                                                             </div>
@@ -1273,11 +1273,11 @@
 
                                                     <div className="analysis-section">
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                            <div className="analysis-title">Fundamental Analysis</div>
+                                                            <div className="analysis-title">Análisis Fundamental</div>
                                                             <div className={`sentiment-badge sentiment-${sentiment}`}>
                                                                 <div className="sentiment-indicator" style={{ 
-                                                                    background: sentiment === 'bullish' ? 'var(--green-strong)' : 
-                                                                               sentiment === 'bearish' ? 'var(--red-strong)' : 
+                                                                    background: sentiment === 'alcista' ? 'var(--green-strong)' : 
+                                                                               sentiment === 'bajista' ? 'var(--red-strong)' : 
                                                                                'var(--neutral)' 
                                                                 }}></div>
                                                                 {sentiment}
@@ -1296,32 +1296,32 @@
                         )}
 
                         <div className="footer">
-                            <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>FOREX FUNDAMENTAL ANALYSIS DASHBOARD</div>
-                            <div style={{ marginBottom: '1rem' }}>Professional-grade fundamental analysis • Data updated February 2026</div>
+                            <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>DASHBOARD DE ANÁLISIS FUNDAMENTAL FOREX</div>
+                            <div style={{ marginBottom: '1rem' }}>Análisis fundamental de grado profesional • Datos actualizados Febrero 2026</div>
                             <div className="data-sources">
                                 <div>
-                                    <div className="source-label">Exchange Rates</div>
+                                    <div className="source-label">Tipos de Cambio</div>
                                     <a href="https://www.exchangerate-api.com" target="_blank" className="source-link">
                                         exchangerate-api.com
                                     </a>
                                 </div>
                                 <div>
-                                    <div className="source-label">Economic Data</div>
-                                    <div>Central Banks & Statistical Agencies</div>
+                                    <div className="source-label">Datos Económicos</div>
+                                    <div>Bancos Centrales y Agencias Estadísticas</div>
                                 </div>
                                 <div>
-                                    <div className="source-label">Update Frequency</div>
-                                    <div>FX Rates: 60s | Fundamentals: 24h</div>
+                                    <div className="source-label">Frecuencia de Actualización</div>
+                                    <div>Tipos FX: 60s | Fundamentales: 24h</div>
                                 </div>
                             </div>
                             <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: '0.875rem' }}>
-                                <a href="about.html" style={{ color: 'var(--text-secondary)', marginRight: '1.5rem', textDecoration: 'none' }}>About</a>
-                                <a href="terms.html" style={{ color: 'var(--text-secondary)', marginRight: '1.5rem', textDecoration: 'none' }}>Terms of Service</a>
-                                <a href="privacy.html" style={{ color: 'var(--text-secondary)', marginRight: '1.5rem', textDecoration: 'none' }}>Privacy Policy</a>
-                                <a href="contact.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Contact</a>
+                                <a href="about.html" style={{ color: 'var(--text-secondary)', marginRight: '1.5rem', textDecoration: 'none' }}>Acerca de</a>
+                                <a href="terms.html" style={{ color: 'var(--text-secondary)', marginRight: '1.5rem', textDecoration: 'none' }}>Términos de Servicio</a>
+                                <a href="privacy.html" style={{ color: 'var(--text-secondary)', marginRight: '1.5rem', textDecoration: 'none' }}>Política de Privacidad</a>
+                                <a href="contact.html" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Contacto</a>
                             </div>
                             <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                                © 2026 Global Investing. All rights reserved.
+                                © 2026 Global Investing. Todos los derechos reservados.
                             </div>
                         </div>
                     </div>
