@@ -337,72 +337,101 @@
             font-weight: 400;
         }
 
-        /* Tooltips CORREGIDOS */
-        .tooltip-wrapper {
+        /* Tooltips CORREGIDOS - Versión mejorada */
+        .tooltip-header {
             position: relative;
-            display: inline-block;
+            cursor: help;
         }
 
-        .tooltip-content {
-            visibility: hidden;
-            opacity: 0;
-            position: absolute;
-            bottom: calc(100% + 12px);
-            left: 50%;
-            transform: translateX(-50%);
+        .tooltip-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--blue);
+            color: white;
+            text-align: center;
+            line-height: 16px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 6px;
+            cursor: help;
+            vertical-align: middle;
+            transition: all 0.2s ease;
+        }
+
+        .tooltip-icon:hover {
+            background: var(--green-strong);
+            transform: scale(1.15);
+        }
+
+        .tooltip-box {
+            display: none;
+            position: fixed;
             background: var(--bg-elevated);
             color: var(--text-primary);
-            padding: 1rem 1.25rem;
+            padding: 1.25rem;
             border-radius: 8px;
-            border: 1px solid var(--border-hover);
+            border: 2px solid var(--blue);
             font-size: 0.8125rem;
-            line-height: 1.6;
-            width: 320px;
-            z-index: 10000;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            line-height: 1.7;
+            width: 340px;
+            max-width: 90vw;
+            z-index: 99999;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9);
             font-weight: 400;
             text-align: left;
-            pointer-events: none;
             white-space: normal;
+            animation: tooltipFadeIn 0.3s ease;
         }
 
-        .tooltip-wrapper:hover .tooltip-content {
-            visibility: visible;
-            opacity: 1;
+        @keyframes tooltipFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .tooltip-content::after {
+        .tooltip-box.visible {
+            display: block;
+        }
+
+        .tooltip-box::before {
             content: '';
             position: absolute;
-            top: 100%;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 10px solid transparent;
+            border-bottom-color: var(--blue);
+        }
+
+        .tooltip-box::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
             border: 8px solid transparent;
-            border-top-color: var(--bg-elevated);
+            border-bottom-color: var(--bg-elevated);
+            margin-bottom: -1px;
         }
 
-        .tooltip-title {
+        .tooltip-header-title {
             font-weight: 700;
-            margin-bottom: 0.625rem;
+            margin-bottom: 0.75rem;
             color: var(--blue);
-            font-size: 0.9375rem;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
         }
 
-        .help-icon {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: var(--text-tertiary);
-            color: var(--bg-card);
-            text-align: center;
-            line-height: 14px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-left: 4px;
-            cursor: help;
-            vertical-align: middle;
+        .tooltip-body {
+            color: var(--text-secondary);
         }
 
         /* Overall column styles */
@@ -1241,19 +1270,52 @@
                 });
             };
 
-            // Componente Tooltip mejorado
-            const TooltipHeader = ({ children, tooltip, title }) => (
-                <th>
-                    <div className="tooltip-wrapper">
+            // Componente Tooltip mejorado con JavaScript
+            const TooltipCell = ({ children, tooltip, title }) => {
+                const [showTooltip, setShowTooltip] = React.useState(false);
+                const [position, setPosition] = React.useState({ x: 0, y: 0 });
+                const iconRef = React.useRef(null);
+
+                const handleMouseEnter = (e) => {
+                    const rect = e.target.getBoundingClientRect();
+                    setPosition({
+                        x: rect.left + rect.width / 2,
+                        y: rect.top - 10
+                    });
+                    setShowTooltip(true);
+                };
+
+                const handleMouseLeave = () => {
+                    setShowTooltip(false);
+                };
+
+                return (
+                    <th className="tooltip-header">
                         {children}
-                        <span className="help-icon">?</span>
-                        <div className="tooltip-content">
-                            <div className="tooltip-title">{title}</div>
-                            {tooltip}
-                        </div>
-                    </div>
-                </th>
-            );
+                        <span 
+                            ref={iconRef}
+                            className="tooltip-icon"
+                            onMouseEnter={handleMouseEnter}
+                            onMouseLeave={handleMouseLeave}
+                        >
+                            ?
+                        </span>
+                        {showTooltip && (
+                            <div 
+                                className="tooltip-box visible"
+                                style={{
+                                    left: `${position.x}px`,
+                                    top: `${position.y}px`,
+                                    transform: 'translate(-50%, -100%)'
+                                }}
+                            >
+                                <div className="tooltip-header-title">{title}</div>
+                                <div className="tooltip-body">{tooltip}</div>
+                            </div>
+                        )}
+                    </th>
+                );
+            };
 
             return (
                 <div className="app-container">
@@ -1331,86 +1393,86 @@
                                         <thead>
                                             <tr>
                                                 <th></th>
-                                                <TooltipHeader 
+                                                <TooltipCell 
                                                     title="Síntesis General"
                                                     tooltip="Evaluación global de la fortaleza fundamental de la divisa basada en todos los indicadores económicos. Verde = Alcista, Rojo = Bajista, Gris = Neutral."
                                                 >
                                                     General
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Síntesis</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="PIB Total"
                                                     tooltip={indicatorTooltips.gdp}
                                                 >
                                                     PIB
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Trillones USD</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Crecimiento PIB"
                                                     tooltip={indicatorTooltips.gdpGrowth}
                                                 >
                                                     Crecimiento PIB
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% Anual</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Tasa de Interés"
                                                     tooltip={indicatorTooltips.interestRate}
                                                 >
                                                     Tasa de Interés
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>%</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Inflación"
                                                     tooltip={indicatorTooltips.inflation}
                                                 >
                                                     Inflación
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>IPC %</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Desempleo"
                                                     tooltip={indicatorTooltips.unemployment}
                                                 >
                                                     Desempleo
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>%</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Cuenta Corriente"
                                                     tooltip={indicatorTooltips.currentAccount}
                                                 >
                                                     Cuenta Corriente
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% del PIB</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Deuda Pública"
                                                     tooltip={indicatorTooltips.debt}
                                                 >
                                                     Deuda Pública
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% del PIB</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Balanza Comercial"
                                                     tooltip={indicatorTooltips.tradeBalance}
                                                 >
                                                     Balanza Comercial
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Miles Millones USD</span>
-                                                </TooltipHeader>
-                                                <TooltipHeader 
+                                                </TooltipCell>
+                                                <TooltipCell 
                                                     title="Producción Industrial"
                                                     tooltip={indicatorTooltips.production}
                                                 >
                                                     Prod. Industrial
                                                     <br/>
                                                     <span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% Anual</span>
-                                                </TooltipHeader>
+                                                </TooltipCell>
                                             </tr>
                                         </thead>
                                         <tbody>
