@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - Forex Fundamental Analysis Dashboard</title>
+    <meta name="description" content="Contact us for support, inquiries, or feedback about our forex fundamental analysis platform.">
+    <meta name="robots" content="index, follow">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0b0e14;
+            --bg-secondary: #13171f;
+            --bg-card: #1a1f2e;
+            --text-primary: #e1e4e8;
+            --text-secondary: #8b949e;
+            --border: #30363d;
+            --blue: #1e88e5;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .brand-title:hover {
+            color: var(--blue);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        ul {
+            margin-left: 2rem;
+            margin-bottom: 1.25rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+        }
+
+        a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .section {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .contact-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .contact-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .contact-card p {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        button {
+            background: var(--blue);
+            color: white;
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .info-box {
+            background: rgba(30, 136, 229, 0.1);
+            border-left: 4px solid var(--blue);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="index.html" class="brand-title">Forex Fundamental Analysis</a>
+            <div class="nav-links">
+                <a href="index.html">Dashboard</a>
+                <a href="about.html">About</a>
+                <a href="terms.html">Terms</a>
+                <a href="privacy.html">Privacy</a>
+                <a href="contact.html">Contact</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Contact Us</h1>
+        <p>We value your feedback and are here to assist with any questions or concerns about our platform.</p>
+
+        <div class="contact-grid">
+            <div class="contact-card">
+                <h3>General Inquiries</h3>
+                <p><strong>Email:</strong> info@globalinvesting.github.io</p>
+                <p>For general questions about our platform, features, or data sources.</p>
+            </div>
+
+            <div class="contact-card">
+                <h3>Technical Support</h3>
+                <p><strong>Email:</strong> support@globalinvesting.github.io</p>
+                <p>For technical issues, bugs, or platform functionality questions.</p>
+            </div>
+
+            <div class="contact-card">
+                <h3>Data Questions</h3>
+                <p><strong>Email:</strong> data@globalinvesting.github.io</p>
+                <p>For questions about data accuracy, sources, or methodology.</p>
+            </div>
+
+            <div class="contact-card">
+                <h3>Business Inquiries</h3>
+                <p><strong>Email:</strong> business@globalinvesting.github.io</p>
+                <p>For partnerships, licensing, or commercial opportunities.</p>
+            </div>
+
+            <div class="contact-card">
+                <h3>Legal & Privacy</h3>
+                <p><strong>Email:</strong> legal@globalinvesting.github.io</p>
+                <p>For legal matters, privacy concerns, or compliance questions.</p>
+            </div>
+
+            <div class="contact-card">
+                <h3>Security Issues</h3>
+                <p><strong>Email:</strong> security@globalinvesting.github.io</p>
+                <p>For reporting security vulnerabilities (please do not open public issues).</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Send Us a Message</h2>
+            <p>Fill out the form below and we'll get back to you as soon as possible. Typical response time is 24-48 hours.</p>
+
+            <div class="info-box">
+                <p style="margin: 0;"><strong>Note:</strong> This is a demonstration contact form. For a fully functional form, you'll need to integrate a backend service like Formspree, EmailJS, or similar.</p>
+            </div>
+
+            <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+                <div class="form-group">
+                    <label for="name">Name *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">Subject *</label>
+                    <select id="subject" name="subject" required>
+                        <option value="">-- Select a topic --</option>
+                        <option value="general">General Inquiry</option>
+                        <option value="technical">Technical Support</option>
+                        <option value="data">Data Question</option>
+                        <option value="business">Business Inquiry</option>
+                        <option value="feedback">Feedback</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message *</label>
+                    <textarea id="message" name="message" required></textarea>
+                </div>
+
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Frequently Asked Questions</h2>
+            
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">How often is the data updated?</h3>
+            <p>Foreign exchange rates are updated every 60 seconds. Economic indicators are refreshed every 24 hours, and central bank data is updated following official announcements.</p>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Is this financial advice?</h3>
+            <p>No. Our platform provides informational and educational content only. We do not provide financial advice, investment recommendations, or trading signals. Please see our <a href="terms.html">Terms of Service</a> for more details.</p>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">What currencies do you cover?</h3>
+            <p>We currently cover eight major currencies: USD, EUR, GBP, JPY, AUD, CAD, CHF, and NZD. Additional currencies may be added in future updates.</p>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Can I use this data for commercial purposes?</h3>
+            <p>Please contact us at business@globalinvesting.github.io to discuss licensing and commercial use cases.</p>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Do you offer an API?</h3>
+            <p>API access is currently in development. Contact us at business@globalinvesting.github.io to express interest or discuss early access.</p>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">How can I report a bug or suggest a feature?</h3>
+            <p>Please email support@globalinvesting.github.io with detailed information about bugs or feature requests. We appreciate your feedback!</p>
+        </div>
+
+        <div class="section">
+            <h2>Response Times</h2>
+            <ul>
+                <li><strong>General Inquiries:</strong> 24-48 hours</li>
+                <li><strong>Technical Support:</strong> 24-48 hours</li>
+                <li><strong>Business Inquiries:</strong> 2-3 business days</li>
+                <li><strong>Security Issues:</strong> 24 hours (high priority)</li>
+            </ul>
+            <p>We strive to respond to all inquiries promptly during business hours (Monday-Friday, 9 AM - 5 PM EST).</p>
+        </div>
+
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+            <p>&copy; 2026 Global Investing. All rights reserved.</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="index.html">Dashboard</a> | 
+                <a href="about.html">About</a> | 
+                <a href="terms.html">Terms of Service</a> | 
+                <a href="privacy.html">Privacy Policy</a> | 
+                <a href="contact.html">Contact</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
