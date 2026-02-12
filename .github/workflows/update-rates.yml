@@ -2,8 +2,8 @@ name: Update Interest Rates
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Cada 6 horas
-  workflow_dispatch:  # Permite ejecución manual
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   update-rates:
@@ -15,41 +15,41 @@ jobs:
       - name: Create rates directory
         run: mkdir -p rates
 
-      - name: Fetch USD rate (FRED)
+      - name: Fetch USD rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/USD.json || echo '{"observations":[{"value":"3.64"}]}' > rates/USD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/USD.json || echo '{"observations":[{"value":"3.64"}]}' > rates/USD.json
 
-      - name: Fetch EUR rate (FRED)
+      - name: Fetch EUR rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=ECBDFR&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/EUR.json || echo '{"observations":[{"value":"2.50"}]}' > rates/EUR.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=ECBDFR&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/EUR.json || echo '{"observations":[{"value":"2.50"}]}' > rates/EUR.json
 
-      - name: Fetch GBP rate (FRED)
+      - name: Fetch GBP rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IUDSOIA&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/GBP.json || echo '{"observations":[{"value":"4.75"}]}' > rates/GBP.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IUDSOIA&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/GBP.json || echo '{"observations":[{"value":"4.75"}]}' > rates/GBP.json
 
-      - name: Fetch JPY rate (FRED)
+      - name: Fetch JPY rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=INTDSRJPM193N&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/JPY.json || echo '{"observations":[{"value":"0.25"}]}' > rates/JPY.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=INTDSRJPM193N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/JPY.json || echo '{"observations":[{"value":"0.25"}]}' > rates/JPY.json
 
-      - name: Fetch AUD rate (FRED)
+      - name: Fetch AUD rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCB01AUM156N&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/AUD.json || echo '{"observations":[{"value":"4.35"}]}' > rates/AUD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCB01AUM156N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/AUD.json || echo '{"observations":[{"value":"4.35"}]}' > rates/AUD.json
 
-      - name: Fetch CAD rate (FRED)
+      - name: Fetch CAD rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCB01CAM156N&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/CAD.json || echo '{"observations":[{"value":"3.25"}]}' > rates/CAD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCB01CAM156N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/CAD.json || echo '{"observations":[{"value":"3.25"}]}' > rates/CAD.json
 
-      - name: Fetch CHF rate (FRED)
+      - name: Fetch CHF rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCI01CHM156N&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/CHF.json || echo '{"observations":[{"value":"0.50"}]}' > rates/CHF.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCI01CHM156N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/CHF.json || echo '{"observations":[{"value":"0.50"}]}' > rates/CHF.json
 
-      - name: Fetch NZD rate (FRED)
+      - name: Fetch NZD rate
         run: |
-          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCI01NZM156N&api_key=${{ secrets.5e0ae2ba29361b8ddb614fd5f92c0a51 }}&file_type=json&limit=1&sort_order=desc" > rates/NZD.json || echo '{"observations":[{"value":"4.25"}]}' > rates/NZD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=IRSTCI01NZM156N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/NZD.json || echo '{"observations":[{"value":"4.25"}]}' > rates/NZD.json
 
-      - name: Commit and push if changed
+      - name: Commit and push
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add rates/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update interest rates $(date +'%Y-%m-%d %H:%M')" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update rates $(date +'%Y-%m-%d %H:%M')" && git push)
