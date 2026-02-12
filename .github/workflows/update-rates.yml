@@ -2,7 +2,7 @@ name: Update Interest Rates
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 8 * * *'  # Todos los días a las 8:00 AM UTC
   workflow_dispatch:
 
 jobs:
