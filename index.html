@@ -1220,31 +1220,55 @@ const getFallbackValue = async (countryCode, indicator) => {
     const indicatorName = indicatorMap[indicator];
     if (!indicatorName) return null;
 
-    // ========== FUENTE 1: IMF WEO (mejorado con proxy) ==========
+    // ========== FUENTE 1: Eurostat (PRIORITARIO para EUR) ==========
+    if (countryCode === 'EUR' && ['currentAccount', 'tradeBalance'].includes(indicatorName)) {
+        const eurostatValue = await fetchEurostatData(indicatorName);
+        if (eurostatValue !== null) return eurostatValue;
+    }
+
+    // ========== FUENTE 2: ECB Statistical Data Warehouse (EUR específico) ==========
+    if (countryCode === 'EUR' && indicatorName === 'currentAccount') {
+        const ecbValue = await fetchECBCurrentAccount();
+        if (ecbValue !== null) return ecbValue;
+    }
+
+    // ========== FUENTE 3: FRED API mejorado (para todos los países) ==========
+    if (['currentAccount', 'tradeBalance'].includes(indicatorName)) {
+        const fredValue = await fetchFREDIndicator(countryCode, indicatorName);
+        if (fredValue !== null) return fredValue;
+    }
+
+    // ========== FUENTE 4: IMF WEO (mejorado con proxy) ==========
     if (['currentAccount', 'debt', 'gdpGrowth', 'inflation'].includes(indicatorName)) {
         const imfValue = await fetchIMFWEOWithProxy(countryCode, indicatorName);
         if (imfValue !== null) return imfValue;
     }
     
-    // ========== FUENTE 2: Trading Economics API Pública ==========
+    // ========== FUENTE 5: Trading Economics API Pública ==========
     if (['currentAccount', 'debt', 'tradeBalance', 'gdpGrowth'].includes(indicatorName)) {
         const teValue = await fetchTradingEconomicsPublic(countryCode, indicatorName);
         if (teValue !== null) return teValue;
     }
     
-    // ========== FUENTE 3: OECD via CORS Proxy ==========
+    // ========== FUENTE 6: OECD via CORS Proxy ==========
     if (['currentAccount', 'debt', 'tradeBalance'].includes(indicatorName)) {
         const oecdValue = await fetchOECDviaProxy(countryCode, indicatorName);
         if (oecdValue !== null) return oecdValue;
     }
 
-    // ========== FUENTE 4: REST Countries + World Bank Complementario ==========
+    // ========== FUENTE 7: Alpha Vantage Economic Indicators ==========
+    if (['currentAccount', 'tradeBalance'].includes(indicatorName)) {
+        const avValue = await fetchAlphaVantageEconomic(countryCode, indicatorName);
+        if (avValue !== null) return avValue;
+    }
+
+    // ========== FUENTE 8: REST Countries + World Bank Complementario ==========
     if (indicatorName === 'currentAccount' || indicatorName === 'debt') {
         const restValue = await fetchRESTCountriesData(countryCode, indicatorName);
         if (restValue !== null) return restValue;
     }
 
-    // ========== FUENTE 5: UN Comtrade para Balanza Comercial ==========
+    // ========== FUENTE 9: UN Comtrade para Balanza Comercial (último recurso) ==========
     if (indicatorName === 'tradeBalance') {
         const unValue = await fetchUNComtradeBalance(countryCode);
         if (unValue !== null) return unValue;
@@ -1254,6 +1278,258 @@ const getFallbackValue = async (countryCode, indicator) => {
     return null;
 };
 
+// ========== NUEVAS FUENTES EUROSTAT Y ECB ==========
+
+const fetchEurostatData = async (indicator) => {
+    const cacheKey = `eurostat_${indicator}`;
+    const cached = CacheManager.get(cacheKey);
+    if (cached !== null) return cached;
+
+    const eurostatIndicators = {
+        currentAccount: 'nasa_10_f_bs', // Balance of payments - current account
+        tradeBalance: 'ext_lt_intratrd' // International trade balance
+    };
+
+    const datasetCode = eurostatIndicators[indicator];
+    if (!datasetCode) return null;
+
+    // Intentar múltiples endpoints de Eurostat
+    const endpoints = [
+        `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${datasetCode}?format=JSON&geo=EU27_2020&lastTimePeriod=5`,
+        `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${datasetCode}?format=JSON&geo=EA19&lastTimePeriod=5`
+    ];
+
+    for (const url of endpoints) {
+        try {
+            const response = await fetch(url, { 
+                signal: AbortSignal.timeout(8000),
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Parsear estructura de Eurostat
+                if (data.value && Object.keys(data.value).length > 0) {
+                    const values = Object.values(data.value);
+                    const latestValue = values[values.length - 1];
+                    
+                    if (latestValue !== null && latestValue !== undefined) {
+                        const value = parseFloat(latestValue);
+                        if (!isNaN(value)) {
+                            console.log(`✓ Eurostat ${indicator} for EUR: ${value}`);
+                            CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
+                            return value;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`Eurostat endpoint failed: ${url}`);
+        }
+    }
+    
+    return null;
+};
+
+const fetchECBCurrentAccount = async () => {
+    const cacheKey = 'ecb_current_account_EUR';
+    const cached = CacheManager.get(cacheKey);
+    if (cached !== null) return cached;
+
+    // ECB Statistical Data Warehouse - Balance of Payments
+    const endpoints = [
+        'https://data.ecb.europa.eu/data-service/data/BP6/M.N.I8.W1.S1.S1.T.B.CA._Z._Z._Z.EUR._T._X.N',
+        'https://sdw-wsrest.ecb.europa.eu/service/data/BP6/M.N.I8.W1.S1.S1.T.B.CA._Z._Z._Z.EUR._T._X.N?detail=dataonly&lastNObservations=12'
+    ];
+
+    for (const url of endpoints) {
+        try {
+            const response = await fetch(url, {
+                signal: AbortSignal.timeout(8000),
+                headers: { 'Accept': 'application/vnd.sdmx.data+json;version=1.0.0' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Parsear SDMX-JSON del ECB
+                if (data.dataSets && data.dataSets[0] && data.dataSets[0].series) {
+                    const series = Object.values(data.dataSets[0].series)[0];
+                    if (series && series.observations) {
+                        const observations = Object.values(series.observations);
+                        const recentValues = observations.slice(-12); // Últimos 12 meses
+                        
+                        // Calcular promedio de últimos 12 meses
+                        const sum = recentValues.reduce((acc, obs) => acc + parseFloat(obs[0]), 0);
+                        const avg = sum / recentValues.length;
+                        
+                        if (!isNaN(avg)) {
+                            // Convertir de millones EUR a % del PIB (aproximado)
+                            const euroGDP = 14000; // PIB Eurozona ~14 trillones EUR
+                            const percentGDP = (avg / 1000) / euroGDP * 100; // Convertir millones a trillones
+                            
+                            console.log(`✓ ECB Current Account for EUR: ${percentGDP.toFixed(1)}%`);
+                            CacheManager.set(cacheKey, parseFloat(percentGDP.toFixed(1)), CACHE_CONFIG.ECONOMIC_DATA);
+                            return parseFloat(percentGDP.toFixed(1));
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`ECB endpoint failed`);
+        }
+    }
+    
+    return null;
+};
+
+const fetchFREDIndicator = async (countryCode, indicator) => {
+    const cacheKey = `fred_${countryCode}_${indicator}`;
+    const cached = CacheManager.get(cacheKey);
+    if (cached !== null) return cached;
+
+    const fredApiKeys = [
+        '5e0ae2ba29361b8ddb614fd5f92c0a51', // Demo key
+        'YOUR_FRED_KEY' // Usuario puede reemplazar
+    ];
+
+    const fredSeriesMap = {
+        USD: {
+            currentAccount: 'BOPBCA',
+            tradeBalance: 'BOPGTB'
+        },
+        EUR: {
+            currentAccount: 'EA19BPBPCAGDPPT', // Eurozone Current Account % GDP
+            tradeBalance: 'XTEXVA19'
+        },
+        GBP: {
+            currentAccount: 'GBRCAAA188A',
+            tradeBalance: 'XTEXVA01GBM664S'
+        },
+        JPY: {
+            currentAccount: 'JPNB6BLTT02STSAQ',
+            tradeBalance: 'JPNXTNTVA01STSAQ'
+        },
+        AUD: {
+            currentAccount: 'XTBALAUCORSA',
+            tradeBalance: 'AUSXTNTVA01STSAQ'
+        },
+        CAD: {
+            currentAccount: 'CXBACA',
+            tradeBalance: 'CANXTNTVA01STSAQ'
+        },
+        CHF: {
+            currentAccount: 'CHECAAA188A',
+            tradeBalance: 'CHEXTNTVA01STSAQ'
+        },
+        NZD: {
+            currentAccount: 'NZLB6BLTT02STSAQ',
+            tradeBalance: 'NZLXTNTVA01STSAQ'
+        }
+    };
+
+    const seriesId = fredSeriesMap[countryCode]?.[indicator];
+    if (!seriesId) return null;
+
+    for (const apiKey of fredApiKeys) {
+        try {
+            const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&limit=12&sort_order=desc`;
+            
+            // Usar proxy CORS para FRED
+            const proxies = [
+                '',  // Intentar directo primero
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?'
+            ];
+
+            for (const proxy of proxies) {
+                try {
+                    const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
+                    const response = await fetch(fetchUrl, { signal: AbortSignal.timeout(6000) });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        if (data.observations && data.observations.length > 0) {
+                            // Obtener el valor más reciente no nulo
+                            for (const obs of data.observations.reverse()) {
+                                const value = parseFloat(obs.value);
+                                if (!isNaN(value) && obs.value !== '.') {
+                                    console.log(`✓ FRED ${indicator} for ${countryCode}: ${value}`);
+                                    CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
+                                    return value;
+                                }
+                            }
+                        }
+                    }
+                } catch (proxyError) {
+                    continue;
+                }
+            }
+        } catch (error) {
+            console.warn(`FRED attempt ${apiKey} failed for ${countryCode} ${indicator}`);
+        }
+    }
+    
+    return null;
+};
+
+const fetchAlphaVantageEconomic = async (countryCode, indicator) => {
+    const cacheKey = `av_economic_${countryCode}_${indicator}`;
+    const cached = CacheManager.get(cacheKey);
+    if (cached !== null) return cached;
+
+    const alphaVantageKeys = [
+        '2TW8Y8DDBPRQ2VTV',
+        'RIBXT3XYLI69O5WY',
+        'YOUR_ALPHAVANTAGE_KEY'
+    ];
+
+    // Alpha Vantage economic indicators
+    const avFunctions = {
+        currentAccount: 'CURRENT_ACCOUNT',
+        tradeBalance: 'TRADE_BALANCE'
+    };
+
+    const func = avFunctions[indicator];
+    if (!func) return null;
+
+    const countryMap = {
+        USD: 'USA', EUR: 'EMU', GBP: 'GBR', JPY: 'JPN',
+        AUD: 'AUS', CAD: 'CAN', CHF: 'CHE', NZD: 'NZL'
+    };
+
+    const country = countryMap[countryCode];
+    if (!country) return null;
+
+    for (const apiKey of alphaVantageKeys) {
+        try {
+            const url = `https://www.alphavantage.co/query?function=${func}&country=${country}&apikey=${apiKey}&datatype=json`;
+            const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                    const latestData = data.data[0];
+                    const value = parseFloat(latestData.value);
+                    
+                    if (!isNaN(value)) {
+                        console.log(`✓ Alpha Vantage ${indicator} for ${countryCode}: ${value}`);
+                        CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
+                        return value;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`Alpha Vantage economic failed for ${countryCode}`);
+        }
+    }
+    
+    return null;
+};
+    
 // ========== FUNCIONES AUXILIARES PARA FALLBACKS ==========
 
 const fetchIMFWEOWithProxy = async (countryCode, indicator) => {
@@ -1262,8 +1538,10 @@ const fetchIMFWEOWithProxy = async (countryCode, indicator) => {
     if (cached !== null) return cached;
 
     const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?'
+        '',  // Intentar directo
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://api.allorigins.win/raw?url='
     ];
 
     const imfCountryCodes = { 
@@ -1285,7 +1563,12 @@ const fetchIMFWEOWithProxy = async (countryCode, indicator) => {
     for (const proxy of corsProxies) {
         try {
             const imfUrl = `${API_CONFIG.imf.baseUrl}/${ind}/${country}`;
-            const response = await fetch(proxy + encodeURIComponent(imfUrl), { timeout: 8000 });
+            const fetchUrl = proxy ? proxy + encodeURIComponent(imfUrl) : imfUrl;
+            
+            const response = await fetch(fetchUrl, { 
+                signal: AbortSignal.timeout(8000),
+                headers: { 'Accept': 'application/json' }
+            });
             
             if (response.ok) {
                 const data = await response.json();
@@ -1295,7 +1578,7 @@ const fetchIMFWEOWithProxy = async (countryCode, indicator) => {
                     for (const year of years) {
                         const value = parseFloat(countryData[year]);
                         if (!isNaN(value) && value !== null) {
-                            console.log(`✓ IMF WEO (proxy) ${indicator} for ${countryCode}: ${value}`);
+                            console.log(`✓ IMF WEO ${indicator} for ${countryCode}: ${value}`);
                             CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
                             return value;
                         }
@@ -1303,7 +1586,7 @@ const fetchIMFWEOWithProxy = async (countryCode, indicator) => {
                 }
             }
         } catch (error) {
-            console.warn(`IMF WEO proxy failed: ${proxy}`);
+            continue;
         }
     }
     return null;
