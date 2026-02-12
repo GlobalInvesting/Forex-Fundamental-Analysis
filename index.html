@@ -1873,7 +1873,7 @@ const getFallbackValue = async (countryCode, indicator) => {
             return null;
         };
 
-// ========== SOLUCIÓN CON ALLORIGINS (MÁS CONFIABLE) ==========
+// ========== SOLUCIÓN CON GitHub Actions + Archivos Estáticos ==========
 
 const fetchInterestRate = async (country) => {
     const cacheKey = `interest_rate_${country.code}`;
@@ -1882,53 +1882,36 @@ const fetchInterestRate = async (country) => {
 
     console.log(`🔍 Fetching interest rate for ${country.code}...`);
 
-    // ========== ESTRATEGIA 1: FRED vía AllOrigins (proxy CORS más estable) ==========
-    const fredSeriesMap = {
-        USD: 'DFF',
-        EUR: 'ECBDFR',
-        GBP: 'IUDSOIA',
-        JPY: 'INTDSRJPM193N',
-        AUD: 'IRSTCB01AUM156N',
-        CAD: 'IRSTCB01CAM156N',
-        CHF: 'IRSTCI01CHM156N',
-        NZD: 'IRSTCI01NZM156N'
-    };
-
-    const seriesId = fredSeriesMap[country.code];
-    
-    if (seriesId) {
-        const apiKey = '5e0ae2ba29361b8ddb614fd5f92c0a51';
-        const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&limit=1&sort_order=desc`;
+    // ========== ESTRATEGIA PRINCIPAL: GitHub Pages JSON ==========
+    try {
+        // Cambia 'TU-USUARIO' y 'TU-REPO' por tus valores reales
+        const githubUrl = `https://TU-USUARIO.github.io/TU-REPO/rates/${country.code}.json`;
+        const response = await fetch(githubUrl, { 
+            signal: AbortSignal.timeout(5000),
+            cache: 'no-cache'  // Forzar datos frescos
+        });
         
-        try {
-            // AllOrigins es más confiable que corsproxy.io
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(fredUrl)}`;
-            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
-            
-            if (response.ok) {
-                const proxyData = await response.json();
-                const data = JSON.parse(proxyData.contents);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.observations && data.observations.length > 0) {
+                const latestObs = data.observations[0];
                 
-                if (data.observations && data.observations.length > 0) {
-                    const latestObs = data.observations[0];
+                if (latestObs.value && latestObs.value !== '.') {
+                    const value = parseFloat(latestObs.value);
                     
-                    if (latestObs.value && latestObs.value !== '.') {
-                        const value = parseFloat(latestObs.value);
-                        
-                        if (!isNaN(value) && value >= -1 && value < 25) {
-                            console.log(`✅ FRED (via AllOrigins) rate for ${country.code}: ${value}%`);
-                            CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
-                            return value;
-                        }
+                    if (!isNaN(value) && value >= -1 && value < 25) {
+                        console.log(`✅ GitHub Pages rate for ${country.code}: ${value}%`);
+                        CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
+                        return value;
                     }
                 }
             }
-        } catch (error) {
-            console.warn(`AllOrigins FRED failed for ${country.code}`);
         }
+    } catch (error) {
+        console.warn(`GitHub Pages failed for ${country.code}, trying fallback...`);
     }
 
-    // ========== ESTRATEGIA 2: Alpha Vantage (Para USD funciona bien) ==========
+    // ========== FALLBACK: Alpha Vantage (solo USD) ==========
     if (country.code === 'USD') {
         const alphaKeys = ['2TW8Y8DDBPRQ2VTV', 'RIBXT3XYLI69O5WY'];
         
@@ -1942,7 +1925,7 @@ const fetchInterestRate = async (country) => {
                     if (data.data && data.data.length > 0) {
                         const value = parseFloat(data.data[0].value);
                         if (!isNaN(value) && value >= 0 && value < 25) {
-                            console.log(`✅ Alpha Vantage rate for USD: ${value}%`);
+                            console.log(`✅ Alpha Vantage fallback rate for USD: ${value}%`);
                             CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
                             return value;
                         }
@@ -1951,49 +1934,6 @@ const fetchInterestRate = async (country) => {
             } catch (error) {
                 continue;
             }
-        }
-    }
-
-    // ========== ESTRATEGIA 3: Scraping Trading Economics via AllOrigins ==========
-    const teCountries = {
-        USD: 'united-states', EUR: 'euro-area', GBP: 'united-kingdom', JPY: 'japan',
-        AUD: 'australia', CAD: 'canada', CHF: 'switzerland', NZD: 'new-zealand'
-    };
-
-    const teCountry = teCountries[country.code];
-    if (teCountry) {
-        try {
-            const teUrl = `https://tradingeconomics.com/${teCountry}/interest-rate`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(teUrl)}`;
-            
-            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
-            
-            if (response.ok) {
-                const proxyData = await response.json();
-                const html = proxyData.contents;
-                
-                // Múltiples patrones de extracción
-                const patterns = [
-                    /<div[^>]*id="p"[^>]*>([0-9.]+)%?<\/div>/i,
-                    /<span[^>]*class="[^"]*actual[^"]*"[^>]*>([0-9.]+)/i,
-                    /Actual<\/[^>]+>\s*<[^>]+>([0-9.]+)/i,
-                    /"actual":"?([0-9.]+)"?/i
-                ];
-                
-                for (const pattern of patterns) {
-                    const match = html.match(pattern);
-                    if (match) {
-                        const value = parseFloat(match[1]);
-                        if (!isNaN(value) && value >= -1 && value < 25) {
-                            console.log(`✅ Trading Economics (scraped) rate for ${country.code}: ${value}%`);
-                            CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
-                            return value;
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn(`Trading Economics scraping failed for ${country.code}`);
         }
     }
 
