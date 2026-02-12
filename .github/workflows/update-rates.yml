@@ -14,125 +14,71 @@ jobs:
       - name: Create rates directory
         run: mkdir -p rates
       
-      - name: Install jq for JSON processing
-        run: sudo apt-get install -y jq
-      
-      # USD - Federal Reserve (FRED mejorado)
+      # USD - Federal Funds Rate
       - name: Fetch USD rate
         run: |
-          # Intenta FRED con serie actualizada
-          RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // empty')
-          
-          # Fallback: Trading Economics
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // "4.50"')
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/USD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/USD.json || echo '{"observations":[{"value":"4.50","date":"2026-02-12"}]}' > rates/USD.json
       
-      # EUR - European Central Bank
+      # EUR - ECB Main Refinancing Rate
       - name: Fetch EUR rate
         run: |
-          # ECB Statistical Data Warehouse
-          RATE=$(curl -s "https://data.ecb.europa.eu/data-detail-api/FM.M.U2.EUR.4F.KR.MRR_FR.LEV" | jq -r '.dataSets[0].series."0:0:0:0:0:0:0".observations | to_entries | last | .value[0] // empty')
-          
-          # Fallback 1: FRED
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=ECBDFR&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // empty')
-          fi
-          
-          # Fallback 2: Hardcoded current rate
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE="3.00"
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/EUR.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=ECBMRRFR&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/EUR.json || echo '{"observations":[{"value":"3.00","date":"2026-02-12"}]}' > rates/EUR.json
       
-      # GBP - Bank of England
+      # GBP - Bank of England Official Rate
       - name: Fetch GBP rate
         run: |
-          # Bank of England API
-          RATE=$(curl -s "https://www.bankofengland.co.uk/boeapps/database/fromshowcolumns.asp?Travel=NIxAZxSUx&FromSeries=1&ToSeries=50&DAT=RNG&FD=1&FM=Jan&FY=2024&TD=31&TM=Dec&TY=2026&FNY=Y&CSVF=TT&html.x=66&html.y=26&SeriesCodes=IUDBEDR&UsingCodes=Y&Filter=N&title=IUDBEDR&VPD=Y" | tail -n 1 | cut -d',' -f2 | tr -d ' ')
-          
-          # Fallback: FRED
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=BOERUKM&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // "4.75"')
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/GBP.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=BOERUKM&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/GBP.json || echo '{"observations":[{"value":"4.75","date":"2026-02-12"}]}' > rates/GBP.json
       
-      # JPY - Bank of Japan
+      # JPY - Bank of Japan Policy Rate
       - name: Fetch JPY rate
         run: |
-          # FRED actualizado
-          RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=BOJIR&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // empty')
-          
-          # Fallback
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE="0.50"
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/JPY.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=INTDSRJPM193N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/JPY.json || echo '{"observations":[{"value":"0.50","date":"2026-02-12"}]}' > rates/JPY.json
       
-      # AUD - Reserve Bank of Australia
+      # AUD - RBA Cash Rate
       - name: Fetch AUD rate
         run: |
-          # RBA RSS Feed parsing
-          RATE=$(curl -s "https://www.rba.gov.au/rss/rss-cb-data.xml" | grep -oP '(?<=<description>).*?(?=</description>)' | grep "Cash Rate Target" | head -1 | grep -oP '\d+\.\d+' || echo "4.35")
-          
-          # Fallback: FRED
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=RBATCTR&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // "4.35"')
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/AUD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=RBATCTR&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/AUD.json || echo '{"observations":[{"value":"4.35","date":"2026-02-12"}]}' > rates/AUD.json
       
-      # CAD - Bank of Canada
+      # CAD - Bank of Canada Overnight Rate
       - name: Fetch CAD rate
         run: |
-          # Bank of Canada Valet API
-          RATE=$(curl -s "https://www.bankofcanada.ca/valet/observations/V39079/json?recent=1" | jq -r '.observations[0].V39079.v // empty')
-          
-          # Fallback: FRED
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=INTDSRCAM193N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // "3.25"')
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/CAD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=INTDSRCAM193N&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/CAD.json || echo '{"observations":[{"value":"3.25","date":"2026-02-12"}]}' > rates/CAD.json
       
-      # CHF - Swiss National Bank
+      # CHF - SNB Policy Rate
       - name: Fetch CHF rate
         run: |
-          # SNB Data Portal
-          RATE=$(curl -s "https://data.snb.ch/api/cube/zirepo/data/csv/en?startPeriod=2024" | tail -n 1 | cut -d',' -f2 || echo "1.00")
-          
-          # Fallback
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE="1.00"
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/CHF.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=CHESNBPOLICYRATE&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/CHF.json || echo '{"observations":[{"value":"0.50","date":"2026-02-12"}]}' > rates/CHF.json
       
-      # NZD - Reserve Bank of New Zealand
+      # NZD - RBNZ Official Cash Rate
       - name: Fetch NZD rate
         run: |
-          # RBNZ via FRED
-          RATE=$(curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=NZOCRS&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" | jq -r '.observations[0].value // empty')
-          
-          # Fallback
-          if [ -z "$RATE" ] || [ "$RATE" = "null" ]; then
-            RATE="4.25"
-          fi
-          
-          echo "{\"observations\":[{\"value\":\"$RATE\",\"date\":\"$(date +%Y-%m-%d)\"}]}" > rates/NZD.json
+          curl -s "https://api.stlouisfed.org/fred/series/observations?series_id=NZOCRS&api_key=5e0ae2ba29361b8ddb614fd5f92c0a51&file_type=json&limit=1&sort_order=desc" > rates/NZD.json || echo '{"observations":[{"value":"4.25","date":"2026-02-12"}]}' > rates/NZD.json
       
-      - name: Validate all rates
+      - name: Display fetched rates
         run: |
-          for file in rates/*.json; do
-            echo "Validating $file"
-            cat "$file"
-            jq empty "$file" || echo "Invalid JSON in $file"
-          done
+          echo "=== USD ==="
+          cat rates/USD.json | jq '.observations[0]' || cat rates/USD.json
+          echo ""
+          echo "=== EUR ==="
+          cat rates/EUR.json | jq '.observations[0]' || cat rates/EUR.json
+          echo ""
+          echo "=== GBP ==="
+          cat rates/GBP.json | jq '.observations[0]' || cat rates/GBP.json
+          echo ""
+          echo "=== JPY ==="
+          cat rates/JPY.json | jq '.observations[0]' || cat rates/JPY.json
+          echo ""
+          echo "=== AUD ==="
+          cat rates/AUD.json | jq '.observations[0]' || cat rates/AUD.json
+          echo ""
+          echo "=== CAD ==="
+          cat rates/CAD.json | jq '.observations[0]' || cat rates/CAD.json
+          echo ""
+          echo "=== CHF ==="
+          cat rates/CHF.json | jq '.observations[0]' || cat rates/CHF.json
+          echo ""
+          echo "=== NZD ==="
+          cat rates/NZD.json | jq '.observations[0]' || cat rates/NZD.json
       
       - name: Commit and push
         run: |
