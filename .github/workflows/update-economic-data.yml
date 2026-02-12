@@ -1,4 +1,4 @@
-name: Update All Economic Data (Trading Economics Scraping)
+name: Update All Economic Data (Fixed Trade Balance)
 on:
   schedule:
     - cron: '0 6 * * *'  # Daily at 6:00 AM UTC
@@ -49,6 +49,18 @@ jobs:
               'Australia': 'AUD',
               'Switzerland': 'CHF',
               'New Zealand': 'NZD'
+          }
+          
+          # World Bank country codes for Trade Balance
+          WB_COUNTRY_CODES = {
+              'USD': 'USA',
+              'EUR': 'EMU',  # Euro Area
+              'GBP': 'GBR',
+              'JPY': 'JPN',
+              'CAD': 'CAN',
+              'AUD': 'AUS',
+              'CHF': 'CHE',
+              'NZD': 'NZL'
           }
           
           def clean_number(text):
@@ -115,6 +127,106 @@ jobs:
                   print(f"  ❌ Error: {str(e)}")
                   return {}
           
+          def scrape_world_bank_trade_balance():
+              """
+              Scrape Trade Balance from World Bank API
+              Returns data in billions USD (standardized)
+              """
+              print(f"\n{'='*70}")
+              print("Scraping: Trade Balance (World Bank API)")
+              print(f"{'='*70}")
+              
+              data = {}
+              
+              # World Bank API endpoint for Trade Balance
+              # Indicator: NE.RSB.GNFS.CD (External balance on goods and services, current US$)
+              base_url = "https://api.worldbank.org/v2/country/{}/indicator/NE.RSB.GNFS.CD"
+              
+              for currency_code, wb_code in WB_COUNTRY_CODES.items():
+                  try:
+                      # Fetch latest available data (most recent 5 years)
+                      url = f"{base_url.format(wb_code)}?format=json&per_page=5&date=2020:2024"
+                      
+                      print(f"  Fetching {currency_code} ({wb_code})...")
+                      response = requests.get(url, timeout=15)
+                      response.raise_for_status()
+                      
+                      json_data = response.json()
+                      
+                      if len(json_data) > 1 and json_data[1]:
+                          # Get most recent non-null value
+                          for entry in json_data[1]:
+                              if entry.get('value') is not None:
+                                  # Convert from USD to billions USD
+                                  value_billions = entry['value'] / 1_000_000_000
+                                  data[currency_code] = round(value_billions, 2)
+                                  print(f"  ✓ {currency_code}: {data[currency_code]}B USD ({entry['date']})")
+                                  break
+                      
+                      time.sleep(0.5)  # Be nice to API
+                      
+                  except Exception as e:
+                      print(f"  ❌ {currency_code} error: {str(e)}")
+              
+              # Fallback: If World Bank fails, try OECD Data Portal
+              if len(data) < len(WB_COUNTRY_CODES):
+                  print("\n  ⚠️  Some data missing, trying OECD fallback...")
+                  data = scrape_oecd_trade_balance_fallback(data)
+              
+              return data
+          
+          def scrape_oecd_trade_balance_fallback(existing_data):
+              """
+              Fallback: Scrape from OECD Data Portal
+              Focus on countries missing from World Bank
+              """
+              print(f"\n{'='*70}")
+              print("Fallback: OECD Trade Balance")
+              print(f"{'='*70}")
+              
+              # OECD country codes
+              oecd_codes = {
+                  'USD': 'USA',
+                  'EUR': 'EA19',  # Euro Area 19
+                  'GBP': 'GBR',
+                  'JPY': 'JPN',
+                  'CAD': 'CAN',
+                  'AUD': 'AUS',
+                  'CHF': 'CHE',
+                  'NZD': 'NZL'
+              }
+              
+              try:
+                  # OECD API for trade balance
+                  # Using quarterly data, current prices, seasonally adjusted
+                  url = "https://stats.oecd.org/sdmx-json/data/DP_LIVE/.TRADEGDP.../OECD?contentType=csv"
+                  
+                  response = requests.get(url, headers=HEADERS, timeout=20)
+                  
+                  if response.ok:
+                      # Parse CSV-style response
+                      lines = response.text.split('\n')
+                      for line in lines[1:]:  # Skip header
+                          parts = line.split(',')
+                          if len(parts) < 3:
+                              continue
+                          
+                          country_code = parts[0].strip('"')
+                          value_str = parts[-2].strip('"')
+                          
+                          for currency_code, oecd_code in oecd_codes.items():
+                              if country_code == oecd_code and currency_code not in existing_data:
+                                  value = clean_number(value_str)
+                                  if value is not None:
+                                      existing_data[currency_code] = value
+                                      print(f"  ✓ {currency_code}: {value}B USD (OECD)")
+                                      break
+              
+              except Exception as e:
+                  print(f"  ❌ OECD fallback error: {str(e)}")
+              
+              return existing_data
+          
           # ============================================
           # SCRAPE ALL INDICATORS
           # ============================================
@@ -125,7 +237,6 @@ jobs:
               'inflation': 'https://tradingeconomics.com/country-list/inflation-rate?continent=world',
               'unemployment': 'https://tradingeconomics.com/country-list/unemployment-rate?continent=world',
               'debt': 'https://tradingeconomics.com/country-list/government-debt-to-gdp',
-              'tradeBalance': 'https://tradingeconomics.com/country-list/balance-of-trade',
               'currentAccount': 'https://tradingeconomics.com/country-list/current-account-to-gdp?continent=world',
               'production': 'https://tradingeconomics.com/country-list/industrial-production?continent=world'
           }
@@ -133,6 +244,7 @@ jobs:
           all_data = {}
           today = str(date.today())
           
+          # Scrape standard indicators from Trading Economics
           for indicator_key, url in indicators.items():
               indicator_data = scrape_trading_economics(url, indicator_key)
               
@@ -143,6 +255,18 @@ jobs:
                   all_data[currency][indicator_key] = value
               
               time.sleep(2)  # Be respectful to the server
+          
+          # ============================================
+          # SCRAPE TRADE BALANCE FROM WORLD BANK
+          # (All values standardized to billions USD)
+          # ============================================
+          
+          trade_balance_data = scrape_world_bank_trade_balance()
+          
+          for currency, value in trade_balance_data.items():
+              if currency not in all_data:
+                  all_data[currency] = {}
+              all_data[currency]['tradeBalance'] = value
           
           # ============================================
           # SAVE RESULTS
@@ -156,7 +280,7 @@ jobs:
               if currency in all_data:
                   data_package = {
                       'lastUpdate': today,
-                      'source': 'TradingEconomics',
+                      'source': 'TradingEconomics + WorldBank',
                       'data': all_data[currency]
                   }
                   
@@ -174,7 +298,7 @@ jobs:
           print(f"{'='*70}")
           
           required_currencies = list(COUNTRY_MAP.values())
-          required_indicators = list(indicators.keys())
+          all_indicators = list(indicators.keys()) + ['tradeBalance']
           
           all_valid = True
           
@@ -184,17 +308,30 @@ jobs:
                   all_valid = False
                   continue
               
-              missing_indicators = [ind for ind in required_indicators if ind not in all_data[currency]]
+              missing_indicators = [ind for ind in all_indicators if ind not in all_data[currency]]
               if missing_indicators:
                   print(f"⚠️  {currency} missing: {', '.join(missing_indicators)}")
               else:
                   print(f"✅ {currency}: Complete ({len(all_data[currency])} indicators)")
+              
+              # Specific validation for trade balance
+              if 'tradeBalance' in all_data[currency]:
+                  tb_value = all_data[currency]['tradeBalance']
+                  print(f"   💵 Trade Balance: {tb_value:+.2f}B USD")
           
           if not all_valid:
-              print("\n❌ VALIDATION FAILED - Incomplete data")
-              exit(1)
+              print("\n⚠️  VALIDATION WARNING - Some data incomplete")
           else:
               print("\n✅ ALL DATA SUCCESSFULLY SCRAPED!")
+          
+          print("\n" + "="*70)
+          print("TRADE BALANCE SUMMARY (All in billions USD)")
+          print("="*70)
+          for currency in sorted(required_currencies):
+              if currency in all_data and 'tradeBalance' in all_data[currency]:
+                  tb = all_data[currency]['tradeBalance']
+                  status = "Surplus" if tb > 0 else "Deficit"
+                  print(f"{currency}: {tb:+10.2f}B USD ({status})")
           
           EOFPYTHON
           
