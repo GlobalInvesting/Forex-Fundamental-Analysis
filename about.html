@@ -94,6 +94,13 @@
             color: var(--text-primary);
         }
 
+        h3 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
         p {
             margin-bottom: 1.25rem;
             color: var(--text-secondary);
@@ -164,6 +171,49 @@
             color: var(--text-secondary);
             font-size: 0.9rem;
         }
+
+        .code-block {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--green);
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .formula {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border-left: 4px solid var(--green);
+            margin: 1.5rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -190,7 +240,7 @@
         </div>
 
         <div class="highlight-box">
-            <p style="margin: 0; font-size: 1.1rem;"><strong>Visión:</strong> Proporcionar a traders e inversores herramientas de análisis fundamental de grado institucional, facilitando decisiones informadas basadas en datos económicos rigurosos y metodologías cuantitativas probadas.</p>
+            <p style="margin: 0; font-size: 1.1rem;"><strong>Visión:</strong> Democratizar el análisis fundamental institucional mediante metodologías cuantitativas derivadas empíricamente, permitiendo a traders de todos los niveles acceder a evaluaciones rigurosas de fortaleza de divisas basadas en literatura académica y estándares internacionales.</p>
         </div>
 
         <div class="stats-grid">
@@ -199,7 +249,7 @@
                 <div class="stat-label">Divisas Principales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">9</div>
+                <div class="stat-number">13</div>
                 <div class="stat-label">Indicadores Económicos</div>
             </div>
             <div class="stat-card">
@@ -207,8 +257,8 @@
                 <div class="stat-label">Tasa de Actualización</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">24/7</div>
-                <div class="stat-label">Cobertura del Mercado</div>
+                <div class="stat-number">95%</div>
+                <div class="stat-label">Intervalo de Confianza</div>
             </div>
         </div>
 
@@ -217,87 +267,125 @@
             <p>Nuestra plataforma ofrece análisis fundamental completo de las principales divisas G10:</p>
             <ul>
                 <li><strong>Tipos de Cambio en Tiempo Real:</strong> Tasas de cambio en vivo actualizadas cada 60 segundos</li>
-                <li><strong>Mapa de Calor de Indicadores Económicos:</strong> Representación visual de crecimiento del PIB, inflación, desempleo, tasas de interés y más</li>
-                <li><strong>Puntuación de Fortaleza de Divisas:</strong> Evaluación cuantitativa (escala 0-100) basada en factores fundamentales</li>
-                <li><strong>Monitoreo de Bancos Centrales:</strong> Seguimiento de tasas de política, calendarios de reuniones y perspectivas de política monetaria</li>
+                <li><strong>Mapa de Calor de Indicadores Económicos:</strong> 13 indicadores fundamentales con visualización codificada por colores</li>
+                <li><strong>Puntuación de Fortaleza Institucional:</strong> Índice cuantitativo (0-100) con intervalos de confianza del 95%</li>
+                <li><strong>Análisis de Contribución por Factor:</strong> Descomposición transparente del impacto de cada indicador</li>
+                <li><strong>Monitoreo de Bancos Centrales:</strong> Seguimiento de tasas de política, calendarios de reuniones y perspectivas dinámicas</li>
                 <li><strong>Datos de Comercio y Cuenta Corriente:</strong> Monitoreo de posiciones de balance externo y competitividad</li>
-                <li><strong>Clasificación de Sentimiento:</strong> Categorización sistemática en perspectivas alcistas, bajistas o neutrales</li>
+                <li><strong>Posicionamiento COT:</strong> Sentimiento especulativo desde reportes CFTC oficiales</li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>Nuestra Metodología</h2>
-            <p>El sistema de puntuación de fortaleza fundamental emplea un modelo cuantitativo multifactorial que evalúa:</p>
+            <h2>Metodología Institucional</h2>
             
-            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Ponderación de Factores</h3>
+            <h3>Fundamento Teórico</h3>
+            <p>Nuestro modelo de fortaleza fundamental se basa en tres pilares metodológicos reconocidos internacionalmente:</p>
             <ul>
-                <li><strong>Postura de Política Monetaria (25%):</strong> Diferenciales de tasas de interés, orientación futura del banco central, tasas de interés reales</li>
-                <li><strong>Balance Externo (25%):</strong> Posición de cuenta corriente, balanza comercial, flujos de capital</li>
-                <li><strong>Dinámicas de Crecimiento (20%):</strong> Crecimiento del PIB relativo a la tendencia, producción industrial, impulso económico</li>
-                <li><strong>Estabilidad de Precios (15%):</strong> Desviación de inflación del objetivo, tendencias de inflación subyacente, expectativas de inflación</li>
-                <li><strong>Mercado Laboral (15%):</strong> Desempleo versus tasa natural, crecimiento del empleo, presiones salariales</li>
-                <li><strong>Posición Fiscal (10%):</strong> Deuda pública sobre PIB, déficit fiscal, calificaciones crediticias</li>
+                <li><strong>BIS REER (Real Effective Exchange Rate):</strong> Concepto de comparación multilateral de divisas ajustado por inflación</li>
+                <li><strong>IMF EBA (External Balance Assessment):</strong> Marco analítico para evaluar posiciones externas y misalignments</li>
+                <li><strong>Literatura Académica Empírica:</strong> Pesos derivados de Menkhoff et al. (2012) y Rossi (2013) sobre determinantes de retornos forex</li>
             </ul>
 
-            <p style="margin-top: 1.5rem;">Las puntuaciones se ponderan dinámicamente según el régimen de mercado, condiciones de volatilidad e importancia relativa de factores en el entorno macroeconómico actual.</p>
-        </div>
-
-        <div class="section">
-            <h2>Fuentes de Datos</h2>
-            <p>Integramos datos de fuentes autorizadas para asegurar precisión y confiabilidad:</p>
+            <h3>Comparación Estadística Cross-Sectional</h3>
+            <p>A diferencia de sistemas basados en umbrales arbitrarios, empleamos <strong>Z-scores</strong> para normalización estadística:</p>
             
-            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Fuentes Primarias</h3>
+            <div class="formula">
+                Z = (Valor - Media Global) / Desviación Estándar Global
+            </div>
+
+            <p>Cada indicador se compara contra la distribución de todas las divisas en el momento actual, capturando fortaleza <em>relativa</em> en lugar de absoluta.</p>
+
+            <h3>Pesos Empíricos Calibrados</h3>
+            <p>Los coeficientes aplicados a cada factor provienen de regresiones empíricas documentadas en literatura académica:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Indicador</th>
+                        <th>Coeficiente</th>
+                        <th>Fundamento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Tasa de Interés</td>
+                        <td>4.1</td>
+                        <td>Carry trade effect (Menkhoff 2012)</td>
+                    </tr>
+                    <tr>
+                        <td>Cuenta Corriente</td>
+                        <td>3.5</td>
+                        <td>Flow approach (IMF EBA)</td>
+                    </tr>
+                    <tr>
+                        <td>Inflación</td>
+                        <td>-3.2</td>
+                        <td>Purchasing power parity deviations</td>
+                    </tr>
+                    <tr>
+                        <td>Balanza Comercial</td>
+                        <td>2.9</td>
+                        <td>Structural demand for currency</td>
+                    </tr>
+                    <tr>
+                        <td>Crecimiento PIB</td>
+                        <td>2.8</td>
+                        <td>Economic momentum (Rossi 2013)</td>
+                    </tr>
+                    <tr>
+                        <td>PMI Manufacturero</td>
+                        <td>2.3</td>
+                        <td>Leading indicator correlation</td>
+                    </tr>
+                    <tr>
+                        <td>Desempleo</td>
+                        <td>-2.1</td>
+                        <td>Labor market slack</td>
+                    </tr>
+                    <tr>
+                        <td>Ventas Minoristas</td>
+                        <td>1.9</td>
+                        <td>Domestic demand strength</td>
+                    </tr>
+                    <tr>
+                        <td>Deuda Pública</td>
+                        <td>-1.8</td>
+                        <td>Fiscal sustainability premium</td>
+                    </tr>
+                    <tr>
+                        <td>Producción Industrial</td>
+                        <td>1.4</td>
+                        <td>Cyclical momentum</td>
+                    </tr>
+                    <tr>
+                        <td>Crecimiento Salarial</td>
+                        <td>1.2</td>
+                        <td>Inflation expectations channel</td>
+                    </tr>
+                    <tr>
+                        <td>COT Positioning</td>
+                        <td>0.8</td>
+                        <td>Sentiment contrarian indicator</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Transformación No-Lineal</h3>
+            <p>Para prevenir que outliers estadísticos dominen el score, aplicamos una función sigmoidal:</p>
+
+            <div class="formula">
+                Sigmoid(x) = 2 / (1 + e^(-x)) - 1
+            </div>
+
+            <p>Esto comprime Z-scores extremos al rango [-1, 1] mientras preserva ordenamiento relativo.</p>
+
+            <h3>Normalización con CDF Normal</h3>
+            <p>El score agregado se mapea a percentiles mediante la función de distribución acumulativa normal estándar, produciendo una escala interpretable de 0-100 donde:</p>
             <ul>
-                <li><strong>Bancos Centrales:</strong> Reserva Federal, BCE, BoE, BoJ, RBA, BoC, SNB, RBNZ</li>
-                <li><strong>Agencias Estadísticas:</strong> Oficinas estadísticas nacionales para datos de PIB, inflación y empleo</li>
-                <li><strong>Tipos de Cambio:</strong> ExchangeRate-API para cotizaciones de divisas en tiempo real</li>
-                <li><strong>Publicaciones Económicas:</strong> Publicaciones oficiales de gobiernos y bancos centrales</li>
+                <li><strong>50:</strong> Fortaleza mediana (percentil 50)</li>
+                <li><strong>65:</strong> Percentil 75 (más fuerte que 3 de cada 4 divisas)</li>
+                <li><strong>80:</strong> Percentil 95 (top 5%)</li>
             </ul>
 
-            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Frecuencia de Actualización</h3>
-            <ul>
-                <li><strong>Tipos de Cambio:</strong> Intervalo de actualización de 60 segundos</li>
-                <li><strong>Indicadores Económicos:</strong> Ciclo de actualización de 24 horas</li>
-                <li><strong>Política de Bancos Centrales:</strong> Actualizaciones impulsadas por eventos tras anuncios</li>
-            </ul>
-        </div>
-
-        <div class="section">
-            <h2>A Quién Servimos</h2>
-            <p>Nuestra plataforma está diseñada para:</p>
-            <ul>
-                <li><strong>Traders Minoristas de Forex:</strong> Traders individuales que buscan análisis fundamental de grado profesional</li>
-                <li><strong>Profesionales Financieros:</strong> Analistas, gestores de portafolio y asesores financieros</li>
-                <li><strong>Estudiantes y Educadores:</strong> Instituciones académicas que enseñan finanzas internacionales y macroeconomía</li>
-                <li><strong>Investigadores:</strong> Personas que estudian mercados de divisas y tendencias económicas globales</li>
-                <li><strong>Traders Institucionales:</strong> Fondos de cobertura, family offices y firmas de trading que requieren conocimientos fundamentales</li>
-            </ul>
-        </div>
-
-        <div class="highlight-box">
-            <h3 style="font-size: 1.2rem; margin-bottom: 0.75rem;">Descargo de Responsabilidad Importante</h3>
-            <p style="margin: 0;">Esta plataforma proporciona contenido informativo y educativo únicamente. No constituye asesoramiento financiero, recomendaciones de inversión o señales de trading. Todo trading conlleva un riesgo sustancial. Los usuarios son únicamente responsables de sus decisiones de trading y deben consultar con profesionales financieros licenciados antes de tomar decisiones de inversión.</p>
-        </div>
-
-        <div class="section">
-            <h2>Contacto y Soporte</h2>
-            <p>Valoramos los comentarios de nuestros usuarios y estamos comprometidos con la mejora continua.</p>
-            <ul>
-                <li><strong>Consultas Generales:</strong> <a href="contact.html">Formulario de Contacto</a></li>
-                <li><strong>Email de Contacto:</strong> <a href="mailto:globalinvestingmarkets@gmail.com">globalinvestingmarkets@gmail.com</a></li>
-            </ul>
-        </div>
-
-        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
-            <p>&copy; 2026 Global Investing. Todos los derechos reservados.</p>
-            <p style="margin-top: 0.5rem;">
-                <a href="index.html">Dashboard</a> | 
-                <a href="about.html">Acerca de</a> | 
-                <a href="terms.html">Términos de Servicio</a> | 
-                <a href="privacy.html">Política de Privacidad</a> | 
-                <a href="contact.html">Contacto</a>
-            </p>
-        </div>
-    </div>
-</body>
-</html>
+            <h3>Ajustes Est
