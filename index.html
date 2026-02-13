@@ -1565,12 +1565,41 @@
                             economicData[country.code].production = data.production || null;
                             currentStep++;
                             
+                            economicData[country.code].retailSales = data.retailSales || null;
+                            
+                            economicData[country.code].wageGrowth = data.wageGrowth || null;
+                            
+                            economicData[country.code].manufacturingPMI = data.manufacturingPMI || null;
+                            
+                            economicData[country.code].cotPositioning = data.cotPositioning || null;
+                            
                             console.log(`✅ Loaded all data for ${country.code}`);
                         } else {
                             console.error(`❌ No data field in scraped file for ${country.code}`);
                         }
                     } else {
                         console.error(`❌ Failed to fetch scraped data for ${country.code}`);
+                    }
+                    
+                    // CARGAR DATOS COT (archivo separado)
+                    if (country.code !== 'USD') { // USD no tiene COT
+                        try {
+                            const cotUrl = `https://globalinvesting.github.io/cot-data/${country.code}.json`;
+                            const cotResponse = await fetch(cotUrl, { 
+                                signal: AbortSignal.timeout(5000),
+                                cache: 'no-cache'
+                            });
+                            
+                            if (cotResponse.ok) {
+                                const cotData = await cotResponse.json();
+                                if (cotData.positioning !== null && cotData.positioning !== undefined) {
+                                    economicData[country.code].cotPositioning = cotData.positioning;
+                                    console.log(`✅ Loaded COT for ${country.code}: ${cotData.positioning}`);
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(`No COT data for ${country.code}`);
+                        }
                     }
                 } catch (error) {
                     console.error(`❌ Error loading data for ${country.code}:`, error);
