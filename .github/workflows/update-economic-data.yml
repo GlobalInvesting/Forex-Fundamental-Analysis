@@ -236,11 +236,11 @@ jobs:
                               
                               if raw_value is None:
                                   print(f"  ⚠️  {currency_code}: Could not parse '{last_value_text}'")
+                                  break
                                   
                               # DEBUG: Show what we read
                               if indicator_name == 'tradeBalance':
                                   print(f"  [DEBUG] {currency_code}: Raw text='{last_value_text}' → Parsed value={raw_value}")
-                                  break
                               
                               # Percentages
                               if indicator_name in ['gdpGrowth', 'inflation', 'unemployment', 
