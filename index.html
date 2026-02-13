@@ -2202,7 +2202,7 @@ const indicatorTooltips = {
     unemployment: "% de fuerza laboral desempleada.",
     currentAccount: "Balance comercial + flujos de inversión como % del PIB.",
     debt: "Deuda pública como % del PIB.",
-    tradeBalance: "Exportaciones - Importaciones mensuales en millones USD.",
+    tradeBalance: "Exportaciones - Importaciones mensuales en miles de millones USD.",
     production: "Crecimiento anual producción industrial.",
     
     // NUEVOS INDICADORES
@@ -2806,7 +2806,7 @@ const getSortedCountries = () => {
         const dataA = economicData[a.code] || {};
         const dataB = economicData[b.code] || {};
         
-        // ✅ NUEVO ALGORITMO: Contar celdas verdes en heatmap
+        // ✅ CORRECCIÓN: Contar celdas verdes en heatmap
         const indicators = [
             'gdpGrowth', 'interestRate', 'inflation', 'unemployment',
             'currentAccount', 'debt', 'tradeBalance', 'production',
@@ -2835,6 +2835,7 @@ const getSortedCountries = () => {
             }
         });
         
+        // ✅ CORRECCIÓN CRÍTICA: Invertir el orden (de mayor a menor)
         // Si empatan en celdas verdes, desempatar por strength score
         if (greenCellsA === greenCellsB) {
             const strengthObjA = calculateStrength(a.code, dataA, forexRates, economicData);
@@ -2842,7 +2843,8 @@ const getSortedCountries = () => {
             return (strengthObjB.score || 50) - (strengthObjA.score || 50);
         }
         
-        return greenCellsA - greenCellsB;
+        // ✅ CORRECCIÓN: Invertido para mostrar las MÁS FUERTES PRIMERO
+        return greenCellsB - greenCellsA;
     });
 };
 
@@ -3111,7 +3113,7 @@ const hasCOTData = () => {
                                                    'var(--text-primary)' 
                                         }}>
                                             {data.tradeBalance !== null && data.tradeBalance !== undefined 
-                                                ? `${data.tradeBalance > 0 ? '+' : ''}${formatValue(data.tradeBalance)}M`
+                                                ? `${data.tradeBalance > 0 ? '+' : ''}${(data.tradeBalance / 1000).toFixed(1)}B`
                                                 : 'N/D'}
                                         </div>
                                     </div>
@@ -3219,7 +3221,7 @@ const hasCOTData = () => {
                                                     Deuda Pública<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% del PIB</span>
                                                 </TooltipCell>
                                                 <TooltipCell title="Balanza Comercial" tooltip={indicatorTooltips.tradeBalance}>
-                                                    Balanza Comercial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Millones USD</span>
+                                                    Balanza Comercial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Miles Millones USD</span>
                                                 </TooltipCell>
                                                 <TooltipCell title="Producción Industrial" tooltip={indicatorTooltips.production}>
                                                     Prod. Industrial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% Anual</span>
@@ -3286,7 +3288,7 @@ const sentiment = getSentiment(strength);
                                                             <span className="cell-value">{formatValue(data.debt)}%</span>
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.tradeBalance, 'tradeBalance') }}>
-                                                            <span className="cell-value">{data.tradeBalance > 0 ? '+' : ''}{formatValue(data.tradeBalance)}M</span>
+                                                            <span className="cell-value">{data.tradeBalance > 0 ? '+' : ''}{(data.tradeBalance / 1000).toFixed(1)}B</span>
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.production, 'production') }}>
                                                             <span className="cell-value">{data.production > 0 ? '+' : ''}{formatValue(data.production)}%</span>
