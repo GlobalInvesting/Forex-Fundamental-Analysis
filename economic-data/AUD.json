@@ -1,6 +1,6 @@
 {
   "lastUpdate": "2026-02-13",
-  "source": "TradingEconomics + Investing.com",
+  "source": "TradingEconomics + COT",
   "data": {
     "gdp": 1752.0,
     "gdpGrowth": 0.4,
@@ -10,6 +10,7 @@
     "currentAccount": -2.3,
     "production": -0.2,
     "tradeBalance": 2378.2,
+    "retailSales": 1.2,
     "wageGrowth": 3.4,
     "manufacturingPMI": 52.3,
     "cotPositioning": 26100

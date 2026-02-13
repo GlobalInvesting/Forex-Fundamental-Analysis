@@ -1,13 +1,13 @@
 {
   "lastUpdate": "2026-02-13",
-  "source": "TradingEconomics + Investing.com",
+  "source": "TradingEconomics + COT",
   "data": {
-    "gdp": 191.0,
+    "gdp": 3644.0,
     "gdpGrowth": 0.1,
     "inflation": 3.4,
     "unemployment": 5.1,
     "debt": 93.6,
-    "currentAccount": -8.1,
+    "currentAccount": -2.2,
     "production": 0.5,
     "tradeBalance": -5906.53,
     "retailSales": 0.4,
