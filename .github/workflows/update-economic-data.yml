@@ -152,28 +152,40 @@ jobs:
               Process:
               1. Determine if value is in billions or millions (from known patterns)
               2. Determine source currency (from known patterns)
-              3. Convert to USD Millions
+              3. Convert to millions in source currency
+              4. Convert to USD using FX rate
+              
+              Example: Japan 106 JPY Billion
+                Step 1: scale_type = 'billion'
+                Step 2: source_currency = 'JPY'
+                Step 3: 106 * 1000 = 106,000 JPY Millions
+                Step 4: 106,000 / 153.71 = 689,612 USD Millions ✓
               """
               if value is None:
                   return None
               
-              # Get scale (billion or million)
+              # Step 1: Get scale (billion or million)
               scale_type = TRADE_BALANCE_SCALE_RULES.get(currency_code, 'million')
               
-              # Get source currency
+              # Step 2: Get source currency
               source_currency = infer_trade_balance_currency(currency_code, value)
               
-              # Convert to USD Millions
+              # Step 3: Convert to millions in source currency
               if scale_type == 'billion':
-                  value_in_source_millions = value * 1000  # billions to millions
+                  # CRITICAL FIX: Convert billions to millions FIRST
+                  value_in_source_millions = value * 1000.0  # billions to millions
               else:
                   value_in_source_millions = value  # already in millions
               
-              # Convert currency
+              # Step 4: Convert to USD
               if source_currency == 'USD':
                   value_usd_millions = value_in_source_millions
               else:
-                  fx_rate = exchange_rates.get(source_currency, 1.0)
+                  fx_rate = exchange_rates.get(source_currency)
+                  if fx_rate is None or fx_rate == 0:
+                      print(f"      ⚠️  No FX rate for {source_currency}")
+                      return None
+                  # Convert from source currency to USD
                   value_usd_millions = value_in_source_millions / fx_rate
               
               return value_usd_millions
@@ -224,6 +236,10 @@ jobs:
                               
                               if raw_value is None:
                                   print(f"  ⚠️  {currency_code}: Could not parse '{last_value_text}'")
+                                  
+                              # DEBUG: Show what we read
+                              if indicator_name == 'tradeBalance':
+                                  print(f"  [DEBUG] {currency_code}: Raw text='{last_value_text}' → Parsed value={raw_value}")
                                   break
                               
                               # Percentages
