@@ -153,62 +153,6 @@
             margin-bottom: 0.5rem;
             font-size: 0.9rem;
         }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: var(--blue);
-        }
-
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        button {
-            background: var(--blue);
-            color: white;
-            padding: 0.875rem 2rem;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        .info-box {
-            background: rgba(30, 136, 229, 0.1);
-            border-left: 4px solid var(--blue);
-            padding: 1.5rem;
-            margin: 2rem 0;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -249,7 +193,7 @@
                 </div>
             </div>
 
-            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-elevated); border-radius: 6px; border: 1px solid var(--border);">
+            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border);">
                 <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary);">Al contactarnos, por favor incluya:</h3>
                 <ul style="margin-left: 1.5rem; color: var(--text-secondary);">
                     <li>Su nombre completo</li>
@@ -264,22 +208,25 @@
             <h2>Preguntas Frecuentes</h2>
             
             <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Con qué frecuencia se actualizan los datos?</h3>
-            <p>Los tipos de cambio se actualizan cada 60 segundos. Los indicadores económicos se actualizan cada 24 horas, y los datos de bancos centrales se actualizan tras anuncios oficiales.</p>
+            <p>Los tipos de cambio se actualizan cada 60 segundos. Los indicadores económicos se actualizan cada 24 horas mediante scraping automatizado de Trading Economics. Los datos COT se actualizan semanalmente según publicación de la CFTC (viernes 15:30 ET).</p>
 
             <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Esto es asesoramiento financiero?</h3>
             <p>No. Nuestra plataforma proporciona contenido informativo y educativo únicamente. No proporcionamos asesoramiento financiero, recomendaciones de inversión o señales de trading. Consulte nuestros <a href="terms.html">Términos de Servicio</a> para más detalles.</p>
 
             <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Qué divisas cubren?</h3>
-            <p>Actualmente cubrimos ocho divisas principales: USD, EUR, GBP, JPY, AUD, CAD, CHF y NZD. Es posible que se agreguen divisas adicionales en futuras actualizaciones.</p>
+            <p>Actualmente cubrimos ocho divisas principales: USD, EUR, GBP, JPY, AUD, CAD, CHF y NZD. Estas divisas representan más del 80% del volumen de trading global en el mercado forex.</p>
+
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Cómo se calcula el score de fortaleza?</h3>
+            <p>El score se calcula mediante un modelo cuantitativo con ponderaciones específicas: Balance Externo (35%), Diferenciales de Tasas (30%), Crecimiento & Empleo (20%), y Sentimiento de Mercado (15%). Todos los datos provienen de fuentes oficiales verificadas. Consulte la sección <a href="about.html">Acerca de</a> para detalles metodológicos completos.</p>
 
             <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Puedo usar estos datos con fines comerciales?</h3>
-            <p>Por favor contáctenos a <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5433383b3635383d3a223127203d3a333935263f312027143339353d387a373b39">[email&#160;protected]</a> para discutir licencias y casos de uso comercial.</p>
+            <p>El dashboard es de uso gratuito para fines educativos e informativos personales. Para usos comerciales, por favor contáctenos a <a href="mailto:globalinvestingmarkets@gmail.com">globalinvestingmarkets@gmail.com</a> para discutir licencias apropiadas.</p>
 
-            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Ofrecen una API?</h3>
-            <p>El acceso a la API está actualmente en desarrollo. Contáctenos a <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bddad1d2dfdcd1d4d3cbd8cec9d4d3dad0dccfd6d8c9cefddad0dcd4d193ded2d0">[email&#160;protected]</a> para expresar interés o discutir acceso anticipado.</p>
+            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Los datos son en tiempo real?</h3>
+            <p>Los tipos de cambio son en tiempo real (actualización cada 60 segundos). Los indicadores económicos se actualizan diariamente ya que las fuentes oficiales (bancos centrales, agencias estadísticas) publican datos con frecuencia mensual o trimestral. Los datos COT tienen ~3 días de retraso natural según el calendario de publicación de la CFTC.</p>
 
             <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Cómo puedo reportar un error o sugerir una característica?</h3>
-            <p>Por favor envíe un correo a <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6d0a01020f0c0104031b081e1904030a000c1f0608191e2d0a000c0401430e0200">[email&#160;protected]</a> con información detallada sobre errores o solicitudes de características. ¡Apreciamos sus comentarios!</p>
+            <p>Por favor envíe un correo a <a href="mailto:globalinvestingmarkets@gmail.com">globalinvestingmarkets@gmail.com</a> con información detallada sobre errores o solicitudes de características. También puede reportar problemas en nuestro repositorio de GitHub si está familiarizado con la plataforma. ¡Apreciamos sus comentarios!</p>
         </div>
 
         <div class="section">
@@ -293,4 +240,16 @@
             <p>Nos esforzamos por responder a todas las consultas rápidamente durante el horario comercial (Lunes-Viernes, 9 AM - 5 PM EST).</p>
         </div>
 
-        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+            <p>© 2026 Global Investing. Todos los derechos reservados.</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="index.html">Dashboard</a> | 
+                <a href="about.html">Acerca de</a> | 
+                <a href="terms.html">Términos de Servicio</a> | 
+                <a href="privacy.html">Política de Privacidad</a> | 
+                <a href="contact.html">Contacto</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
