@@ -2409,7 +2409,7 @@ const hasCOTData = () => {
 
                     <div className="content">
                         {activeTab === 'overview' && (
-                            <div>
+                            <>
                                 <div className="section-header">
                                     <div className="section-title">Resumen de Divisas y Análisis Fundamental</div>
                                     <div className="section-meta">Ordenadas por fortaleza fundamental • Actualizado {lastUpdate ? lastUpdate.toLocaleDateString('es-ES') : ''}</div>
@@ -2637,9 +2637,9 @@ const sentiment = getSentiment(strength);
                                                 </div>
                                             </div>
                                         );
-                                    })}
+                                   })}
                                 </div>
-                            </div>
+                            </>
                         )}
 
                         {activeTab === 'heatmap' && (
