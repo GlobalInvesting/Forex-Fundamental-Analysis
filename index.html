@@ -2450,32 +2450,30 @@ const hasCOTData = () => {
                                     <span>Datos en Vivo</span>
                                 </div>
 {lastUpdate && (
-    <>
-        <div className="info-item">
-            <span>Actualizado: {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-        {/* Indicador COT */}
-        <div className="info-item">
-            {hasCOTData() ? (
-                <>
-                    <div className="status-live"></div>
-                    <span>COT Disponible</span>
-                </>
-            ) : (
-                <>
-                    <div style={{
-                        width: '8px',
-                        height: '8px',
-                        background: 'var(--text-tertiary)',
-                        borderRadius: '50%',
-                        opacity: 0.5
-                    }}></div>
-                    <span style={{ color: 'var(--text-tertiary)' }}>COT: Próx. Viernes</span>
-                </>
-            )}
-        </div>
-    </>
+    <div className="info-item">
+        <span>Actualizado: {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+    </div>
 )}
+{/* Indicador COT */}
+<div className="info-item">
+    {hasCOTData() ? (
+        <>
+            <div className="status-live"></div>
+            <span>COT Disponible</span>
+        </>
+    ) : (
+        <>
+            <div style={{
+                width: '8px',
+                height: '8px',
+                background: 'var(--text-tertiary)',
+                borderRadius: '50%',
+                opacity: 0.5
+            }}></div>
+            <span style={{ color: 'var(--text-tertiary)' }}>COT: Próx. Viernes</span>
+        </>
+    )}
+</div>
                             </div>
                         </div>
                     </div>
