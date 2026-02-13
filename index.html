@@ -2174,103 +2174,184 @@ const getSentiment = (strength) => {
 };
 
 const generateAnalysis = (currency, forexRates, economicData) => {
+
+const generateAnalysis = (currency, forexRates, economicData) => {
     if (!economicData[currency]) return 'Cargando datos...';
     const data = economicData[currency];
     const country = countries.find(c => c.code === currency);
     const strength = calculateStrength(currency, data, forexRates, economicData);
     const sentiment = getSentiment(strength);
 
+    // ✅ Helper function para formatear valores de forma segura
+    const fmt = (val, decimals = 1) => {
+        if (val === null || val === undefined) return null;
+        return val.toFixed(decimals);
+    };
+
     let analysis = [];
     
     // 1. INTRODUCCIÓN BASADA EN FORTALEZA Y TENDENCIA
+    const strengthStr = fmt(strength);
     if (sentiment === 'alcista') {
-        analysis.push(`${currency} registra fortaleza fundamental sólida (índice ${strength.toFixed(1)}) respaldada por condiciones macroeconómicas favorables.`);
+        analysis.push(`${currency} registra fortaleza fundamental sólida (índice ${strengthStr}) respaldada por condiciones macroeconómicas favorables.`);
     } else if (sentiment === 'bajista') {
-        analysis.push(`${currency} muestra debilidad estructural (índice ${strength.toFixed(1)}) con múltiples indicadores bajo presión.`);
+        analysis.push(`${currency} muestra debilidad estructural (índice ${strengthStr}) con múltiples indicadores bajo presión.`);
     } else {
-        analysis.push(`${currency} mantiene posición neutral (índice ${strength.toFixed(1)}) con factores mixtos que se compensan.`);
+        analysis.push(`${currency} mantiene posición neutral (índice ${strengthStr}) con factores mixtos que se compensan.`);
     }
     
     // 2. ANÁLISIS DE POLÍTICA MONETARIA
-    if (country && data.interestRate !== null) {
+    if (country && data.interestRate !== null && data.interestRate !== undefined) {
+        const rateStr = fmt(data.interestRate, 2);
+        
         if (country.outlook === 'Hawkish') {
-            if (data.inflation > 2.5) {
-                analysis.push(`${country.centralBank} mantiene postura hawkish con tasa en ${data.interestRate.toFixed(2)}% para controlar inflación de ${data.inflation.toFixed(1)}%.`);
+            if (data.inflation !== null && data.inflation > 2.5) {
+                const inflStr = fmt(data.inflation);
+                analysis.push(`${country.centralBank} mantiene postura hawkish con tasa en ${rateStr}% para controlar inflación de ${inflStr}%.`);
+            } else if (data.inflation !== null) {
+                const inflStr = fmt(data.inflation);
+                analysis.push(`${country.centralBank} en modo restrictivo (${rateStr}%) a pesar de inflación moderada de ${inflStr}%.`);
             } else {
-                analysis.push(`${country.centralBank} en modo restrictivo (${data.interestRate.toFixed(2)}%) a pesar de inflación moderada de ${data.inflation.toFixed(1)}%.`);
+                analysis.push(`${country.centralBank} mantiene postura hawkish con tasa en ${rateStr}%.`);
             }
         } else if (country.outlook === 'Dovish') {
             if (data.gdpGrowth !== null && data.gdpGrowth < 1.0) {
-                analysis.push(`${country.centralBank} adopta postura dovish (tasa ${data.interestRate.toFixed(2)}%) ante desaceleración económica de ${data.gdpGrowth.toFixed(1)}%.`);
+                const gdpStr = fmt(data.gdpGrowth);
+                analysis.push(`${country.centralBank} adopta postura dovish (tasa ${rateStr}%) ante desaceleración económica de ${gdpStr}%.`);
             } else {
-                analysis.push(`${country.centralBank} mantiene política acomodaticia con tasa en ${data.interestRate.toFixed(2)}% buscando estimular crecimiento.`);
+                analysis.push(`${country.centralBank} mantiene política acomodaticia con tasa en ${rateStr}% buscando estimular crecimiento.`);
             }
         } else {
-            analysis.push(`${country.centralBank} en pausa estratégica (${data.interestRate.toFixed(2)}%) evaluando datos antes de próximo movimiento.`);
+            analysis.push(`${country.centralBank} en pausa estratégica (${rateStr}%) evaluando datos antes de próximo movimiento.`);
         }
     }
     
     // 3. ANÁLISIS DE BALANZA COMERCIAL Y CUENTA CORRIENTE
-    if (data.tradeBalance !== null && data.currentAccount !== null) {
+    if (data.tradeBalance !== null && data.tradeBalance !== undefined) {
         if (data.tradeBalance > 1000) {
-            analysis.push(`Superávit comercial robusto de $${(data.tradeBalance / 1000).toFixed(1)}B mensuales sostiene demanda estructural de ${currency}.`);
+            const tbStr = (data.tradeBalance / 1000).toFixed(1);
+            analysis.push(`Superávit comercial robusto de $${tbStr}B mensuales sostiene demanda estructural de ${currency}.`);
         } else if (data.tradeBalance < -10000) {
-            analysis.push(`Déficit comercial significativo de $${Math.abs(data.tradeBalance / 1000).toFixed(1)}B mensuales presiona sobre la divisa.`);
+            const tbStr = Math.abs(data.tradeBalance / 1000).toFixed(1);
+            analysis.push(`Déficit comercial significativo de $${tbStr}B mensuales presiona sobre la divisa.`);
         }
-        
+    }
+    
+    if (data.currentAccount !== null && data.currentAccount !== undefined) {
+        const caStr = fmt(data.currentAccount);
         if (data.currentAccount > 3) {
-            analysis.push(`Cuenta corriente superavitaria (+${data.currentAccount.toFixed(1)}% PIB) refuerza posición externa.`);
+            analysis.push(`Cuenta corriente superavitaria (+${caStr}% PIB) refuerza posición externa.`);
         } else if (data.currentAccount < -3) {
-            analysis.push(`Déficit en cuenta corriente (${data.currentAccount.toFixed(1)}% PIB) genera vulnerabilidad externa.`);
+            analysis.push(`Déficit en cuenta corriente (${caStr}% PIB) genera vulnerabilidad externa.`);
         }
     }
     
     // 4. ANÁLISIS ESPECÍFICO POR DIVISA
     if (currency === 'USD') {
-        if (data.gdpGrowth !== null && data.gdpGrowth > 2.5) {
-            analysis.push(`Economía estadounidense en expansión sólida (${data.gdpGrowth.toFixed(1)}%) mantiene atractivo del dólar como activo refugio.`);
-        } else if (data.gdpGrowth !== null) {
-            analysis.push(`Desaceleración económica doméstica (${data.gdpGrowth.toFixed(1)}%) limita potencial alcista del dólar.`);
+        if (data.gdpGrowth !== null && data.gdpGrowth !== undefined) {
+            const gdpStr = fmt(data.gdpGrowth);
+            if (data.gdpGrowth > 2.5) {
+                analysis.push(`Economía estadounidense en expansión sólida (${gdpStr}%) mantiene atractivo del dólar como activo refugio.`);
+            } else {
+                analysis.push(`Desaceleración económica doméstica (${gdpStr}%) limita potencial alcista del dólar.`);
+            }
         }
     } else if (currency === 'EUR') {
         if (data.debt !== null && data.debt > 90) {
-            analysis.push(`Carga de deuda elevada (${data.debt.toFixed(0)}% PIB) en contexto de crecimiento débil limita margen del BCE.`);
+            const debtStr = fmt(data.debt, 0);
+            analysis.push(`Carga de deuda elevada (${debtStr}% PIB) en contexto de crecimiento débil limita margen del BCE.`);
         }
     } else if (currency === 'JPY') {
         if (data.debt !== null && data.debt > 200) {
-            analysis.push(`Deuda pública extrema (${data.debt.toFixed(0)}% PIB) pero status de safe haven mantiene demanda en aversión al riesgo.`);
+            const debtStr = fmt(data.debt, 0);
+            analysis.push(`Deuda pública extrema (${debtStr}% PIB) pero status de safe haven mantiene demanda en aversión al riesgo.`);
         }
         if (data.interestRate !== null && data.interestRate < 0.5) {
             analysis.push(`Política ultra-acomodaticia del BoJ mantiene diferencial negativo frente a otras divisas.`);
         }
     } else if (currency === 'GBP') {
         if (data.inflation !== null && data.inflation > 3.0) {
-            analysis.push(`Inflación persistente (${data.inflation.toFixed(1)}%) fuerza al BoE a mantener política restrictiva.`);
+            const inflStr = fmt(data.inflation);
+            analysis.push(`Inflación persistente (${inflStr}%) fuerza al BoE a mantener política restrictiva.`);
         }
     } else if (currency === 'CHF') {
         if (data.inflation !== null && data.inflation < 1.5 && data.debt !== null && data.debt < 50) {
-            analysis.push(`Estabilidad de precios (${data.inflation.toFixed(1)}%) y deuda baja (${data.debt.toFixed(0)}% PIB) sustentan fortaleza del franco.`);
+            const inflStr = fmt(data.inflation);
+            const debtStr = fmt(data.debt, 0);
+            analysis.push(`Estabilidad de precios (${inflStr}%) y deuda baja (${debtStr}% PIB) sustentan fortaleza del franco.`);
         }
     } else if (currency === 'AUD' || currency === 'NZD' || currency === 'CAD') {
         if (data.production !== null && data.production < 0) {
-            analysis.push(`Debilidad en sector industrial (${data.production.toFixed(1)}%) refleja desafíos en economía dependiente de commodities.`);
+            const prodStr = fmt(data.production);
+            analysis.push(`Debilidad en sector industrial (${prodStr}%) refleja desafíos en economía dependiente de commodities.`);
         } else if (data.tradeBalance !== null && data.tradeBalance > 1000) {
             analysis.push(`Exportaciones de materias primas sostienen superávit comercial y demanda de ${currency}.`);
         }
     }
     
     // 5. ANÁLISIS DE CRECIMIENTO Y DESEMPLEO
-    if (data.gdpGrowth !== null && data.unemployment !== null) {
+    if (data.gdpGrowth !== null && data.gdpGrowth !== undefined && 
+        data.unemployment !== null && data.unemployment !== undefined) {
+        const gdpStr = fmt(data.gdpGrowth);
+        const unempStr = fmt(data.unemployment);
+        
         if (data.gdpGrowth > 2.5 && data.unemployment < 4.0) {
-            analysis.push(`Combinación de crecimiento robusto (${data.gdpGrowth.toFixed(1)}%) y pleno empleo (${data.unemployment.toFixed(1)}%) caracteriza entorno sólido.`);
+            analysis.push(`Combinación de crecimiento robusto (${gdpStr}%) y pleno empleo (${unempStr}%) caracteriza entorno sólido.`);
         } else if (data.gdpGrowth < 1.0 && data.unemployment > 6.0) {
-            analysis.push(`Estancamiento con crecimiento débil (${data.gdpGrowth.toFixed(1)}%) y desempleo elevado (${data.unemployment.toFixed(1)}%) complica panorama.`);
+            analysis.push(`Estancamiento con crecimiento débil (${gdpStr}%) y desempleo elevado (${unempStr}%) complica panorama.`);
         } else if (data.gdpGrowth < 0) {
-            analysis.push(`Contracción económica (${data.gdpGrowth.toFixed(1)}%) eleva riesgos de recesión y presión sobre la divisa.`);
+            analysis.push(`Contracción económica (${gdpStr}%) eleva riesgos de recesión y presión sobre la divisa.`);
         }
     }
     
-    // 6. CONCLUSIÓN PROSPECTIVA
+    // 6. ANÁLISIS DE CONSUMO Y MOMENTUM (NUEVOS INDICADORES)
+    if (data.retailSales !== null && data.retailSales !== undefined && 
+        data.wageGrowth !== null && data.wageGrowth !== undefined) {
+        const rsStr = fmt(data.retailSales);
+        const wgStr = fmt(data.wageGrowth);
+        
+        if (data.retailSales > 0.5 && data.wageGrowth > 3.0) {
+            analysis.push(`Consumo doméstico robusto con ventas minoristas +${rsStr}% y salarios creciendo ${wgStr}% anual sostiene demanda agregada.`);
+        } else if (data.retailSales < -0.3) {
+            analysis.push(`Debilidad en consumo con ventas minoristas ${rsStr}% señala desaceleración en demanda doméstica.`);
+        }
+    }
+
+    // 7. ANÁLISIS DE ACTIVIDAD MANUFACTURERA
+    if (data.manufacturingPMI !== null && data.manufacturingPMI !== undefined) {
+        const pmiStr = fmt(data.manufacturingPMI, 1);
+        
+        if (data.manufacturingPMI > 55) {
+            analysis.push(`Sector manufacturero en fuerte expansión (PMI ${pmiStr}) impulsa crecimiento económico.`);
+        } else if (data.manufacturingPMI > 50) {
+            analysis.push(`Manufactura en expansión moderada (PMI ${pmiStr}) mantiene momentum positivo.`);
+        } else if (data.manufacturingPMI < 45) {
+            analysis.push(`Sector manufacturero en contracción aguda (PMI ${pmiStr}) presagia debilidad económica.`);
+        } else {
+            analysis.push(`Manufactura en contracción (PMI ${pmiStr}) reduce perspectivas de crecimiento.`);
+        }
+    }
+
+    // 8. ANÁLISIS DE POSICIONAMIENTO ESPECULATIVO (COT)
+    if (data.cotPositioning !== null && data.cotPositioning !== undefined) {
+        const cotK = (data.cotPositioning / 1000).toFixed(0);
+        
+        if (data.cotPositioning > 20000) {
+            analysis.push(`Posicionamiento especulativo extremadamente alcista (${cotK}K contratos netos) sugiere saturación y riesgo de corrección.`);
+        } else if (data.cotPositioning > 10000) {
+            analysis.push(`Traders especulativos fuertemente posicionados al alza (${cotK}K contratos) respalda tendencia alcista.`);
+        } else if (data.cotPositioning < -20000) {
+            analysis.push(`Posicionamiento bajista extremo (${cotK}K contratos) podría catalizar rebote técnico si fundamentos mejoran.`);
+        } else if (data.cotPositioning < -10000) {
+            analysis.push(`Sentimiento especulativo negativo (${cotK}K contratos) amplifica presión vendedora.`);
+        } else if (data.cotPositioning > 0) {
+            analysis.push(`Posicionamiento especulativo moderadamente alcista (${cotK}K contratos) alineado con tendencia.`);
+        } else {
+            analysis.push(`Posicionamiento especulativo moderadamente bajista (${cotK}K contratos) refleja cautela del mercado.`);
+        }
+    }
+    
+    // 9. CONCLUSIÓN PROSPECTIVA
     if (sentiment === 'alcista') {
         analysis.push(`Perspectivas favorables mientras fundamentos económicos se mantengan sólidos y política monetaria evite giros abruptos.`);
     } else if (sentiment === 'bajista') {
@@ -2278,45 +2359,6 @@ const generateAnalysis = (currency, forexRates, economicData) => {
     } else {
         analysis.push(`Evolución dependerá de próximos datos económicos y señales de bancos centrales sobre dirección de política monetaria.`);
     }
-
-    // 7. ANÁLISIS DE CONSUMO Y MOMENTUM
-if (data.retailSales !== null && data.wageGrowth !== null) {
-    if (data.retailSales > 0.5 && data.wageGrowth > 3.0) {
-        analysis.push(`Consumo doméstico robusto con ventas minoristas +${data.retailSales.toFixed(1)}% y salarios creciendo ${data.wageGrowth.toFixed(1)}% anual sostiene demanda agregada.`);
-    } else if (data.retailSales < -0.3) {
-        analysis.push(`Debilidad en consumo con ventas minoristas ${data.retailSales.toFixed(1)}% señala desaceleración en demanda doméstica.`);
-    }
-}
-
-// 8. ANÁLISIS DE ACTIVIDAD MANUFACTURERA
-if (data.manufacturingPMI !== null) {
-    if (data.manufacturingPMI > 55) {
-        analysis.push(`Sector manufacturero en fuerte expansión (PMI ${data.manufacturingPMI.toFixed(1)}) impulsa crecimiento económico.`);
-    } else if (data.manufacturingPMI > 50) {
-        analysis.push(`Manufactura en expansión moderada (PMI ${data.manufacturingPMI.toFixed(1)}) mantiene momentum positivo.`);
-    } else if (data.manufacturingPMI < 45) {
-        analysis.push(`Sector manufacturero en contracción aguda (PMI ${data.manufacturingPMI.toFixed(1)}) presagia debilidad económica.`);
-    } else {
-        analysis.push(`Manufactura en contracción (PMI ${data.manufacturingPMI.toFixed(1)}) reduce perspectivas de crecimiento.`);
-    }
-}
-
-// 9. ANÁLISIS DE POSICIONAMIENTO ESPECULATIVO (OPCIONAL)
-if (data.cotPositioning !== null && data.cotPositioning !== undefined) {
-    if (data.cotPositioning > 20000) {
-        analysis.push(`Posicionamiento especulativo extremadamente alcista (${(data.cotPositioning/1000).toFixed(0)}K contratos netos) sugiere saturación y riesgo de corrección.`);
-    } else if (data.cotPositioning > 10000) {
-        analysis.push(`Traders especulativos fuertemente posicionados al alza (${(data.cotPositioning/1000).toFixed(0)}K contratos) respalda tendencia alcista.`);
-    } else if (data.cotPositioning < -20000) {
-        analysis.push(`Posicionamiento bajista extremo (${(data.cotPositioning/1000).toFixed(0)}K contratos) podría catalizar rebote técnico si fundamentos mejoran.`);
-    } else if (data.cotPositioning < -10000) {
-        analysis.push(`Sentimiento especulativo negativo (${(data.cotPositioning/1000).toFixed(0)}K contratos) amplifica presión vendedora.`);
-    } else if (data.cotPositioning > 0) {
-        analysis.push(`Posicionamiento especulativo moderadamente alcista (${(data.cotPositioning/1000).toFixed(0)}K contratos) alineado con tendencia.`);
-    } else {
-        analysis.push(`Posicionamiento especulativo moderadamente bajista (${(data.cotPositioning/1000).toFixed(0)}K contratos) refleja cautela del mercado.`);
-    }
-}
     
     return analysis.join(' ');
 };
