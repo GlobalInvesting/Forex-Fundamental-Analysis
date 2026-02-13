@@ -1592,8 +1592,8 @@
                             
                             if (cotResponse.ok) {
                                 const cotData = await cotResponse.json();
-                                if (cotData.positioning !== null && cotData.positioning !== undefined) {
-                                    economicData[country.code].cotPositioning = cotData.positioning;
+                                if (cotData.netPosition !== null && cotData.netPosition !== undefined) {
+    economicData[country.code].cotPositioning = cotData.netPosition;
                                     console.log(`✅ Loaded COT for ${country.code}: ${cotData.positioning}`);
                                 }
                             }
@@ -2400,11 +2400,6 @@ const generateAnalysis = (currency, forexRates, economicData) => {
     });
 };
 
-            const formatValue = (value, decimals = 1) => {
-                if (value === null || value === undefined) return 'N/D';
-                return value.toFixed(decimals);
-            };
-
 const hasCOTData = () => {
     const currencies = ['EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD'];
     const cotAvailable = currencies.filter(curr => {
@@ -2413,6 +2408,11 @@ const hasCOTData = () => {
     });
     return cotAvailable.length >= 4; // At least 4 currencies have COT data
 };
+            
+            const formatValue = (value, decimals = 1) => {
+                if (value === null || value === undefined) return 'N/D';
+                return value.toFixed(decimals);
+            };
             
             useEffect(() => {
                 const loadInitialData = async () => {
@@ -2518,28 +2518,28 @@ const hasCOTData = () => {
         <div className="status-live"></div>
         <span>Datos en Vivo</span>
     </div>
-    {lastUpdate && (
-        <div className="info-item">
-            <span>Actualizado: {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-    )}
-    {hasCOTData() ? (
-        <div className="info-item">
-            <div className="status-live"></div>
-            <span>COT Disponible</span>
-        </div>
-    ) : (
-        <div className="info-item">
-            <div style={{
-                width: '8px',
-                height: '8px',
-                background: 'var(--text-tertiary)',
-                borderRadius: '50%',
-                opacity: 0.5
-            }}></div>
-            <span style={{ color: 'var(--text-tertiary)' }}>COT: Próx. Viernes</span>
-        </div>
-    )}
+{lastUpdate && (
+    <div className="info-item">
+        <span>Actualizado: {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+    </div>
+)}
+{hasCOTData() ? (
+    <div className="info-item">
+        <div className="status-live"></div>
+        <span>COT Disponible</span>
+    </div>
+) : (
+    <div className="info-item">
+        <div style={{
+            width: '8px',
+            height: '8px',
+            background: 'var(--text-tertiary)',
+            borderRadius: '50%',
+            opacity: 0.5
+        }}></div>
+        <span style={{ color: 'var(--text-tertiary)' }}>COT: Próx. Viernes</span>
+    </div>
+)}
 </div>
                         </div>
                     </div>
