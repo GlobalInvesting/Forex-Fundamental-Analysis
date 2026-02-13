@@ -1560,8 +1560,18 @@ const generateDynamicAlerts = (economicData, forexRates, calendar) => {
     return finalAlerts;
 };
 
-        const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
+const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
             const cacheKey = 'all_economic_data';
+            const DASHBOARD_VERSION = '4.5.1'; // ✅ Incrementar para forzar recarga
+            
+            // ✅ Verificar versión del caché
+            const cachedVersion = localStorage.getItem('forex_dashboard_version');
+            if (cachedVersion !== DASHBOARD_VERSION) {
+                console.log('🔄 Nueva versión detectada, limpiando caché...');
+                CacheManager.clearAll();
+                localStorage.setItem('forex_dashboard_version', DASHBOARD_VERSION);
+            }
+            
             const cached = CacheManager.get(cacheKey);
             if (cached !== null) {
                 setEconomicData(cached);
@@ -1698,26 +1708,26 @@ const calculateStrength = (currency, data = null, forexRates = {}, allEconomicDa
         dataQuality: 0 
     };
     
-    // ========== TRADING-ORIENTED WEIGHTS (CALIBRADO CON HEATMAP) ==========
+// ========== TRADING-ORIENTED WEIGHTS (CALIBRADO CON REALIDAD DE MERCADO) ==========
     const TRADING_WEIGHTS = {
-        // Tier 1: Rate differentials & Carry (40%)
-        interestRate: { weight: 0.30, optimal: { min: 2.5, max: 5.0 }, direction: 'higher' },
+        // Tier 1: External Balance & Safe Haven (35%) - MÁS PESO
+        currentAccount: { weight: 0.18, optimal: { min: 0, max: 5 }, direction: 'higher' },
+        tradeBalance: { weight: 0.12, optimal: { min: 0, max: null }, direction: 'higher' },
+        debt: { weight: 0.05, optimal: { min: 0, max: 60 }, direction: 'lower' },  // ✅ ACTIVADO
+        
+        // Tier 2: Rate differentials & Carry (30%) - REDUCIDO
+        interestRate: { weight: 0.20, optimal: { min: 2.5, max: 5.0 }, direction: 'higher' },
         inflation: { weight: 0.10, optimal: { min: 1.8, max: 2.5 }, direction: 'target' },
         
-        // Tier 2: Growth & Employment (25%)
-        gdpGrowth: { weight: 0.15, optimal: { min: 2.0, max: 3.5 }, direction: 'higher' },
-        unemployment: { weight: 0.10, optimal: { min: 3.0, max: 5.0 }, direction: 'lower' },
-        
-        // Tier 3: External Balance (20%)
-        currentAccount: { weight: 0.12, optimal: { min: 0, max: 5 }, direction: 'higher' },
-        tradeBalance: { weight: 0.08, optimal: { min: 0, max: null }, direction: 'higher' },
+        // Tier 3: Growth & Employment (20%) - REDUCIDO
+        gdpGrowth: { weight: 0.12, optimal: { min: 2.0, max: 3.5 }, direction: 'higher' },
+        unemployment: { weight: 0.08, optimal: { min: 3.0, max: 5.0 }, direction: 'lower' },
         
         // Tier 4: Market Sentiment Indicators (15%)
         cotPositioning: { weight: 0.10, optimal: { min: 5000, max: 15000 }, direction: 'moderate_bullish' },
         manufacturingPMI: { weight: 0.05, optimal: { min: 50, max: 55 }, direction: 'expansion' },
         
-        // Tier 5: Secondary (not used in main score)
-        debt: { weight: 0.00, optimal: { min: 0, max: 60 }, direction: 'lower' },
+        // Tier 5: Secondary (0% - no usado en score principal)
         production: { weight: 0.00, optimal: { min: 1.0, max: 3.0 }, direction: 'stable' },
         retailSales: { weight: 0.00, optimal: { min: 0.3, max: 1.0 }, direction: 'stable' },
         wageGrowth: { weight: 0.00, optimal: { min: 2.5, max: 4.0 }, direction: 'stable' }
@@ -1871,93 +1881,274 @@ const calculateStrength = (currency, data = null, forexRates = {}, allEconomicDa
     
     // ========== CONTEXTUAL ADJUSTMENTS ==========
     
-    // 1. Safe Haven Bonus/Penalty - DINÁMICO según régimen de mercado
-    const calculateMarketRegime = (allEconomicData) => {
-        const cotValues = Object.values(allEconomicData)
-            .map(d => d.cotPositioning)
-            .filter(v => v !== null && v !== undefined && !isNaN(v));
+    // 1. Safe Haven Score - 100% DINÁMICO basado en métricas reales
+    const calculateSafeHavenScore = (currency, data, allEconomicData) => {
+        // Factores que determinan safe haven status (0-100 cada uno)
+        let safeHavenScore = 0;
         
-        if (cotValues.length < 3) return 'neutral';
+        // A) Estabilidad Fiscal (30 puntos)
+        if (data.debt !== null && data.debt !== undefined) {
+            if (data.debt < 40) safeHavenScore += 30;
+            else if (data.debt < 60) safeHavenScore += 20;
+            else if (data.debt < 90) safeHavenScore += 10;
+            else safeHavenScore += 0;
+        }
         
-        const avgCOT = cotValues.reduce((a, b) => a + b, 0) / cotValues.length;
+        // B) Balance Externo (30 puntos)
+        if (data.currentAccount !== null && data.currentAccount !== undefined) {
+            if (data.currentAccount > 5) safeHavenScore += 30;
+            else if (data.currentAccount > 2) safeHavenScore += 20;
+            else if (data.currentAccount > 0) safeHavenScore += 10;
+            else if (data.currentAccount > -3) safeHavenScore += 0;
+            else safeHavenScore -= 10; // Penalización por déficit grande
+        }
         
-        if (avgCOT < -5000) return 'risk-off';
-        if (avgCOT > 5000) return 'risk-on';
-        return 'neutral';
+        // C) Estabilidad de Precios (20 puntos)
+        if (data.inflation !== null && data.inflation !== undefined) {
+            const inflationDeviation = Math.abs(data.inflation - 2.0);
+            if (inflationDeviation < 0.5) safeHavenScore += 20;
+            else if (inflationDeviation < 1.0) safeHavenScore += 15;
+            else if (inflationDeviation < 2.0) safeHavenScore += 10;
+            else safeHavenScore += 0;
+        }
+        
+        // D) Tamaño de Economía Relativo (20 puntos)
+        if (data.gdp !== null && data.gdp !== undefined) {
+            if (data.gdp > 20) safeHavenScore += 20; // Economías grandes (USD, EUR, JPY)
+            else if (data.gdp > 5) safeHavenScore += 15;
+            else if (data.gdp > 1) safeHavenScore += 10;
+            else safeHavenScore += 5; // Economías pequeñas pero estables (CHF)
+        }
+        
+        // E) Régimen de mercado (amplifica o reduce el efecto)
+        const calculateMarketRegime = () => {
+            const cotValues = Object.values(allEconomicData)
+                .map(d => d.cotPositioning)
+                .filter(v => v !== null && v !== undefined && !isNaN(v));
+            
+            if (cotValues.length < 3) return 'neutral';
+            
+            const avgCOT = cotValues.reduce((a, b) => a + b, 0) / cotValues.length;
+            
+            if (avgCOT < -5000) return 'risk-off';
+            if (avgCOT > 5000) return 'risk-on';
+            return 'neutral';
+        };
+        
+        const marketRegime = calculateMarketRegime();
+        
+        // F) Aplicar multiplicador según régimen de mercado
+        let multiplier = 1.0;
+        if (marketRegime === 'risk-off') {
+            // En risk-off, safe havens se benefician más
+            multiplier = safeHavenScore > 60 ? 1.5 : 1.0;
+        } else if (marketRegime === 'risk-on') {
+            // En risk-on, safe havens se penalizan (excepto los muy fuertes)
+            multiplier = safeHavenScore > 70 ? 1.1 : 0.7;
+        }
+        
+        // G) Normalizar a escala -10 a +20
+        const normalizedScore = ((safeHavenScore * multiplier) / 100) * 30 - 10;
+        
+        return Math.max(-10, Math.min(20, normalizedScore));
     };
     
-    const marketRegime = calculateMarketRegime(allEconomicData);
+    const safeHavenBonus = calculateSafeHavenScore(currency, data, allEconomicData);
+    totalScore += safeHavenBonus;
+    contributions['safe_haven_score'] = safeHavenBonus;
     
-    const safeHavenConfig = {
-        'CHF': { 'risk-off': 15, 'neutral': 8, 'risk-on': 2 },
-        'JPY': { 'risk-off': 12, 'neutral': 5, 'risk-on': -2 },
-        'USD': { 'risk-off': 8, 'neutral': 3, 'risk-on': 1 }
-    };
+ // 2. Commodity Exposure Score - DINÁMICO
+const calculateCommodityScore = (currency, data, allEconomicData) => {
+    // Solo aplica a divisas commodity
+    const commodityCurrencies = ['AUD', 'CAD', 'NZD'];
+    if (!commodityCurrencies.includes(currency)) return 0;
     
-    if (safeHavenConfig[currency]) {
-        const bonus = safeHavenConfig[currency][marketRegime];
-        totalScore += bonus;
-        contributions['safe_haven_regime'] = bonus;
+    // A) Dependencia de commodities (medida por trade balance + production)
+    let commodityDependence = 0;
+    
+    if (data.tradeBalance !== null && data.tradeBalance > 1000) {
+        // Superávit comercial indica exportador neto
+        commodityDependence = Math.min(data.tradeBalance / 10000, 1.0); // 0-1 scale
     }
     
-    // 2. Commodity Currency Penalty - DINÁMICO según crecimiento global
-    const calculateGlobalGrowth = (allEconomicData) => {
-        const growthRates = Object.values(allEconomicData)
-            .map(d => d.gdpGrowth)
-            .filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (data.production !== null && data.production !== undefined) {
+        // Producción industrial fuerte indica economía commodity-driven
+        if (data.production > 2.0) commodityDependence += 0.3;
+        else if (data.production > 0.5) commodityDependence += 0.15;
+    }
+    
+    // B) Crecimiento global (determina demanda de commodities)
+    const growthRates = Object.values(allEconomicData)
+        .map(d => d.gdpGrowth)
+        .filter(v => v !== null && v !== undefined && !isNaN(v));
+    
+    const globalGrowth = growthRates.length > 0 
+        ? growthRates.reduce((a, b) => a + b, 0) / growthRates.length 
+        : 1.5;
+    
+    // C) Score: dependencia alta + growth bajo = penalización
+    let score = 0;
+    if (globalGrowth > 2.5) {
+        // Crecimiento fuerte beneficia commodities
+        score = commodityDependence * 5;
+    } else if (globalGrowth > 1.5) {
+        // Crecimiento moderado = neutral
+        score = 0;
+    } else {
+        // Crecimiento débil penaliza commodities
+        score = -commodityDependence * 8;
+    }
+    
+    return score;
+};
+
+const commodityScore = calculateCommodityScore(currency, data, allEconomicData);
+totalScore += commodityScore;
+contributions['commodity_exposure'] = commodityScore;
+
+// 3. Carry Trade Premium - DINÁMICO
+const calculateCarryPremium = (data, allEconomicData) => {
+    if (!data.interestRate) return 0;
+    
+    // A) Calcular tasa promedio global
+    const allRates = Object.values(allEconomicData)
+        .map(d => d.interestRate)
+        .filter(v => v !== null && v !== undefined && !isNaN(v));
+    
+    const avgRate = allRates.length > 0 
+        ? allRates.reduce((a, b) => a + b, 0) / allRates.length 
+        : 3.0;
+    
+    // B) Diferencial de tasa
+    const rateDifferential = data.interestRate - avgRate;
+    
+    // C) Solo bonus si está significativamente por encima del promedio
+    if (rateDifferential > 1.0) {
+        // Bonus proporcional al diferencial, max +8 puntos
+        return Math.min(rateDifferential * 2.5, 8);
+    }
+    
+    return 0;
+};
+
+const carryPremium = calculateCarryPremium(data, allEconomicData);
+totalScore += carryPremium;
+contributions['carry_premium'] = carryPremium;
+
+// 4. Recession Impact - DINÁMICO
+const calculateRecessionImpact = (data) => {
+    if (data.gdpGrowth === null || data.gdpGrowth >= 0) return 0;
+    
+    // A) Severidad de la recesión
+    const recessionDepth = Math.abs(data.gdpGrowth);
+    
+    // B) Contexto de desempleo
+    let multiplier = 3.0; // Base
+    
+    if (data.unemployment !== null) {
+        if (data.unemployment > 8.0) multiplier = 5.0; // Recesión + desempleo alto = muy malo
+        else if (data.unemployment > 6.0) multiplier = 4.0;
+        else if (data.unemployment < 4.0) multiplier = 2.0; // Recesión técnica, no crisis
+    }
+    
+    // C) Penalización proporcional
+    return -recessionDepth * multiplier;
+};
+
+const recessionImpact = calculateRecessionImpact(data);
+totalScore += recessionImpact;
+contributions['recession_impact'] = recessionImpact;
+
+// 5. Structural Deficit Score - DINÁMICO (reemplaza Twin Deficits)
+const calculateStructuralDeficit = (data) => {
+    let deficitScore = 0;
+    
+    // A) Déficit de cuenta corriente
+    if (data.currentAccount !== null && data.currentAccount < -3) {
+        const severity = Math.abs(data.currentAccount + 3) / 3; // 0-1+ scale
+        deficitScore -= severity * 8;
+    }
+    
+    // B) Déficit comercial grande
+    if (data.tradeBalance !== null && data.tradeBalance < -30000) {
+        const severity = Math.abs(data.tradeBalance + 30000) / 30000; // 0-1+ scale
+        deficitScore -= severity * 8;
+    }
+    
+    // C) Penalización adicional si ambos déficits están presentes (twin deficit)
+    if (data.currentAccount !== null && data.currentAccount < -3 && 
+        data.tradeBalance !== null && data.tradeBalance < -30000) {
+        deficitScore -= 5; // Penalización extra por twin deficit
+    }
+    
+    return Math.max(deficitScore, -20); // Cap en -20 puntos
+};
+
+const structuralDeficit = calculateStructuralDeficit(data);
+totalScore += structuralDeficit;
+contributions['structural_deficit'] = structuralDeficit;
+
+// 6. Debt Sustainability Score - DINÁMICO (reemplaza Extreme Debt)
+const calculateDebtSustainability = (data) => {
+    if (data.debt === null || data.debt === undefined) return 0;
+    
+    // A) Nivel de deuda vs crecimiento
+    let sustainabilityScore = 0;
+    
+    if (data.debt > 150) {
+        // Deuda muy alta
+        const excessDebt = (data.debt - 150) / 100; // 0-1+ scale
+        sustainabilityScore -= excessDebt * 6;
         
-        if (growthRates.length < 3) return 1.5;
-        return growthRates.reduce((a, b) => a + b, 0) / growthRates.length;
-    };
-    
-    const globalGrowth = calculateGlobalGrowth(allEconomicData);
-    
-    const commodityConfig = {
-        'AUD': { strong: -1, weak: -6 },
-        'CAD': { strong: 0, weak: -5 },
-        'NZD': { strong: -2, weak: -7 }
-    };
-    
-    if (commodityConfig[currency]) {
-        const penalty = globalGrowth > 2.0 ? commodityConfig[currency].strong : commodityConfig[currency].weak;
-        totalScore += penalty;
-        contributions['commodity_exposure'] = penalty;
+        // B) Agravante si hay bajo crecimiento
+        if (data.gdpGrowth !== null && data.gdpGrowth < 1.0) {
+            sustainabilityScore -= 4; // Deuda alta + crecimiento bajo = insostenible
+        }
+        
+        // C) Mitigante si hay superávit comercial (puede servir deuda)
+        if (data.currentAccount !== null && data.currentAccount > 2.0) {
+            sustainabilityScore += 3; // Puede financiar la deuda
+        }
     }
     
-    // 3. High Carry Premium
-    if (data.interestRate && data.interestRate > 4.5) {
-        const carryBonus = (data.interestRate - 4.5) * 2;
-        totalScore += carryBonus;
-        contributions['high_carry_premium'] = carryBonus;
+    return Math.max(sustainabilityScore, -12); // Cap en -12 puntos
+};
+
+const debtSustainability = calculateDebtSustainability(data);
+totalScore += debtSustainability;
+contributions['debt_sustainability'] = debtSustainability;
+
+// 7. Inflation Stability Score - DINÁMICO
+const calculateInflationStability = (data) => {
+    if (data.inflation === null || data.inflation === undefined) return 0;
+    
+    const inflationTarget = 2.0;
+    const deviation = Math.abs(data.inflation - inflationTarget);
+    
+    // A) Inflación muy alta (> 4%) es preocupante
+    if (data.inflation > 4.0) {
+        const severity = (data.inflation - 4.0) / 2.0; // 0-1+ scale
+        let penalty = -severity * 4;
+        
+        // B) Agravante si hay tasas bajas (no están controlando inflación)
+        if (data.interestRate !== null && data.interestRate < data.inflation - 1.0) {
+            penalty -= 3; // Política monetaria no está conteniendo inflación
+        }
+        
+        return Math.max(penalty, -10);
     }
     
-    // 4. Growth Recession Penalty
-    if (data.gdpGrowth !== null && data.gdpGrowth < 0) {
-        const recessionPenalty = data.gdpGrowth * -5;
-        totalScore += recessionPenalty;
-        contributions['recession_penalty'] = recessionPenalty;
+    // C) Deflación también es problemática
+    if (data.inflation < 0) {
+        return Math.abs(data.inflation) * -2;
     }
     
-    // 5. Twin Deficits (US-specific)
-    if (currency === 'USD' && data.currentAccount < -3 && data.tradeBalance < -50000) {
-        const twinDeficitPenalty = -8;
-        totalScore += twinDeficitPenalty;
-        contributions['twin_deficits'] = twinDeficitPenalty;
-    }
-    
-    // 6. Extreme Debt Penalty (Japan-specific)
-    if (currency === 'JPY' && data.debt > 200) {
-        const debtPenalty = -4;
-        totalScore += debtPenalty;
-        contributions['extreme_debt'] = debtPenalty;
-    }
-    
-    // 7. High Inflation Penalty
-    if (data.inflation !== null && data.inflation > 4.0) {
-        const inflationPenalty = (data.inflation - 4.0) * -2;
-        totalScore += inflationPenalty;
-        contributions['high_inflation_penalty'] = inflationPenalty;
-    }
+    return 0;
+};
+
+const inflationStability = calculateInflationStability(data);
+totalScore += inflationStability;
+contributions['inflation_stability'] = inflationStability;
     
     // ========== NORMALIZATION ==========
     // Normalizar a escala 20-80 (con centro en 50)
@@ -2651,7 +2842,7 @@ const getSortedCountries = () => {
             return (strengthObjB.score || 50) - (strengthObjA.score || 50);
         }
         
-        return greenCellsB - greenCellsA;
+        return greenCellsA - greenCellsB;
     });
 };
 
