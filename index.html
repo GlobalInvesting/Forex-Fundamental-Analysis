@@ -1631,35 +1631,33 @@ console.log(`✅ Loaded all data for ${country.code}`);
                     }
                     
 // CARGAR DATOS COT (archivo separado)
-                    if (true) {
-                        try {
-                            const cotUrl = `https://globalinvesting.github.io/cot-data/${country.code}.json`;
-                            
-                            const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 5000);
-                            
-                            const cotResponse = await fetch(cotUrl, { 
-                                signal: controller.signal,
-                                cache: 'no-cache',
-                                mode: 'cors'
-                            });
-                            
-                            clearTimeout(timeoutId);
-                            
-                            if (cotResponse.ok) {
-                                const cotData = await cotResponse.json();
-                                if (cotData.netPosition !== null && cotData.netPosition !== undefined) {
-                                    economicData[country.code].cotPositioning = cotData.netPosition;
-                                    console.log(`✅ Loaded COT for ${country.code}: ${cotData.positioning}`);
-                                }
-                            }
-                        } catch (error) {
-                            if (error.name !== 'AbortError') {
-                                console.warn(`No COT data for ${country.code}`);
+                    try {
+                        const cotUrl = `https://globalinvesting.github.io/cot-data/${country.code}.json`;
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+                        
+                        const cotResponse = await fetch(cotUrl, { 
+                            signal: controller.signal,
+                            cache: 'no-cache',
+                            mode: 'cors'
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (cotResponse.ok) {
+                            const cotData = await cotResponse.json();
+                            if (cotData.netPosition !== null && cotData.netPosition !== undefined) {
+                                economicData[country.code].cotPositioning = cotData.netPosition;
+                                console.log(`✅ Loaded COT for ${country.code}: ${cotData.positioning}`);
                             }
                         }
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            console.warn(`No COT data for ${country.code}`);
+                        }
                     }
-                catch (error) {
+                } catch (error) {
                     console.error(`❌ Error loading data for ${country.code}:`, error);
                 }
                 
