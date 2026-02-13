@@ -1826,10 +1826,11 @@
             // NORMALIZACIÓN FINAL
             // ====================================================================
             
-            // Limitar a rango realista: 30-75 típico, extremos 20-85
-            const finalScore = Math.max(20, Math.min(85, totalScore));
-            
-            return finalScore.toFixed(1);
+// Limitar a rango realista: 30-75 típico, extremos 20-85
+const finalScore = Math.max(20, Math.min(85, totalScore));
+
+// ✅ FIX CRÍTICO: Retornar NÚMERO, no string
+return parseFloat(finalScore.toFixed(1));
         };
 
         const clearDashboardCache = () => {
@@ -2083,11 +2084,12 @@
                 }
             };
 
-            const getSentiment = (strength) => {
-                if (strength >= 60) return 'alcista';
-                if (strength <= 40) return 'bajista';
-                return 'neutral';
-            };
+const getSentiment = (strength) => {
+    const numStrength = typeof strength === 'string' ? parseFloat(strength) : strength;
+    if (numStrength >= 75) return 'alcista';  // Cambio: 60 → 75
+    if (numStrength <= 55) return 'bajista';  // Cambio: 40 → 55
+    return 'neutral';
+};
 
             const generateAnalysis = (currency, forexRates, economicData) => {
     if (!economicData[currency]) return 'Cargando datos...';
