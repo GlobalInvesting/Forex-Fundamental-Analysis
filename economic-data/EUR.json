@@ -1,16 +1,20 @@
 {
   "lastUpdate": "2026-02-13",
-  "source": "TradingEconomics (Fixed Units)",
-  "methodology": "Monthly data converted to correct units: GDP in Trillions USD, Trade Balance in Millions USD (monthly)",
+  "source": "TradingEconomics",
+  "methodology": "Robust unit conversion: All currencies and scales normalized to USD",
   "units": {
     "gdp": "Trillions USD",
-    "gdpGrowth": "Percentage (%)",
-    "inflation": "Percentage (%)",
+    "gdpGrowth": "Percentage (annual %)",
+    "inflation": "Percentage (annual CPI %)",
     "unemployment": "Percentage (%)",
     "debt": "Percentage of GDP (%)",
     "currentAccount": "Percentage of GDP (%)",
-    "production": "Percentage (%)",
-    "tradeBalance": "Millions USD (monthly)"
+    "production": "Percentage (annual %)",
+    "tradeBalance": "Millions USD (monthly flow)"
+  },
+  "conversionNotes": {
+    "tradeBalance": "Converted from various currencies (JPY, GBP, EUR, etc.) and scales (Million/Billion) to USD Millions",
+    "gdp": "Converted from various currencies and scales to USD Trillions"
   },
   "data": {
     "gdp": 16.41,
