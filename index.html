@@ -1861,7 +1861,7 @@ return parseFloat(finalScore.toFixed(1));
             unemployment: "% de fuerza laboral desempleada.",
             currentAccount: "Balance comercial + flujos de inversión como % del PIB.",
             debt: "Deuda pública como % del PIB.",
-            tradeBalance: "Exportaciones - Importaciones en billones USD.",
+            tradeBalance: "Exportaciones - Importaciones mensuales en millones USD.",
             production: "Crecimiento anual producción industrial."
         };
 
@@ -2354,7 +2354,7 @@ const getSentiment = (strength) => {
                                                                        'var(--text-primary)' 
                                                             }}>
                                                                 {data.tradeBalance !== null && data.tradeBalance !== undefined 
-                                                                    ? `${data.tradeBalance > 0 ? '+' : ''}${formatValue(data.tradeBalance)}B`
+                                                                    ? `${data.tradeBalance > 0 ? '+' : ''}${formatValue(data.tradeBalance)}M`
                                                                     : 'N/D'}
                                                             </div>
                                                         </div>
@@ -2419,7 +2419,7 @@ const getSentiment = (strength) => {
                                                     Deuda Pública<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% del PIB</span>
                                                 </TooltipCell>
                                                 <TooltipCell title="Balanza Comercial" tooltip={indicatorTooltips.tradeBalance}>
-                                                    Balanza Comercial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Miles Millones USD</span>
+                                                    Balanza Comercial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Millones USD</span>
                                                 </TooltipCell>
                                                 <TooltipCell title="Producción Industrial" tooltip={indicatorTooltips.production}>
                                                     Prod. Industrial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>% Anual</span>
@@ -2473,7 +2473,7 @@ const getSentiment = (strength) => {
                                                             <span className="cell-value">{formatValue(data.debt)}%</span>
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.tradeBalance, 'tradeBalance') }}>
-                                                            <span className="cell-value">{data.tradeBalance > 0 ? '+' : ''}{formatValue(data.tradeBalance)}B</span>
+                                                            <span className="cell-value">{data.tradeBalance > 0 ? '+' : ''}{formatValue(data.tradeBalance)}M</span>
                                                         </td>
                                                         <td style={{ background: getHeatmapColor(data.production, 'production') }}>
                                                             <span className="cell-value">{data.production > 0 ? '+' : ''}{formatValue(data.production)}%</span>
