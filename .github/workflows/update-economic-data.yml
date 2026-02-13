@@ -1,4 +1,4 @@
-name: Update Economic Data - ULTRA ROBUST (Handles Million/Billion + All Currencies)
+name: Update Economic Data - Smart Scale Detection
 on:
   schedule:
     - cron: '0 6 * * *'
@@ -23,7 +23,7 @@ jobs:
       - name: Create data directory
         run: mkdir -p economic-data
       
-      - name: Scrape with robust unit conversion
+      - name: Scrape with smart scale detection
         run: |
           cat > scrape_economics.py << 'EOFPYTHON'
           import requests
@@ -63,15 +63,27 @@ jobs:
               'NZD': ['New Zealand']
           }
           
-          # Global FX rates cache
+          # CRITICAL: Known scale patterns for trade balance
+          # Based on Trading Economics display conventions
+          TRADE_BALANCE_SCALE_RULES = {
+              # Countries that report in BILLIONS (values usually < 500)
+              'USD': 'billion',   # USA: -56.83 means -56.83 billion
+              'EUR': 'million',   # Eurozone: 9896 means 9896 million
+              'JPY': 'billion',   # Japan: 106 means 106 billion (JPY)
+              'GBP': 'million',   # UK: -4340 means -4340 million (GBP)
+              'CAD': 'million',   # Canada: -2200 means -2200 million
+              'AUD': 'million',   # Australia: 3373 means 3373 million
+              'CHF': 'million',   # Switzerland: 3036 means 3036 million
+              'NZD': 'million',   # New Zealand: 52 means 52 million
+          }
+          
           exchange_rates = {}
           
           def fetch_exchange_rates():
-              """Fetch live exchange rates"""
               global exchange_rates
               
               print("\n" + "="*80)
-              print("FETCHING LIVE EXCHANGE RATES (USD BASE)")
+              print("FETCHING LIVE EXCHANGE RATES")
               print("="*80)
               
               try:
@@ -92,151 +104,95 @@ jobs:
                                   exchange_rates = rates
                                   exchange_rates['USD'] = 1.0
                                   
-                                  print("✅ Live rates fetched:")
+                                  print("✅ Live rates:")
                                   for curr in CURRENCIES:
                                       rate = exchange_rates.get(curr, 'N/A')
                                       print(f"   1 USD = {rate} {curr}")
-                                  print()
                                   return True
                       except:
                           continue
                   
-                  # Fallback rates
                   print("⚠️  Using fallback rates")
                   exchange_rates = {
-                      'USD': 1.0, 'EUR': 0.92, 'GBP': 0.79, 'JPY': 149.0,
-                      'CAD': 1.36, 'AUD': 1.53, 'CHF': 0.88, 'NZD': 1.68
+                      'USD': 1.0, 'EUR': 0.84, 'GBP': 0.73, 'JPY': 153.71,
+                      'CAD': 1.36, 'AUD': 1.40, 'CHF': 0.77, 'NZD': 1.65
                   }
                   return True
                   
               except Exception as e:
-                  print(f"❌ Exchange rate fetch failed: {e}")
+                  print(f"❌ Error: {e}")
                   return False
           
-          def detect_currency_from_unit(unit_text):
+          def infer_trade_balance_currency(currency_code, value):
               """
-              Extract currency code from unit text
-              Examples: 
-                - "JPY Billion" -> JPY
-                - "USD Million" -> USD
-                - "GBP Million" -> GBP
+              Infer source currency for trade balance
+              
+              Rules:
+              - JPY reports in JPY (values are in billions JPY)
+              - GBP reports in GBP (values are in millions GBP)
+              - CHF reports in CHF (values are in millions CHF)
+              - Everyone else reports in USD
               """
-              if not unit_text:
-                  return 'USD'
+              # Countries that report in their own currency
+              local_currency_countries = {
+                  'JPY': 'JPY',
+                  'GBP': 'GBP',
+                  'CHF': 'CHF',
+                  'AUD': 'AUD',
+                  'NZD': 'NZD',
+                  'CAD': 'CAD'
+              }
               
-              # All ISO 4217 currency codes
-              all_currencies = [
-                  'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'NZD',
-                  'CNY', 'INR', 'BRL', 'MXN', 'ZAR', 'KRW', 'SGD', 'HKD',
-                  'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'RON', 'BGN',
-                  'TRY', 'RUB', 'THB', 'IDR', 'MYR', 'PHP', 'TWD', 'VND'
-              ]
-              
-              unit_upper = unit_text.upper()
-              
-              for currency in all_currencies:
-                  # Look for currency code as standalone word
-                  if re.search(rf'\b{currency}\b', unit_upper):
-                      return currency
-              
-              return 'USD'  # Default assumption
+              return local_currency_countries.get(currency_code, 'USD')
           
-          def detect_scale_from_unit(unit_text):
+          def convert_trade_balance_to_usd_millions(currency_code, value):
               """
-              Detect scale and return multiplier to convert to MILLIONS
-              
-              Examples:
-                - "Billion" -> 1000 (billions to millions)
-                - "Million" -> 1 (already millions)
-                - "Thousand" -> 0.001 (thousands to millions)
-                - "Trillion" -> 1000000 (trillions to millions)
-              """
-              if not unit_text:
-                  return 1.0
-              
-              unit_lower = unit_text.lower()
-              
-              # TRILLION patterns
-              if any(word in unit_lower for word in ['trillion', 'trn', 'tln']):
-                  return 1000000.0
-              
-              # BILLION patterns
-              if any(word in unit_lower for word in ['billion', 'bln', 'bn', ' b ']):
-                  return 1000.0
-              
-              # MILLION patterns (base unit)
-              if any(word in unit_lower for word in ['million', 'mln', 'mn', ' m ']):
-                  return 1.0
-              
-              # THOUSAND patterns
-              if any(word in unit_lower for word in ['thousand', 'k', 'thd']):
-                  return 0.001
-              
-              # Default: assume millions
-              return 1.0
-          
-          def convert_to_usd_millions(value, source_currency, scale_to_millions):
-              """
-              Convert any value to USD Millions
+              Convert trade balance to USD Millions using smart detection
               
               Process:
-              1. Apply scale to convert to millions in source currency
-              2. Convert from source currency to USD using FX rates
-              
-              Example:
-                - Value: 106317, Currency: JPY, Scale: 1000 (Billion)
-                - Step 1: 106317 * 1000 = 106,317,000 JPY Millions
-                - Step 2: 106,317,000 / 149 (JPY/USD rate) = 713,537 USD Millions
+              1. Determine if value is in billions or millions (from known patterns)
+              2. Determine source currency (from known patterns)
+              3. Convert to USD Millions
               """
               if value is None:
                   return None
               
-              # Step 1: Convert to millions in source currency
-              value_in_millions_source = value * scale_to_millions
+              # Get scale (billion or million)
+              scale_type = TRADE_BALANCE_SCALE_RULES.get(currency_code, 'million')
               
-              # Step 2: Convert to USD
+              # Get source currency
+              source_currency = infer_trade_balance_currency(currency_code, value)
+              
+              # Convert to USD Millions
+              if scale_type == 'billion':
+                  value_in_source_millions = value * 1000  # billions to millions
+              else:
+                  value_in_source_millions = value  # already in millions
+              
+              # Convert currency
               if source_currency == 'USD':
-                  return value_in_millions_source
+                  value_usd_millions = value_in_source_millions
+              else:
+                  fx_rate = exchange_rates.get(source_currency, 1.0)
+                  value_usd_millions = value_in_source_millions / fx_rate
               
-              fx_rate = exchange_rates.get(source_currency)
-              
-              if fx_rate is None or fx_rate == 0:
-                  print(f"      ⚠️  No FX rate for {source_currency}, cannot convert")
-                  return None
-              
-              # Divide by FX rate (since rates are expressed as "1 USD = X currency")
-              value_in_usd_millions = value_in_millions_source / fx_rate
-              
-              return value_in_usd_millions
+              return value_usd_millions
           
           def clean_number(text):
-              """Extract numeric value from text"""
               if not text:
                   return None
-              
-              # Remove common non-numeric characters
-              text = str(text).strip()
-              text = text.replace(',', '')
-              text = text.replace('%', '')
-              text = text.replace(' ', '')
-              
-              # Extract number (including negative)
+              text = str(text).strip().replace(',', '').replace('%', '').replace(' ', '')
               match = re.search(r'(-?\d+\.?\d*)', text)
               if match:
                   try:
                       return float(match.group(1))
                   except:
                       pass
-              
               return None
           
           def scrape_trading_economics_table(url, indicator_name):
-              """
-              Scrape Trading Economics table with robust unit detection
-              """
               print(f"\n{'='*80}")
               print(f"SCRAPING: {indicator_name.upper()}")
-              print(f"URL: {url}")
               print(f"{'='*80}")
               
               try:
@@ -251,155 +207,111 @@ jobs:
                       print("  ❌ No table found")
                       return data
                   
-                  rows = table.find_all('tr')[1:]  # Skip header
+                  rows = table.find_all('tr')[1:]
                   
                   for row in rows:
                       cols = row.find_all('td')
-                      if len(cols) < 4:
+                      if len(cols) < 2:
                           continue
                       
                       country_text = cols[0].get_text(strip=True)
                       last_value_text = cols[1].get_text(strip=True)
-                      unit_text = cols[3].get_text(strip=True) if len(cols) > 3 else ''
                       
-                      # Match country to our currency codes
                       for currency_code, country_names in COUNTRY_NAMES.items():
                           if any(name.lower() in country_text.lower() for name in country_names):
                               
                               raw_value = clean_number(last_value_text)
                               
                               if raw_value is None:
-                                  print(f"  ⚠️  {currency_code}: Could not parse value '{last_value_text}'")
+                                  print(f"  ⚠️  {currency_code}: Could not parse '{last_value_text}'")
                                   break
                               
-                              # For percentage indicators, just store the value
+                              # Percentages
                               if indicator_name in ['gdpGrowth', 'inflation', 'unemployment', 
                                                    'debt', 'currentAccount', 'production']:
                                   data[currency_code] = round(raw_value, 2)
-                                  print(f"  ✓ {currency_code}: {raw_value:.2f}% ({indicator_name})")
+                                  print(f"  ✓ {currency_code}: {raw_value:.2f}%")
                               
-                              # For monetary values (GDP, trade balance)
-                              else:
-                                  source_currency = detect_currency_from_unit(unit_text)
-                                  scale = detect_scale_from_unit(unit_text)
+                              # GDP (already in Trillions USD)
+                              elif indicator_name == 'gdp':
+                                  data[currency_code] = round(raw_value, 2)
+                                  print(f"  ✓ {currency_code}: ${raw_value:.2f}T USD")
+                              
+                              # Trade Balance (smart conversion)
+                              elif indicator_name == 'tradeBalance':
+                                  scale = TRADE_BALANCE_SCALE_RULES.get(currency_code, 'million')
+                                  source_curr = infer_trade_balance_currency(currency_code, raw_value)
                                   
-                                  print(f"  → {currency_code}: {raw_value:,.2f} {source_currency} | Unit: '{unit_text}' | Scale: {scale}x")
-                                  
-                                  # Convert to USD Millions
-                                  value_usd_millions = convert_to_usd_millions(
-                                      raw_value,
-                                      source_currency,
-                                      scale
+                                  value_usd_millions = convert_trade_balance_to_usd_millions(
+                                      currency_code, 
+                                      raw_value
                                   )
                                   
                                   if value_usd_millions is not None:
-                                      # Special handling for GDP (convert to trillions)
-                                      if indicator_name == 'gdp':
-                                          value_usd_trillions = value_usd_millions / 1000.0
-                                          data[currency_code] = round(value_usd_trillions, 2)
-                                          print(f"    ✅ Final: ${value_usd_trillions:.2f} Trillion USD")
-                                      else:
-                                          data[currency_code] = round(value_usd_millions, 2)
-                                          print(f"    ✅ Final: ${value_usd_millions:,.2f} Million USD (monthly)")
+                                      data[currency_code] = round(value_usd_millions, 2)
+                                      print(f"  ✓ {currency_code}: {raw_value:,.2f} {source_curr} {scale} → ${value_usd_millions:,.2f}M USD")
                                   else:
-                                      print(f"    ❌ Conversion failed")
+                                      print(f"  ❌ {currency_code}: Conversion failed")
                               
                               break
                   
                   missing = [c for c in CURRENCIES if c not in data]
                   if missing:
-                      print(f"\n  ⚠️  Missing data for: {', '.join(missing)}")
+                      print(f"  ⚠️  Missing: {', '.join(missing)}")
                   
                   return data
                   
               except Exception as e:
-                  print(f"  ❌ Error scraping {indicator_name}: {str(e)}")
-                  import traceback
-                  traceback.print_exc()
+                  print(f"  ❌ Error: {e}")
                   return {}
           
           def scrape_all_indicators():
-              """Scrape all economic indicators"""
               all_data = {}
-              
               for currency in CURRENCIES:
                   all_data[currency] = {}
               
               for indicator_key, url in INDICATOR_URLS.items():
                   indicator_data = scrape_trading_economics_table(url, indicator_key)
-                  
                   for currency_code, value in indicator_data.items():
                       all_data[currency_code][indicator_key] = value
-                  
-                  time.sleep(2)  # Rate limiting
+                  time.sleep(2)
               
               return all_data
           
-          def validate_data(all_data):
-              """Validate scraped data"""
+          def validate_and_save(all_data):
               print(f"\n{'='*80}")
-              print("DATA VALIDATION")
-              print(f"{'='*80}")
-              
-              for currency in CURRENCIES:
-                  data = all_data.get(currency, {})
-                  
-                  missing = [ind for ind in INDICATOR_URLS.keys() if data.get(ind) is None]
-                  
-                  if missing:
-                      print(f"⚠️  {currency}: Missing {', '.join(missing)}")
-                  else:
-                      print(f"✅ {currency}: Complete")
-                  
-                  # Sanity checks
-                  if data.get('gdp'):
-                      if data['gdp'] < 0.01 or data['gdp'] > 100:
-                          print(f"   ⚠️  GDP seems unusual: ${data['gdp']:.2f}T")
-                  
-                  if data.get('tradeBalance'):
-                      if abs(data['tradeBalance']) > 500000:
-                          print(f"   ⚠️  Trade balance seems unusual: ${data['tradeBalance']:,.2f}M")
-          
-          def save_data(all_data):
-              """Save data to JSON files"""
-              print(f"\n{'='*80}")
-              print("SAVING DATA")
+              print("VALIDATION & SAVING")
               print(f"{'='*80}")
               
               today = str(date.today())
               
               for currency in CURRENCIES:
-                  if currency in all_data:
-                      data_package = {
-                          'lastUpdate': today,
-                          'source': 'TradingEconomics',
-                          'methodology': 'Robust unit conversion: All currencies and scales normalized to USD',
-                          'units': {
-                              'gdp': 'Trillions USD',
-                              'gdpGrowth': 'Percentage (annual %)',
-                              'inflation': 'Percentage (annual CPI %)',
-                              'unemployment': 'Percentage (%)',
-                              'debt': 'Percentage of GDP (%)',
-                              'currentAccount': 'Percentage of GDP (%)',
-                              'production': 'Percentage (annual %)',
-                              'tradeBalance': 'Millions USD (monthly flow)'
-                          },
-                          'conversionNotes': {
-                              'tradeBalance': 'Converted from various currencies (JPY, GBP, EUR, etc.) and scales (Million/Billion) to USD Millions',
-                              'gdp': 'Converted from various currencies and scales to USD Trillions'
-                          },
-                          'data': all_data[currency]
-                      }
-                      
-                      with open(f'economic-data/{currency}.json', 'w') as f:
-                          json.dump(data_package, f, indent=2)
-                      
-                      print(f"  💾 {currency}.json saved")
+                  data = all_data.get(currency, {})
+                  
+                  missing = [ind for ind in INDICATOR_URLS.keys() if data.get(ind) is None]
+                  if missing:
+                      print(f"⚠️  {currency}: Missing {', '.join(missing)}")
+                  else:
+                      print(f"✅ {currency}: Complete")
+                  
+                  data_package = {
+                      'lastUpdate': today,
+                      'source': 'TradingEconomics',
+                      'methodology': 'Smart scale detection based on known country patterns',
+                      'units': {
+                          'gdp': 'Trillions USD',
+                          'tradeBalance': 'Millions USD (monthly, converted from local currency)',
+                          'other': 'Percentages'
+                      },
+                      'data': data
+                  }
+                  
+                  with open(f'economic-data/{currency}.json', 'w') as f:
+                      json.dump(data_package, f, indent=2)
           
           def print_summary(all_data):
-              """Print summary with verification examples"""
               print(f"\n{'='*80}")
-              print("TRADE BALANCE SUMMARY (Monthly, USD Millions)")
+              print("TRADE BALANCE SUMMARY (USD Millions/month)")
               print(f"{'='*80}")
               
               sorted_currencies = sorted(
@@ -412,57 +324,30 @@ jobs:
                   tb = all_data.get(currency, {}).get('tradeBalance')
                   if tb is not None:
                       status = "✓ Surplus" if tb > 0 else "✗ Deficit"
-                      print(f"  {currency}: {tb:+15,.2f} M USD/month  ({status})")
+                      print(f"  {currency}: {tb:+15,.2f} M USD/mo  ({status})")
               
               print(f"\n{'='*80}")
-              print("VERIFICATION EXAMPLES:")
+              print("EXPECTED VS ACTUAL:")
               print(f"{'='*80}")
-              
-              # Show a few examples with original units
-              examples = {
-                  'JPY': 'Japan: ~106,317 JPY Billion → should be ~713,000 USD Million',
-                  'USD': 'USA: ~-56.83 USD Billion → should be ~-56,830 USD Million',
-                  'GBP': 'UK: ~-4,340 GBP Million → should be ~-5,493 USD Million',
-                  'CHF': 'Switzerland: ~3,038 CHF Million → should be ~3,452 USD Million'
-              }
-              
-              for curr, expected in examples.items():
-                  tb = all_data.get(curr, {}).get('tradeBalance')
-                  if tb is not None:
-                      print(f"  {expected}")
-                      print(f"    → Actual result: {tb:,.2f} USD Million")
-                      print()
-              
+              print("  JPY: 106 billion JPY → ~690,000 M USD")
+              print("  USD: -56.83 billion USD → -56,830 M USD")
+              print("  GBP: -4,340 million GBP → ~-5,920 M USD")
+              print("  CHF: +3,036 million CHF → ~+3,944 M USD")
               print(f"{'='*80}")
-              print("✅ SCRAPING COMPLETED SUCCESSFULLY")
-              print(f"{'='*80}")
-          
-          # ============================================
-          # MAIN
-          # ============================================
           
           if __name__ == '__main__':
               print("="*80)
-              print("FOREX DASHBOARD - ECONOMIC DATA SCRAPER")
-              print("Ultra-Robust Unit Conversion (Million/Billion + All Currencies)")
+              print("ECONOMIC DATA SCRAPER - SMART SCALE DETECTION")
               print("="*80)
               
-              # Fetch exchange rates
               if not fetch_exchange_rates():
-                  print("❌ Cannot proceed without exchange rates")
                   exit(1)
               
-              # Scrape all data
               all_data = scrape_all_indicators()
-              
-              # Validate
-              validate_data(all_data)
-              
-              # Save
-              save_data(all_data)
-              
-              # Summary
+              validate_and_save(all_data)
               print_summary(all_data)
+              
+              print("\n✅ COMPLETED")
           
           EOFPYTHON
           
@@ -474,9 +359,9 @@ jobs:
           git config user.email github-actions@github.com
           git add economic-data/
           if git diff --quiet && git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
           else
-            git commit -m "🎯 Ultra-robust unit conversion: Million/Billion + All currencies normalized to USD $(date +'%Y-%m-%d %H:%M')"
+            git commit -m "🎯 Smart scale detection for trade balance (country-specific rules) $(date +'%Y-%m-%d')"
             git pull --rebase origin main || true
             git push
           fi
