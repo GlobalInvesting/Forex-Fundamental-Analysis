@@ -3394,11 +3394,11 @@ const sentiment = getSentiment(strength);
                         )}
 
 <div className="footer">
-    <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>DASHBOARD DE ANÁLISIS FOREX - TRADING ORIENTED</div>
+    <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>DASHBOARD DE ANÁLISIS FUNDAMENTAL FOREX - DATA-DRIVEN</div>
     <div style={{ marginBottom: '1rem' }}>
-        Metodología: Modelo cuantitativo enfocado en señales de trading<br/>
-        Ponderación: Diferenciales de tasas (40%) • Crecimiento & Empleo (25%) • Balance Externo (20%) • Sentimiento de Mercado (15%)<br/>
-        Datos actualizados diariamente desde Trading Economics y FRED
+        Metodología: Modelo cuantitativo 100% basado en datos económicos reales<br/>
+        Ponderación Core: Balance Externo (35%) • Diferenciales de Tasas (30%) • Crecimiento & Empleo (20%) • Sentimiento de Mercado (15%)<br/>
+        Datos actualizados diariamente desde Trading Economics, FRED y CFTC
     </div>
     
     <div style={{ 
@@ -3410,11 +3410,28 @@ const sentiment = getSentiment(strength);
         fontSize: '0.8125rem',
         lineHeight: '1.6'
     }}>
-        <strong>Nota sobre scores de fortaleza:</strong><br/>
-        Los scores reflejan <strong>fortaleza relativa de trading</strong> basada en diferenciales de tasas, 
-        momentum económico y posicionamiento de mercado. Scores más altos indican mayor atractivo para 
-        posiciones largas en el par vs USD. El modelo prioriza factores relevantes para horizontes de 
-        trading de semanas a meses, no salud económica de largo plazo.
+        <strong>Metodología de Scoring:</strong><br/>
+        El índice de fortaleza combina 12 indicadores económicos con ponderaciones basadas en su relevancia para trading de divisas. 
+        Se aplican ajustes contextuales dinámicos: Safe Haven Status, Commodity Exposure, Carry Premium, Recession Impact, 
+        Structural Deficits, Debt Sustainability e Inflation Stability. Todos los cálculos se actualizan en tiempo real 
+        basándose en datos macroeconómicos verificados. Rango: 20-80 puntos. Sentimiento: Alcista (≥62), Neutral (45-62), Bajista (≤45).
+    </div>
+    
+    <div style={{ 
+        background: 'var(--bg-card)', 
+        padding: '1rem', 
+        borderRadius: '6px', 
+        border: '1px solid var(--border)',
+        marginTop: '1rem',
+        fontSize: '0.8125rem',
+        lineHeight: '1.6'
+    }}>
+        <strong>Indicadores Principales (por peso):</strong><br/>
+        • <strong>Tier 1 (35%):</strong> Cuenta Corriente (18%), Balanza Comercial (12%), Deuda Pública (5%)<br/>
+        • <strong>Tier 2 (30%):</strong> Tasa de Interés (20%), Inflación (10%)<br/>
+        • <strong>Tier 3 (20%):</strong> Crecimiento PIB (12%), Desempleo (8%)<br/>
+        • <strong>Tier 4 (15%):</strong> COT Positioning (10%), PMI Manufacturero (5%)<br/>
+        • <strong>Informativos:</strong> Ventas Minoristas, Crecimiento Salarial, Producción Industrial
     </div>
     
     <div style={{ 
@@ -3427,9 +3444,41 @@ const sentiment = getSentiment(strength);
         lineHeight: '1.6'
     }}>
         <strong>Datos COT (Commitment of Traders):</strong><br/>
-        Posicionamiento de traders especulativos según reportes CFTC publicados cada viernes (3:30 PM ET). 
+        Posicionamiento neto de traders especulativos según reportes CFTC publicados cada viernes (3:30 PM ET). 
         Para USD se utiliza el US Dollar Index (DXY) de ICE Futures. Datos reflejan posiciones con ~3 días 
-        de retraso. Extremos (±30K contratos) indican saturación y riesgo de reversión.
+        de retraso. Interpretación: Alcista moderado (+5K a +15K) = óptimo, extremos (±30K) = saturación y riesgo de reversión.
+    </div>
+    
+    <div style={{ 
+        background: 'var(--bg-card)', 
+        padding: '1rem', 
+        borderRadius: '6px', 
+        border: '1px solid var(--border)',
+        marginTop: '1rem',
+        fontSize: '0.8125rem',
+        lineHeight: '1.6'
+    }}>
+        <strong>Fuentes de Datos:</strong><br/>
+        • <strong>Indicadores Económicos:</strong> Trading Economics (GDP, Inflation, Unemployment, Trade Balance, Retail Sales, Wage Growth, PMI)<br/>
+        • <strong>Tasas de Interés:</strong> FRED (Federal Reserve Economic Data) y Bancos Centrales oficiales<br/>
+        • <strong>COT Positioning:</strong> CFTC (Commodity Futures Trading Commission) - Reportes semanales<br/>
+        • <strong>Tipos de Cambio:</strong> Frankfurter API y ExchangeRate-API<br/>
+        Última actualización: {lastUpdate ? lastUpdate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Cargando...'}
+    </div>
+    
+    <div style={{ 
+        background: 'var(--bg-card)', 
+        padding: '1rem', 
+        borderRadius: '6px', 
+        border: '1px solid var(--border)',
+        marginTop: '1rem',
+        fontSize: '0.8125rem',
+        lineHeight: '1.6'
+    }}>
+        <strong>Disclaimer:</strong><br/>
+        Este dashboard es una herramienta educativa y de análisis. Los scores de fortaleza son cálculos cuantitativos 
+        basados en datos macroeconómicos y no constituyen asesoramiento financiero. El trading de divisas (forex) 
+        conlleva riesgos significativos. Consulte con un asesor financiero certificado antes de tomar decisiones de inversión.
     </div>
     
     <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
@@ -3439,6 +3488,9 @@ const sentiment = getSentiment(strength);
         }}>
             Limpiar Caché y Recargar Datos
         </button>
+        <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+            Dashboard v4.5.1 • Creado por Global Investing • {new Date().getFullYear()}
+        </div>
     </div>
 </div>
                     </div>
