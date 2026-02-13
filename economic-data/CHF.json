@@ -1,10 +1,19 @@
 {
-  "lastUpdate": "2026-02-12",
-  "source": "TradingEconomics (100% Dynamic, Monthly Data)",
-  "methodology": "Monthly data from Trading Economics, converted to USD billions (NO annualization)",
-  "note": "All values are MONTHLY (not annualized). Trade balance and production are monthly flows.",
+  "lastUpdate": "2026-02-13",
+  "source": "TradingEconomics (Fixed Units)",
+  "methodology": "Monthly data converted to correct units: GDP in Trillions USD, Trade Balance in Millions USD (monthly)",
+  "units": {
+    "gdp": "Trillions USD",
+    "gdpGrowth": "Percentage (%)",
+    "inflation": "Percentage (%)",
+    "unemployment": "Percentage (%)",
+    "debt": "Percentage of GDP (%)",
+    "currentAccount": "Percentage of GDP (%)",
+    "production": "Percentage (%)",
+    "tradeBalance": "Millions USD (monthly)"
+  },
   "data": {
-    "gdp": 937.0,
+    "gdp": 0.94,
     "gdpGrowth": -0.5,
     "inflation": 0.1,
     "unemployment": 3.2,
