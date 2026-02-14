@@ -264,7 +264,7 @@
             <h3>Sistema de Ponderación (100% Data-Driven)</h3>
             <p>Cada indicador económico contribuye al score final según su relevancia para el trading de divisas:</p>
 
-<table>
+            <table>
                 <thead>
                     <tr>
                         <th>Tier</th>
@@ -275,14 +275,14 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td rowspan="3"><strong>Tier 1 (30%)</strong><br/>Balance Externo</td>
+                        <td rowspan="3"><strong>Tier 1 (35%)</strong><br/>Balance Externo</td>
                         <td>Cuenta Corriente</td>
-                        <td>15%</td>
+                        <td>18%</td>
                         <td>Demanda estructural de divisa</td>
                     </tr>
                     <tr>
                         <td>Balanza Comercial</td>
-                        <td>10%</td>
+                        <td>12%</td>
                         <td>Flujos comerciales mensuales</td>
                     </tr>
                     <tr>
@@ -302,42 +302,42 @@
                         <td>Expectativas de política</td>
                     </tr>
                     <tr>
-                        <td rowspan="3"><strong>Tier 3 (20%)</strong><br/>Crecimiento</td>
+                        <td rowspan="2"><strong>Tier 3 (20%)</strong><br/>Crecimiento</td>
                         <td>Crecimiento PIB</td>
-                        <td>10%</td>
+                        <td>12%</td>
                         <td>Momentum económico</td>
                     </tr>
                     <tr>
                         <td>Desempleo</td>
-                        <td>6%</td>
+                        <td>8%</td>
                         <td>Salud del mercado laboral</td>
                     </tr>
                     <tr>
-                        <td>Producción Industrial</td>
-                        <td>4%</td>
-                        <td>Actividad manufacturera</td>
-                    </tr>
-                    <tr>
-                        <td rowspan="2"><strong>Tier 4 (10%)</strong><br/>Consumo & Salarios</td>
-                        <td>Ventas Minoristas</td>
-                        <td>5%</td>
-                        <td>Fortaleza del consumo</td>
-                    </tr>
-                    <tr>
-                        <td>Crecimiento Salarial</td>
-                        <td>5%</td>
-                        <td>Presiones inflacionarias</td>
-                    </tr>
-                    <tr>
-                        <td rowspan="2"><strong>Tier 5 (10%)</strong><br/>Sentimiento</td>
+                        <td rowspan="2"><strong>Tier 4 (15%)</strong><br/>Sentimiento</td>
                         <td>COT Positioning</td>
-                        <td>7%</td>
+                        <td>10%</td>
                         <td>Posicionamiento especulativo</td>
                     </tr>
                     <tr>
                         <td>PMI Manufacturero</td>
-                        <td>3%</td>
+                        <td>5%</td>
                         <td>Indicador adelantado</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3"><strong>Informativos</strong><br/>(Sin peso)</td>
+                        <td>Producción Industrial</td>
+                        <td>-</td>
+                        <td>Contexto económico</td>
+                    </tr>
+                    <tr>
+                        <td>Ventas Minoristas</td>
+                        <td>-</td>
+                        <td>Fortaleza del consumo</td>
+                    </tr>
+                    <tr>
+                        <td>Crecimiento Salarial</td>
+                        <td>-</td>
+                        <td>Presiones inflacionarias</td>
                     </tr>
                 </tbody>
             </table>
@@ -345,13 +345,13 @@
             <h3>Ajustes Contextuales Dinámicos</h3>
             <p>El modelo aplica modificadores basados en condiciones económicas específicas:</p>
             <ul>
-                <li><strong>Safe Haven Score:</strong> Evalúa estabilidad fiscal, balance externo y tamaño de economía. Se amplifica en entornos de aversión al riesgo.</li>
-                <li><strong>Commodity Exposure:</strong> Para AUD, CAD, NZD. Ajusta según crecimiento global y superávit comercial.</li>
-                <li><strong>Carry Premium:</strong> Bonus para divisas con tasas significativamente superiores al promedio global.</li>
-                <li><strong>Recession Impact:</strong> Penalización proporcional si GDP Growth es negativo, amplificada por desempleo alto.</li>
-                <li><strong>Structural Deficit:</strong> Penalización por déficits persistentes en cuenta corriente y comercio.</li>
-                <li><strong>Debt Sustainability:</strong> Evalúa deuda alta en contexto de crecimiento bajo.</li>
-                <li><strong>Inflation Stability:</strong> Penalización por inflación muy alta sin respuesta de tasas.</li>
+                <li><strong>Activo Refugio (Safe Haven):</strong> Evalúa estabilidad fiscal, balance externo y tamaño de economía. Se amplifica en entornos de aversión al riesgo. Beneficia a CHF, JPY y USD.</li>
+                <li><strong>Exposición a Materias Primas (Commodity):</strong> Aplicable a AUD, CAD y NZD. Ajusta según crecimiento económico global y superávit comercial por exportaciones.</li>
+                <li><strong>Prima de Carry Trade:</strong> Bonificación para divisas con tasas de interés significativamente superiores al promedio global.</li>
+                <li><strong>Impacto Recesivo:</strong> Penalización proporcional cuando el crecimiento del PIB es negativo, amplificada si existe desempleo elevado.</li>
+                <li><strong>Déficit Estructural:</strong> Penalización por déficits persistentes en cuenta corriente y balanza comercial (twin deficits).</li>
+                <li><strong>Sostenibilidad de Deuda:</strong> Evalúa deuda pública elevada en contexto de crecimiento económico bajo y capacidad de financiamiento.</li>
+                <li><strong>Estabilidad Inflacionaria:</strong> Penalización por inflación muy alta sin respuesta adecuada de política monetaria (tasas bajas vs inflación alta).</li>
             </ul>
 
             <h3>Normalización y Escala</h3>
@@ -406,12 +406,27 @@
                         <td>CFTC</td>
                     </tr>
                     <tr>
-                        <td>Outlook Bancos Centrales</td>
-                        <td>Dinámico</td>
-                        <td>Calculado en base a datos</td>
+                        <td>Perspectiva Bancos Centrales (Outlook)</td>
+                        <td>Calculado dinámicamente</td>
+                        <td>Algoritmo basado en inflación, crecimiento, desempleo y tasa actual</td>
                     </tr>
                 </tbody>
             </table>
+
+            <h3>Nota sobre Perspectiva de Bancos Centrales</h3>
+            <p>El "Outlook" (Hawkish/Neutral/Dovish) visible en cada tarjeta de divisa del dashboard se calcula mediante un algoritmo de scoring que evalúa:</p>
+            <ul>
+                <li>Si inflación > 3.0% → +2 puntos (presión hawkish para subir tasas)</li>
+                <li>Si inflación < 1.5% → -2 puntos (presión dovish para bajar tasas)</li>
+                <li>Si crecimiento PIB > 2.5% → +1 punto (economía fuerte permite tasas altas)</li>
+                <li>Si crecimiento PIB < 1.0% → -2 puntos (economía débil requiere estímulo)</li>
+                <li>Si desempleo < 3.5% → +1 punto (mercado laboral tenso, riesgo inflacionario)</li>
+                <li>Si desempleo > 6.0% → -1 punto (mercado laboral débil)</li>
+                <li>Si tasa de interés > 4.0% → +1 punto (ya en modo restrictivo)</li>
+                <li>Si tasa de interés < 2.0% → -1 punto (espacio para bajar)</li>
+            </ul>
+            <p><strong>Clasificación:</strong> Score ≥ 2 = Hawkish (restrictivo) | Score ≤ -2 = Dovish (acomodaticio) | Score entre -1 y +1 = Neutral</p>
+            <p>Este cálculo se actualiza cada 24 horas junto con los datos económicos y refleja la postura probable del banco central basándose en condiciones macroeconómicas actuales, no en declaraciones oficiales.</p>
 
             <h3>Nota sobre Datos COT</h3>
             <p>Los datos de Commitment of Traders provienen de reportes oficiales de la CFTC publicados cada viernes a las 15:30 ET, reflejando posiciones hasta el martes previo. Para USD utilizamos el US Dollar Index (DXY) de ICE Futures. Datos con ~3 días de retraso natural.</p>
@@ -451,7 +466,7 @@
             <p>Valoramos los comentarios de nuestros usuarios y estamos comprometidos con la mejora continua.</p>
             <ul>
                 <li><strong>Consultas Generales:</strong> <a href="contact.html">Formulario de Contacto</a></li>
-                <li><strong>Email:</strong> <a href="mailto:globalinvestingmarkets@gmail.com">globalinvestingmarkets@gmail.com</a></li>
+                <li><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection#5a3d3635383b3633342c3f292e33343d373b28313f2e291a3d373b333674393537"><span class="__cf_email__" data-cfemail="6f0803000d0e030601190a1c1b060108020e1d040a1b1c2f08020e0603410c0002">[email&#160;protected]</span></a></li>
                 <li><strong>Feedback Metodológico:</strong> Aceptamos sugerencias sobre calibración y mejoras al modelo</li>
             </ul>
         </div>
@@ -462,10 +477,4 @@
                 <a href="index.html">Dashboard</a> | 
                 <a href="about.html">Acerca de</a> | 
                 <a href="terms.html">Términos de Servicio</a> | 
-                <a href="privacy.html">Política de Privacidad</a> | 
-                <a href="contact.html">Contacto</a>
-            </p>
-        </div>
-    </div>
-</body>
-</html>
+                <a h
