@@ -106,7 +106,7 @@
             color: var(--text-secondary);
         }
 
-        ul {
+        ul, ol {
             margin-left: 2rem;
             margin-bottom: 1.25rem;
         }
@@ -193,6 +193,15 @@
         td {
             color: var(--text-secondary);
         }
+
+        code {
+            background: var(--bg-secondary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--green);
+        }
     </style>
 </head>
 <body>
@@ -251,6 +260,7 @@
                 <li><strong>Análisis de Bancos Centrales:</strong> Tasas de política, calendarios y perspectivas dinámicas</li>
                 <li><strong>Datos de Balance Externo:</strong> Cuenta corriente y balanza comercial</li>
                 <li><strong>Posicionamiento COT:</strong> Sentimiento especulativo desde reportes CFTC</li>
+                <li><strong>Recomendaciones de Pares:</strong> Sugerencias LONG/SHORT basadas en diferenciales de fortaleza fundamental</li>
                 <li><strong>Visualización Intuitiva:</strong> Interface optimizada para evaluación rápida</li>
             </ul>
         </div>
@@ -364,6 +374,112 @@
         </div>
 
         <div class="section">
+            <h2>Sistema de Recomendaciones de Pares</h2>
+            
+            <h3>Filosofía y Objetivo</h3>
+            <p>La pestaña "Mejores Pares" identifica automáticamente las oportunidades de trading más prometedoras basándose en diferenciales de fortaleza fundamental entre divisas. El sistema busca combinar divisas con fundamentos divergentes para maximizar el potencial de movimiento basado en análisis económico.</p>
+            
+            <h3>Proceso de Selección</h3>
+            <ol style="margin-left: 2rem; color: var(--text-secondary);">
+                <li><strong>Cálculo de Fortaleza Individual:</strong> Se calcula el score fundamental (20-80) para cada una de las 8 divisas principales</li>
+                <li><strong>Ranking y Clasificación:</strong> Las divisas se ordenan de mayor a menor fortaleza fundamental</li>
+                <li><strong>Identificación de Extremos:</strong> Se extraen las 3 divisas más fuertes (top 30%) y las 3 más débiles (bottom 30%)</li>
+                <li><strong>Generación de Combinaciones LONG:</strong> Se crean pares comprando la divisa fuerte contra la débil (ej: <code>EUR/JPY</code> si EUR es fuerte y JPY débil)</li>
+                <li><strong>Generación de Combinaciones SHORT:</strong> Se crean pares vendiendo la divisa débil contra la fuerte (ej: <code>JPY/EUR</code> si JPY es débil y EUR fuerte)</li>
+                <li><strong>Cálculo de Prioridad:</strong> Cada par se califica mediante <code>diferencial × calidad_de_datos</code></li>
+                <li><strong>Selección Final:</strong> Se muestran las 8 mejores oportunidades (4 LONG + 4 SHORT) ordenadas por prioridad</li>
+            </ol>
+
+            <h3>Métricas de Cada Recomendación</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Métrica</th>
+                        <th>Descripción</th>
+                        <th>Interpretación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Par</strong></td>
+                        <td>Divisa base / Divisa cotizada</td>
+                        <td>Estructura del par recomendado</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dirección</strong></td>
+                        <td>LONG (Comprar) o SHORT (Vender)</td>
+                        <td>Acción recomendada sobre el par</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Diferencial</strong></td>
+                        <td>Score fuerte - Score débil</td>
+                        <td>Mayor diferencial = mayor divergencia fundamental</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Confianza</strong></td>
+                        <td>Alta (>20) / Media (12-20) / Baja (<12)</td>
+                        <td>Basada en amplitud del diferencial de scores</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Factores Positivos</strong></td>
+                        <td>Top 3 contribuciones a fortaleza</td>
+                        <td>Razones fundamentales que sostienen la fortaleza</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Factores Negativos</strong></td>
+                        <td>Top 3 contribuciones negativas</td>
+                        <td>Razones fundamentales que explican la debilidad</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Calidad de Datos</strong></td>
+                        <td>% de indicadores disponibles</td>
+                        <td>Fiabilidad del análisis (≥70% es bueno)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Ejemplo Práctico</h3>
+            <div class="highlight-box">
+                <p><strong>Recomendación:</strong> <code>EUR/JPY</code> LONG (Comprar)</p>
+                <p><strong>Diferencial:</strong> 32.5 puntos (EUR: 72.3 vs JPY: 39.8)</p>
+                <p><strong>Confianza:</strong> Alta</p>
+                <p><strong>Fortaleza EUR (+72.3):</strong></p>
+                <ul style="margin-left: 2rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                    <li>Tasa de Interés: +14.2</li>
+                    <li>Cuenta Corriente: +11.8</li>
+                    <li>Crecimiento PIB: +8.5</li>
+                </ul>
+                <p><strong>Debilidad JPY (39.8):</strong></p>
+                <ul style="margin-left: 2rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                    <li>Tasa de Interés: -12.5</li>
+                    <li>Sostenibilidad Deuda: -8.3</li>
+                    <li>Inflación: -5.7</li>
+                </ul>
+                <p><strong>Análisis:</strong> EUR muestra fundamentos superiores con un índice de fortaleza de 72.3 puntos, superando a JPY (39.8) por un diferencial de 32.5 puntos. Este diferencial sugiere una oportunidad de compra (LONG) en EUR/JPY.</p>
+                <p style="margin-top: 1rem; margin-bottom: 0;"><strong>Calidad de Datos:</strong> 85% (11 de 13 indicadores disponibles para ambas divisas)</p>
+            </div>
+
+            <h3>Limitaciones y Consideraciones</h3>
+            <ul>
+                <li><strong>Sólo Análisis Fundamental:</strong> No incluye análisis técnico, sentimiento de mercado retail, o eventos noticiosos recientes</li>
+                <li><strong>No es Timing:</strong> El sistema identifica divergencias fundamentales, no puntos óptimos de entrada/salida</li>
+                <li><strong>Sin Gestión de Riesgo:</strong> No proporciona niveles de stop-loss, take-profit, o tamaño de posición</li>
+                <li><strong>Correlación No Garantizada:</strong> La fortaleza fundamental no siempre se traduce en movimientos inmediatos del mercado</li>
+                <li><strong>Factores Externos:</strong> No considera intervenciones de bancos centrales, eventos geopolíticos, o shocks exógenos</li>
+            </ul>
+
+            <h3>Uso Recomendado</h3>
+            <p>Las recomendaciones de pares deben utilizarse como:</p>
+            <ul>
+                <li><strong>Filtro Inicial:</strong> Para identificar pares con divergencia fundamental significativa</li>
+                <li><strong>Complemento Técnico:</strong> Combinar con análisis técnico para timing y niveles</li>
+                <li><strong>Validación de Ideas:</strong> Para confirmar o refutar hipótesis de trading propias</li>
+                <li><strong>Análisis de Sesgo:</strong> Entender qué divisas tienen viento a favor/en contra fundamentalmente</li>
+                <li><strong>Perspectiva de Medio Plazo:</strong> Orientadas a operaciones de días/semanas, no intradiarias</li>
+            </ul>
+        </div>
+
+        <div class="section">
             <h2>Fuentes de Datos Verificadas</h2>
             
             <h3>Proveedores Principales</h3>
@@ -406,6 +522,11 @@
                         <td>CFTC</td>
                     </tr>
                     <tr>
+                        <td>Recomendaciones de Pares</td>
+                        <td>Calculado en tiempo real</td>
+                        <td>Algoritmo basado en scores actuales</td>
+                    </tr>
+                    <tr>
                         <td>Perspectiva Bancos Centrales (Outlook)</td>
                         <td>Calculado dinámicamente</td>
                         <td>Algoritmo basado en inflación, crecimiento, desempleo y tasa actual</td>
@@ -440,6 +561,7 @@
                 <li><strong>Cálculos Visibles:</strong> La lógica de scoring está disponible en el código fuente</li>
                 <li><strong>Datos Verificables:</strong> Todas las métricas pueden ser confirmadas en fuentes oficiales</li>
                 <li><strong>Limitaciones Claras:</strong> Reconocemos qué no incluimos (términos de intercambio, Net Foreign Assets, etc.)</li>
+                <li><strong>Metodología Documentada:</strong> El algoritmo de recomendaciones de pares está completamente explicado</li>
             </ul>
         </div>
 
@@ -452,12 +574,14 @@
                 <li><strong>Estudiantes de Finanzas:</strong> Herramienta educativa para entender determinantes de divisas</li>
                 <li><strong>Inversores Multi-Asset:</strong> Evaluación de exposición a divisas en portafolios</li>
                 <li><strong>Investigadores:</strong> Platform transparente para estudiar correlaciones macro-forex</li>
+                <li><strong>Swing Traders:</strong> Identificación de oportunidades fundamentales de medio plazo</li>
             </ul>
         </div>
 
         <div class="highlight-box">
             <h3 style="font-size: 1.2rem; margin-bottom: 0.75rem;">Descargo de Responsabilidad</h3>
-            <p>Esta plataforma proporciona contenido informativo y educativo únicamente. No constituye asesoramiento financiero, recomendaciones de inversión o señales de trading. Los scores de fortaleza son análisis cuantitativos basados en datos económicos, no predicciones sobre movimientos futuros de divisas.</p>
+            <p>Esta plataforma proporciona contenido informativo y educativo únicamente. No constituye asesoramiento financiero, recomendaciones de inversión o señales de trading. Los scores de fortaleza y las recomendaciones de pares son análisis cuantitativos basados en datos económicos, no predicciones sobre movimientos futuros de divisas.</p>
+            <p style="margin-top: 1rem;">Las recomendaciones de pares identifican divergencias fundamentales entre divisas pero no garantizan rentabilidad ni consideran factores técnicos, de timing, o de gestión de riesgo. Los usuarios deben realizar su propia due diligence y análisis complementario.</p>
             <p style="margin-top: 1rem; margin-bottom: 0;">El trading de divisas conlleva riesgo sustancial de pérdida de capital. Los usuarios son responsables de sus decisiones de trading y deben consultar con profesionales financieros licenciados antes de invertir.</p>
         </div>
 
@@ -466,8 +590,9 @@
             <p>Valoramos los comentarios de nuestros usuarios y estamos comprometidos con la mejora continua.</p>
             <ul>
                 <li><strong>Consultas Generales:</strong> <a href="contact.html">Formulario de Contacto</a></li>
-                <li><strong>Email:</strong> <a href="/cdn-cgi/l/email-protection#5a3d3635383b3633342c3f292e33343d373b28313f2e291a3d373b333674393537"><span class="__cf_email__" data-cfemail="6f0803000d0e030601190a1c1b060108020e1d040a1b1c2f08020e0603410c0002">[email&#160;protected]</span></a></li>
+                <li><strong>Email:</strong> <a href="mailto:contact@globalinvesting.io">contact@globalinvesting.io</a></li>
                 <li><strong>Feedback Metodológico:</strong> Aceptamos sugerencias sobre calibración y mejoras al modelo</li>
+                <li><strong>Reporte de Errores:</strong> Si detecta inconsistencias en datos o cálculos, por favor repórtelas</li>
             </ul>
         </div>
 
@@ -477,4 +602,10 @@
                 <a href="index.html">Dashboard</a> | 
                 <a href="about.html">Acerca de</a> | 
                 <a href="terms.html">Términos de Servicio</a> | 
-                <a h
+                <a href="privacy.html">Política de Privacidad</a> | 
+                <a href="contact.html">Contacto</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
