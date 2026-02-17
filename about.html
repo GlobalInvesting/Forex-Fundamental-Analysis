@@ -8,200 +8,41 @@
     <meta name="robots" content="index, follow">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg-primary: #0b0e14;
-            --bg-secondary: #13171f;
-            --bg-card: #1a1f2e;
-            --text-primary: #e1e4e8;
-            --text-secondary: #8b949e;
-            --border: #30363d;
-            --blue: #1e88e5;
-            --green: #26a69a;
+            --bg-primary: #0b0e14; --bg-secondary: #13171f; --bg-card: #1a1f2e;
+            --text-primary: #e1e4e8; --text-secondary: #8b949e; --border: #30363d;
+            --blue: #1e88e5; --green: #26a69a;
         }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.8;
-            font-size: 15px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-        }
-
-        .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 1.5rem 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .header-content {
-            max-width: 900px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .brand-title {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            text-decoration: none;
-        }
-
-        .brand-title:hover {
-            color: var(--blue);
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover {
-            color: var(--text-primary);
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--text-primary);
-        }
-
-        h2 {
-            font-size: 1.5rem;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        h3 {
-            font-size: 1.2rem;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            color: var(--text-primary);
-        }
-
-        p {
-            margin-bottom: 1.25rem;
-            color: var(--text-secondary);
-        }
-
-        ul, ol {
-            margin-left: 2rem;
-            margin-bottom: 1.25rem;
-        }
-
-        li {
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
-        }
-
-        strong {
-            color: var(--text-primary);
-        }
-
-        a {
-            color: var(--blue);
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .section {
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 2rem;
-        }
-
-        .highlight-box {
-            background: rgba(30, 136, 229, 0.1);
-            border-left: 4px solid var(--blue);
-            padding: 1.5rem;
-            margin: 2rem 0;
-            border-radius: 4px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-
-        .stat-card {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--green);
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5rem 0;
-        }
-
-        th, td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        th {
-            background: var(--bg-secondary);
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        td {
-            color: var(--text-secondary);
-        }
-
-        code {
-            background: var(--bg-secondary);
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            color: var(--green);
-        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.8; font-size: 15px; }
+        .container { max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+        .header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 1.5rem 2rem; margin-bottom: 3rem; }
+        .header-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .brand-title { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .brand-title:hover { color: var(--blue); }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--text-primary); }
+        h1 { font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--text-primary); }
+        h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; color: var(--text-primary); }
+        h3 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-primary); }
+        p { margin-bottom: 1.25rem; color: var(--text-secondary); }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.25rem; }
+        li { margin-bottom: 0.5rem; color: var(--text-secondary); }
+        strong { color: var(--text-primary); }
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .section { background: var(--bg-card); padding: 2rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; }
+        .highlight-box { background: rgba(30, 136, 229, 0.1); border-left: 4px solid var(--blue); padding: 1.5rem; margin: 2rem 0; border-radius: 4px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+        .stat-card { background: var(--bg-secondary); padding: 1.5rem; border-radius: 6px; border: 1px solid var(--border); text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: 700; color: var(--green); margin-bottom: 0.5rem; }
+        .stat-label { color: var(--text-secondary); font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg-secondary); font-weight: 600; color: var(--text-primary); }
+        td { color: var(--text-secondary); }
+        code { background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 0.9em; color: var(--green); }
     </style>
 </head>
 <body>
@@ -231,14 +72,15 @@
             <p style="margin: 0; font-size: 1.1rem;"><strong>Visión:</strong> Proporcionar análisis fundamental riguroso y basado en datos verificados para el mercado forex, combinando metodologías cuantitativas con fuentes oficiales de información económica, permitiendo a traders evaluar la fortaleza relativa de divisas de forma sistemática.</p>
         </div>
 
+        <!-- ✅ CORREGIDO: 17 indicadores (antes decía 13) -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number">8</div>
                 <div class="stat-label">Divisas Principales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">13</div>
-                <div class="stat-label">Indicadores Económicos</div>
+                <div class="stat-number">17</div>
+                <div class="stat-label">Indicadores Ponderados</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">60s</div>
@@ -252,27 +94,33 @@
 
         <div class="section">
             <h2>Lo Que Ofrecemos</h2>
-            <p>Nuestra plataforma ofrece análisis fundamental completo de las principales divisas G10:</p>
+            <p>Nuestra plataforma ofrece análisis fundamental completo de las principales divisas G8:</p>
             <ul>
                 <li><strong>Tipos de Cambio en Tiempo Real:</strong> Tasas actualizadas cada 60 segundos vía APIs verificadas</li>
-                <li><strong>Mapa de Calor de Indicadores:</strong> 13 métricas económicas con codificación por color</li>
-                <li><strong>Score de Fortaleza Cuantitativo:</strong> Índice 20-80 basado en ponderación de factores</li>
-                <li><strong>Análisis de Bancos Centrales:</strong> Tasas de política, calendarios y perspectivas dinámicas</li>
+                <!-- ✅ CORREGIDO: 18 columnas en heatmap (1 General + 1 PIB ref + 17 ponderados - pero el indicador visible es 18 columnas de datos) -->
+                <li><strong>Mapa de Calor de Indicadores:</strong> 17 métricas económicas ponderadas con codificación por color</li>
+                <li><strong>Score de Fortaleza Cuantitativo:</strong> Índice 20-80 basado en ponderación de 17 factores</li>
+                <li><strong>Análisis de Bancos Centrales:</strong> Tasas de política, calendarios y perspectivas dinámicas (Hawkish/Neutral/Dovish)</li>
                 <li><strong>Datos de Balance Externo:</strong> Cuenta corriente y balanza comercial</li>
-                <li><strong>Posicionamiento COT:</strong> Sentimiento especulativo desde reportes CFTC</li>
+                <li><strong>Bonos Soberanos 10Y:</strong> Yield del bono a 10 años como indicador de carry y expectativas</li>
+                <li><strong>Confianza del Consumidor y Empresarial:</strong> Índices de sentimiento económico adelantados</li>
+                <li><strong>Flujos de Capital:</strong> Balance de la cuenta financiera como proxy de demanda estructural de divisa</li>
+                <li><strong>Expectativas de Inflación:</strong> Indicador de credibilidad del banco central y presiones futuras</li>
+                <li><strong>Posicionamiento COT:</strong> Sentimiento especulativo desde reportes CFTC semanales</li>
                 <li><strong>Recomendaciones de Pares:</strong> Sugerencias LONG/SHORT basadas en diferenciales de fortaleza fundamental</li>
-                <li><strong>Visualización Intuitiva:</strong> Interface optimizada para evaluación rápida</li>
+                <li><strong>Visualización Intuitiva:</strong> Interface optimizada para evaluación rápida con tooltips explicativos</li>
             </ul>
         </div>
 
         <div class="section">
             <h2>Metodología Cuantitativa</h2>
-            
+
             <h3>Enfoque Data-Driven</h3>
             <p>Nuestro modelo está diseñado específicamente para trading de divisas y se basa en factores económicos que históricamente han mostrado correlación con movimientos en el mercado forex:</p>
-            
-            <h3>Sistema de Ponderación (100% Data-Driven)</h3>
-            <p>Cada indicador económico contribuye al score final según su relevancia para el trading de divisas:</p>
+
+            <!-- ✅ CORREGIDO: Tabla actualizada con pesos reales del modelo (v4.7.0) -->
+            <h3>Sistema de Ponderación — 17 Indicadores (100% Data-Driven)</h3>
+            <p>Cada indicador económico contribuye al score final según su relevancia para el trading de divisas. El modelo organiza los 17 indicadores en 5 tiers temáticos que suman exactamente 100%:</p>
 
             <table>
                 <thead>
@@ -284,104 +132,141 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <!-- TIER 1: Balance Externo — 28% total -->
                     <tr>
-                        <td rowspan="3"><strong>Tier 1 (35%)</strong><br/>Balance Externo</td>
+                        <td rowspan="3"><strong>Tier 1 (28%)</strong><br/>Balance Externo<br/>&amp; Safe Haven</td>
                         <td>Cuenta Corriente</td>
-                        <td>18%</td>
-                        <td>Demanda estructural de divisa</td>
+                        <td>13%</td>
+                        <td>Demanda estructural de divisa por flujos reales</td>
                     </tr>
                     <tr>
                         <td>Balanza Comercial</td>
-                        <td>12%</td>
-                        <td>Flujos comerciales mensuales</td>
+                        <td>10%</td>
+                        <td>Flujos comerciales mensuales en millones USD</td>
                     </tr>
                     <tr>
                         <td>Deuda Pública</td>
                         <td>5%</td>
-                        <td>Sostenibilidad fiscal</td>
+                        <td>Sostenibilidad fiscal y credibilidad soberana</td>
                     </tr>
+                    <!-- TIER 2: Tasas & Carry — 28% total -->
                     <tr>
-                        <td rowspan="2"><strong>Tier 2 (30%)</strong><br/>Política Monetaria</td>
+                        <td rowspan="3"><strong>Tier 2 (28%)</strong><br/>Tasas &amp; Carry</td>
                         <td>Tasa de Interés</td>
-                        <td>20%</td>
-                        <td>Carry trade y diferencial</td>
+                        <td>18%</td>
+                        <td>Diferencial de tasas y carry trade (indicador dominante)</td>
                     </tr>
                     <tr>
                         <td>Inflación</td>
-                        <td>10%</td>
-                        <td>Expectativas de política</td>
+                        <td>8%</td>
+                        <td>Expectativas de política monetaria (objetivo 1.8–2.5%)</td>
                     </tr>
                     <tr>
-                        <td rowspan="2"><strong>Tier 3 (20%)</strong><br/>Crecimiento</td>
+                        <td>Bono Soberano 10Y</td>
+                        <td>2%</td>
+                        <td>Yield a largo plazo y atractivo para inversores de renta fija</td>
+                    </tr>
+                    <!-- TIER 3: Crecimiento & Empleo — 20% total -->
+                    <tr>
+                        <td rowspan="3"><strong>Tier 3 (20%)</strong><br/>Crecimiento<br/>&amp; Empleo</td>
                         <td>Crecimiento PIB</td>
-                        <td>12%</td>
-                        <td>Momentum económico</td>
+                        <td>10%</td>
+                        <td>Momentum económico fundamental</td>
                     </tr>
                     <tr>
                         <td>Desempleo</td>
-                        <td>8%</td>
-                        <td>Salud del mercado laboral</td>
+                        <td>6%</td>
+                        <td>Salud del mercado laboral y presiones salariales</td>
                     </tr>
                     <tr>
-                        <td rowspan="2"><strong>Tier 4 (15%)</strong><br/>Sentimiento</td>
-                        <td>COT Positioning</td>
-                        <td>10%</td>
-                        <td>Posicionamiento especulativo</td>
-                    </tr>
-                    <tr>
-                        <td>PMI Manufacturero</td>
-                        <td>5%</td>
-                        <td>Indicador adelantado</td>
-                    </tr>
-<tr>
-                        <td rowspan="3"><strong>Tier 3 cont.</strong><br/>Crecimiento</td>
                         <td>Producción Industrial</td>
                         <td>4%</td>
-                        <td>Actividad industrial real</td>
+                        <td>Actividad del sector real e indicador de ciclo</td>
                     </tr>
+                    <!-- TIER 4: Consumo & Salarios — 9% total -->
                     <tr>
+                        <td rowspan="3"><strong>Tier 4 (9%)</strong><br/>Consumo<br/>&amp; Salarios</td>
                         <td>Ventas Minoristas</td>
                         <td>4%</td>
-                        <td>Fortaleza del consumo doméstico</td>
+                        <td>Fortaleza del consumo doméstico (% MoM)</td>
                     </tr>
                     <tr>
                         <td>Crecimiento Salarial</td>
                         <td>3%</td>
-                        <td>Presiones inflacionarias laborales</td>
+                        <td>Presiones inflacionarias laborales (% YoY, óptimo 2.5–4.5%)</td>
+                    </tr>
+                    <tr>
+                        <td>Expectativas de Inflación</td>
+                        <td>2%</td>
+                        <td>Credibilidad del BC y anclaje de expectativas (objetivo 1.8–2.5%)</td>
+                    </tr>
+                    <!-- TIER 5: Sentimiento de Mercado — 15% total -->
+                    <tr>
+                        <td rowspan="5"><strong>Tier 5 (15%)</strong><br/>Sentimiento<br/>de Mercado</td>
+                        <td>COT Positioning</td>
+                        <td>4%</td>
+                        <td>Posicionamiento especulativo neto (CFTC oficial)</td>
+                    </tr>
+                    <tr>
+                        <td>Flujos de Capital</td>
+                        <td>3%</td>
+                        <td>Cuenta financiera de la balanza de pagos (MM USD)</td>
+                    </tr>
+                    <tr>
+                        <td>Confianza del Consumidor</td>
+                        <td>3%</td>
+                        <td>Índice adelantado del gasto privado (base 100)</td>
+                    </tr>
+                    <tr>
+                        <td>PMI Manufacturero</td>
+                        <td>3%</td>
+                        <td>Indicador adelantado de actividad industrial (&gt;50 = expansión)</td>
+                    </tr>
+                    <tr>
+                        <td>Confianza Empresarial</td>
+                        <td>2%</td>
+                        <td>Indicador adelantado de inversión y contrataciones (base 100)</td>
+                    </tr>
+                    <!-- TOTAL -->
+                    <tr style="background: rgba(38,166,154,0.1);">
+                        <td><strong>TOTAL</strong></td>
+                        <td><strong>17 Indicadores</strong></td>
+                        <td><strong>100%</strong></td>
+                        <td><strong>28% + 28% + 20% + 9% + 15% = 100%</strong></td>
                     </tr>
                 </tbody>
             </table>
 
             <h3>Ajustes Contextuales Dinámicos</h3>
-            <p>El modelo aplica modificadores basados en condiciones económicas específicas:</p>
+            <p>Además de los 17 indicadores ponderados, el modelo aplica modificadores contextuales (±15 puntos máximo) basados en condiciones macroeconómicas específicas:</p>
             <ul>
-                <li><strong>Activo Refugio (Safe Haven):</strong> Evalúa estabilidad fiscal, balance externo y tamaño de economía. Se amplifica en entornos de aversión al riesgo. Beneficia a CHF, JPY y USD.</li>
-                <li><strong>Exposición a Materias Primas (Commodity):</strong> Aplicable a AUD, CAD y NZD. Ajusta según crecimiento económico global y superávit comercial por exportaciones.</li>
-                <li><strong>Prima de Carry Trade:</strong> Bonificación para divisas con tasas de interés significativamente superiores al promedio global.</li>
-                <li><strong>Impacto Recesivo:</strong> Penalización proporcional cuando el crecimiento del PIB es negativo, amplificada si existe desempleo elevado.</li>
-                <li><strong>Déficit Estructural:</strong> Penalización por déficits persistentes en cuenta corriente y balanza comercial (twin deficits).</li>
-                <li><strong>Sostenibilidad de Deuda:</strong> Evalúa deuda pública elevada en contexto de crecimiento económico bajo y capacidad de financiamiento.</li>
-                <li><strong>Estabilidad Inflacionaria:</strong> Penalización por inflación muy alta sin respuesta adecuada de política monetaria (tasas bajas vs inflación alta).</li>
+                <li><strong>Activo Refugio (Safe Haven):</strong> Evalúa deuda baja, superávit externo y estabilidad de precios. Se amplifica en entornos de aversión al riesgo (COT promedio negativo). Beneficia principalmente a CHF, JPY y USD.</li>
+                <li><strong>Exposición a Materias Primas:</strong> Aplicable solo a AUD, CAD y NZD. Ajusta según crecimiento económico global y superávit comercial. Positivo en ciclos de expansión global, negativo en contracción.</li>
+                <li><strong>Prima de Carry Trade:</strong> Bonificación para divisas con tasas de interés significativamente superiores al promedio de las 8 divisas del modelo.</li>
+                <li><strong>Impacto Recesivo:</strong> Penalización proporcional cuando PIB &lt; 0%, amplificada si hay desempleo elevado.</li>
+                <li><strong>Déficit Estructural (Twin Deficits):</strong> Penalización por déficits persistentes simultáneos en cuenta corriente y balanza comercial.</li>
+                <li><strong>Sostenibilidad de Deuda:</strong> Penalización adicional cuando deuda &gt; 150% del PIB en contexto de crecimiento bajo.</li>
+                <li><strong>Estabilidad Inflacionaria:</strong> Penalización por inflación &gt; 4% con tasa de interés insuficiente para controlarla.</li>
             </ul>
 
-            <h3>Normalización y Escala</h3>
-            <p>El score final se normaliza a un rango de 20-80 puntos:</p>
+            <h3>Normalización y Escala Final (20–80)</h3>
+            <p>El score final se normaliza a un rango de 20–80 puntos para reflejar la distribución natural de fortaleza relativa entre divisas:</p>
             <ul>
-                <li><strong>Alcista (≥62):</strong> Top 30% de divisas, múltiples indicadores favorables</li>
-                <li><strong>Neutral (45-62):</strong> Middle 40%, factores mixtos</li>
-                <li><strong>Bajista (≤45):</strong> Bottom 30%, indicadores bajo presión</li>
+                <li><strong>Alcista (≥ 62):</strong> Top ~30% de divisas. Múltiples indicadores favorables y ajustes contextuales positivos.</li>
+                <li><strong>Neutral (45–62):</strong> Middle ~40%. Factores mixtos que se compensan.</li>
+                <li><strong>Bajista (≤ 45):</strong> Bottom ~30%. Indicadores bajo presión o deterioro estructural.</li>
             </ul>
         </div>
 
         <div class="section">
             <h2>Sistema de Recomendaciones de Pares</h2>
-            
+
             <h3>Filosofía y Objetivo</h3>
             <p>La pestaña "Mejores Pares" identifica automáticamente las oportunidades de trading más prometedoras basándose en diferenciales de fortaleza fundamental entre divisas. El sistema busca combinar divisas con fundamentos divergentes para maximizar el potencial de movimiento basado en análisis económico.</p>
-            
+
             <h3>Proceso de Selección</h3>
             <ol style="margin-left: 2rem; color: var(--text-secondary);">
-                <li><strong>Cálculo de Fortaleza Individual:</strong> Se calcula el score fundamental (20-80) para cada una de las 8 divisas principales</li>
+                <li><strong>Cálculo de Fortaleza Individual:</strong> Se calcula el score fundamental (20–80) para cada una de las 8 divisas principales usando los 17 indicadores ponderados</li>
                 <li><strong>Ranking y Clasificación:</strong> Las divisas se ordenan de mayor a menor fortaleza fundamental</li>
                 <li><strong>Identificación de Extremos:</strong> Se extraen las 3 divisas más fuertes (top 30%) y las 3 más débiles (bottom 30%)</li>
                 <li><strong>Generación de Combinaciones LONG:</strong> Se crean pares comprando la divisa fuerte contra la débil (ej: <code>EUR/JPY</code> si EUR es fuerte y JPY débil)</li>
@@ -400,44 +285,17 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><strong>Par</strong></td>
-                        <td>Divisa base / Divisa cotizada</td>
-                        <td>Estructura del par recomendado</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Dirección</strong></td>
-                        <td>LONG (Comprar) o SHORT (Vender)</td>
-                        <td>Acción recomendada sobre el par</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Diferencial</strong></td>
-                        <td>Score fuerte - Score débil</td>
-                        <td>Mayor diferencial = mayor divergencia fundamental</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Confianza</strong></td>
-                        <td>Alta (>20) / Media (12-20) / Baja (<12)</td>
-                        <td>Basada en amplitud del diferencial de scores</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Factores Positivos</strong></td>
-                        <td>Top 3 contribuciones a fortaleza</td>
-                        <td>Razones fundamentales que sostienen la fortaleza</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Factores Negativos</strong></td>
-                        <td>Top 3 contribuciones negativas</td>
-                        <td>Razones fundamentales que explican la debilidad</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Calidad de Datos</strong></td>
-                        <td>% de indicadores disponibles</td>
-                        <td>Fiabilidad del análisis (≥70% es bueno)</td>
-                    </tr>
+                    <tr><td><strong>Par</strong></td><td>Divisa base / Divisa cotizada</td><td>Estructura del par recomendado</td></tr>
+                    <tr><td><strong>Dirección</strong></td><td>LONG (Comprar) o SHORT (Vender)</td><td>Acción recomendada sobre el par</td></tr>
+                    <tr><td><strong>Diferencial</strong></td><td>Score fuerte − Score débil</td><td>Mayor diferencial = mayor divergencia fundamental</td></tr>
+                    <tr><td><strong>Confianza</strong></td><td>Alta (&gt;20) / Media (12–20) / Baja (&lt;12)</td><td>Basada en amplitud del diferencial de scores</td></tr>
+                    <tr><td><strong>Factores Positivos</strong></td><td>Top 3 contribuciones a fortaleza</td><td>Razones fundamentales que sostienen la fortaleza</td></tr>
+                    <tr><td><strong>Factores Negativos</strong></td><td>Top 3 contribuciones negativas</td><td>Razones fundamentales que explican la debilidad</td></tr>
+                    <tr><td><strong>Calidad de Datos</strong></td><td>% de los 17 indicadores disponibles</td><td>Fiabilidad del análisis (≥70% es bueno)</td></tr>
                 </tbody>
             </table>
 
+            <!-- ✅ CORREGIDO: Ejemplo actualizado con 17 indicadores -->
             <h3>Ejemplo Práctico</h3>
             <div class="highlight-box">
                 <p><strong>Recomendación:</strong> <code>EUR/JPY</code> LONG (Comprar)</p>
@@ -445,18 +303,18 @@
                 <p><strong>Confianza:</strong> Alta</p>
                 <p><strong>Fortaleza EUR (+72.3):</strong></p>
                 <ul style="margin-left: 2rem; margin-top: 0.5rem; margin-bottom: 1rem;">
-                    <li>Tasa de Interés: +14.2</li>
-                    <li>Cuenta Corriente: +11.8</li>
-                    <li>Crecimiento PIB: +8.5</li>
+                    <li>Tasa de Interés: +14.2 (peso 18%)</li>
+                    <li>Cuenta Corriente: +11.8 (peso 13%)</li>
+                    <li>Crecimiento PIB: +8.5 (peso 10%)</li>
                 </ul>
                 <p><strong>Debilidad JPY (39.8):</strong></p>
                 <ul style="margin-left: 2rem; margin-top: 0.5rem; margin-bottom: 1rem;">
-                    <li>Tasa de Interés: -12.5</li>
-                    <li>Sostenibilidad Deuda: -8.3</li>
-                    <li>Inflación: -5.7</li>
+                    <li>Tasa de Interés: −12.5 (peso 18%)</li>
+                    <li>Sostenibilidad Deuda: −8.3 (ajuste contextual)</li>
+                    <li>Inflación: −5.7 (peso 8%)</li>
                 </ul>
                 <p><strong>Análisis:</strong> EUR muestra fundamentos superiores con un índice de fortaleza de 72.3 puntos, superando a JPY (39.8) por un diferencial de 32.5 puntos. Este diferencial sugiere una oportunidad de compra (LONG) en EUR/JPY.</p>
-                <p style="margin-top: 1rem; margin-bottom: 0;"><strong>Calidad de Datos:</strong> 85% (11 de 13 indicadores disponibles para ambas divisas)</p>
+                <p style="margin-top: 1rem; margin-bottom: 0;"><strong>Calidad de Datos:</strong> 85% (≈14 de 17 indicadores disponibles para ambas divisas)</p>
             </div>
 
             <h3>Limitaciones y Consideraciones</h3>
@@ -481,10 +339,10 @@
 
         <div class="section">
             <h2>Fuentes de Datos Verificadas</h2>
-            
+
             <h3>Proveedores Principales</h3>
             <ul>
-                <li><strong>Trading Economics:</strong> Indicadores macroeconómicos actualizados diariamente mediante web scraping automatizado (GDP, Inflación, Desempleo, Balanza Comercial, Ventas Minoristas, Salarios, PMI)</li>
+                <li><strong>Trading Economics:</strong> Indicadores macroeconómicos actualizados diariamente mediante web scraping automatizado (PIB, Inflación, Desempleo, Balanza Comercial, Ventas Minoristas, Salarios, PMI, Bonos 10Y, Confianza, Flujos de Capital)</li>
                 <li><strong>FRED (Federal Reserve Economic Data):</strong> Tasas de interés y datos de bancos centrales oficiales</li>
                 <li><strong>Alpha Vantage:</strong> Federal Funds Rate (fallback para USD)</li>
                 <li><strong>CFTC (Commodity Futures Trading Commission):</strong> Reportes COT semanales oficiales</li>
@@ -501,67 +359,58 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Tipos de Cambio</td>
-                        <td>60 segundos</td>
-                        <td>APIs de Forex</td>
-                    </tr>
-                    <tr>
-                        <td>Indicadores Económicos</td>
-                        <td>24 horas</td>
-                        <td>Trading Economics</td>
-                    </tr>
-                    <tr>
-                        <td>Tasas de Interés</td>
-                        <td>24 horas</td>
-                        <td>FRED / Bancos Centrales</td>
-                    </tr>
-                    <tr>
-                        <td>Datos COT</td>
-                        <td>Semanal (Viernes 15:30 ET)</td>
-                        <td>CFTC</td>
-                    </tr>
-                    <tr>
-                        <td>Recomendaciones de Pares</td>
-                        <td>Calculado en tiempo real</td>
-                        <td>Algoritmo basado en scores actuales</td>
-                    </tr>
-                    <tr>
-                        <td>Perspectiva Bancos Centrales (Outlook)</td>
-                        <td>Calculado dinámicamente</td>
-                        <td>Algoritmo basado en inflación, crecimiento, desempleo y tasa actual</td>
-                    </tr>
+                    <tr><td>Tipos de Cambio</td><td>60 segundos</td><td>APIs de Forex (6 proveedores en cascada)</td></tr>
+                    <tr><td>Indicadores Económicos (12 base)</td><td>24 horas</td><td>Trading Economics vía GitHub Pages</td></tr>
+                    <tr><td>Indicadores Extendidos (5 nuevos)</td><td>24 horas</td><td>Trading Economics (extended-data endpoint)</td></tr>
+                    <tr><td>Tasas de Interés</td><td>24 horas</td><td>FRED / Bancos Centrales</td></tr>
+                    <tr><td>Datos COT</td><td>Semanal (Viernes 15:30 ET)</td><td>CFTC — disponible con ~3 días de retraso natural</td></tr>
+                    <tr><td>Recomendaciones de Pares</td><td>Calculado en tiempo real</td><td>Algoritmo basado en scores actuales</td></tr>
+                    <tr><td>Perspectiva Bancos Centrales (Outlook)</td><td>Calculado dinámicamente</td><td>Algoritmo basado en inflación, crecimiento, desempleo y tasa actual</td></tr>
                 </tbody>
             </table>
 
-            <h3>Nota sobre Perspectiva de Bancos Centrales</h3>
-            <p>El "Outlook" (Hawkish/Neutral/Dovish) visible en cada tarjeta de divisa del dashboard se calcula mediante un algoritmo de scoring que evalúa:</p>
+            <h3>Sistema de Detección de Frescura de Datos</h3>
+            <p>El dashboard incluye un sistema activo de verificación de calidad que monitorea automáticamente:</p>
             <ul>
-                <li>Si inflación > 3.0% → +2 puntos (presión hawkish para subir tasas)</li>
-                <li>Si inflación < 1.5% → -2 puntos (presión dovish para bajar tasas)</li>
-                <li>Si crecimiento PIB > 2.5% → +1 punto (economía fuerte permite tasas altas)</li>
-                <li>Si crecimiento PIB < 1.0% → -2 puntos (economía débil requiere estímulo)</li>
-                <li>Si desempleo < 3.5% → +1 punto (mercado laboral tenso, riesgo inflacionario)</li>
-                <li>Si desempleo > 6.0% → -1 punto (mercado laboral débil)</li>
-                <li>Si tasa de interés > 4.0% → +1 punto (ya en modo restrictivo)</li>
-                <li>Si tasa de interés < 2.0% → -1 punto (espacio para bajar)</li>
+                <li><strong>Antigüedad de Datos:</strong> Alerta si algún país tiene datos con más de 7 días de antigüedad</li>
+                <li><strong>Staleness de COT:</strong> Si el scraping del viernes falla, el timestamp COT más antiguo se propaga como referencia, permitiendo detectar que los datos de posicionamiento están desactualizados</li>
+                <li><strong>Indicadores Críticos Faltantes:</strong> Verifica que tasa, inflación, PIB y desempleo estén disponibles para cada país</li>
+                <li><strong>Completitud General:</strong> Score de completitud por divisa (% de 17 indicadores disponibles). Alerta si &lt; 50%, aviso si &lt; 70%</li>
+                <li><strong>Rango de Valores:</strong> Detecta valores fuera de rango que podrían indicar errores de scraping</li>
             </ul>
-            <p><strong>Clasificación:</strong> Score ≥ 2 = Hawkish (restrictivo) | Score ≤ -2 = Dovish (acomodaticio) | Score entre -1 y +1 = Neutral</p>
+
+            <h3>Nota sobre Perspectiva de Bancos Centrales</h3>
+            <p>El "Outlook" (Hawkish/Neutral/Dovish) visible en cada tarjeta de divisa del dashboard se calcula mediante un algoritmo de scoring dinámico que evalúa:</p>
+            <ul>
+                <li>Si inflación &gt; 3.0% → +2 puntos | Si inflación &lt; 1.5% → −2 puntos</li>
+                <li>Si crecimiento PIB &gt; 2.5% → +1 punto | Si crecimiento PIB &lt; 1.0% → −2 puntos</li>
+                <li>Si desempleo &lt; 3.5% → +1 punto | Si desempleo &gt; 6.0% → −1 punto</li>
+                <li>Si tasa de interés &gt; 4.0% → +1 punto | Si tasa de interés &lt; 2.0% → −1 punto</li>
+            </ul>
+            <p><strong>Clasificación:</strong> Score ≥ 2 = Hawkish (restrictivo) | Score ≤ −2 = Dovish (acomodaticio) | Score entre −1 y +1 = Neutral</p>
             <p>Este cálculo se actualiza cada 24 horas junto con los datos económicos y refleja la postura probable del banco central basándose en condiciones macroeconómicas actuales, no en declaraciones oficiales.</p>
 
             <h3>Nota sobre Datos COT</h3>
-            <p>Los datos de Commitment of Traders provienen de reportes oficiales de la CFTC publicados cada viernes a las 15:30 ET, reflejando posiciones hasta el martes previo. Para USD utilizamos el US Dollar Index (DXY) de ICE Futures. Datos con ~3 días de retraso natural.</p>
+            <p>Los datos de Commitment of Traders provienen de reportes oficiales de la CFTC publicados cada viernes a las 15:30 ET, reflejando posiciones hasta el martes previo. Para USD utilizamos el US Dollar Index (DXY) de ICE Futures. Datos con ~3 días de retraso natural. El dashboard detecta automáticamente si los datos COT están desactualizados comparando el timestamp del último reporte con la fecha actual.</p>
+
+            <h3>Nota sobre Tendencias Históricas</h3>
+            <p>La pestaña "Tendencias Históricas" muestra dos series por divisa:</p>
+            <ul>
+                <li><strong>Tasa de Interés:</strong> Datos reales históricos de los archivos JSON de GitHub Pages</li>
+                <li><strong>Índice de Fortaleza:</strong> Estimación algorítmica basada en el score actual con variación simulada — <em>no representa datos históricos reales</em>. Para análisis retrospectivo preciso, consultar fuentes primarias (FRED, Trading Economics)</li>
+            </ul>
         </div>
 
         <div class="section">
             <h2>Transparencia Metodológica</h2>
             <p>Nuestro sistema es transparente en cuanto a:</p>
             <ul>
-                <li><strong>Pesos Explícitos:</strong> Cada factor muestra su contribución exacta al score</li>
-                <li><strong>Cálculos Visibles:</strong> La lógica de scoring está disponible en el código fuente</li>
+                <li><strong>Pesos Explícitos:</strong> Cada uno de los 17 factores muestra su contribución exacta al score</li>
+                <li><strong>Cálculos Visibles:</strong> La lógica de scoring está disponible en el código fuente del dashboard</li>
                 <li><strong>Datos Verificables:</strong> Todas las métricas pueden ser confirmadas en fuentes oficiales</li>
-                <li><strong>Limitaciones Claras:</strong> Reconocemos qué no incluimos (términos de intercambio, Net Foreign Assets, etc.)</li>
+                <li><strong>Limitaciones Claras:</strong> Reconocemos qué no incluimos (términos de intercambio, Net Foreign Assets, yield curves completas, etc.)</li>
                 <li><strong>Metodología Documentada:</strong> El algoritmo de recomendaciones de pares está completamente explicado</li>
+                <li><strong>Honestidad sobre Datos Históricos:</strong> El índice de fortaleza histórico es una estimación algorítmica, no datos reales</li>
             </ul>
         </div>
 
@@ -573,7 +422,7 @@
                 <li><strong>Analistas Técnicos:</strong> Complemento de análisis técnico con fundamentos cuantitativos</li>
                 <li><strong>Estudiantes de Finanzas:</strong> Herramienta educativa para entender determinantes de divisas</li>
                 <li><strong>Inversores Multi-Asset:</strong> Evaluación de exposición a divisas en portafolios</li>
-                <li><strong>Investigadores:</strong> Platform transparente para estudiar correlaciones macro-forex</li>
+                <li><strong>Investigadores:</strong> Plataforma transparente para estudiar correlaciones macro-forex</li>
                 <li><strong>Swing Traders:</strong> Identificación de oportunidades fundamentales de medio plazo</li>
             </ul>
         </div>
@@ -599,10 +448,10 @@
         <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
             <p>© 2026 Global Investing. Todos los derechos reservados.</p>
             <p style="margin-top: 0.5rem;">
-                <a href="index.html">Dashboard</a> | 
-                <a href="about.html">Acerca de</a> | 
-                <a href="terms.html">Términos de Servicio</a> | 
-                <a href="privacy.html">Política de Privacidad</a> | 
+                <a href="index.html">Dashboard</a> |
+                <a href="about.html">Acerca de</a> |
+                <a href="terms.html">Términos de Servicio</a> |
+                <a href="privacy.html">Política de Privacidad</a> |
                 <a href="contact.html">Contacto</a>
             </p>
         </div>
