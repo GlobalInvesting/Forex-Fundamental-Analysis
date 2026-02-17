@@ -71,13 +71,15 @@
         "priceCurrency": "USD"
       },
       "featureList": [
-        "Indicadores económicos en tiempo real",
+        "18 indicadores económicos en tiempo real",
         "Datos de bancos centrales FRED y CFTC",
         "Rankings de fortaleza de divisas",
-        "Mapa de calor económico",
-        "Calendario económico",
-        "Posicionamiento COT",
-        "Análisis de 8 divisas principales"
+        "Mapa de calor económico con 18 columnas",
+        "Calendario económico dinámico",
+        "Posicionamiento COT (CFTC oficial)",
+        "Análisis de 8 divisas principales",
+        "Bonos soberanos 10Y y flujos de capital",
+        "Confianza del consumidor y empresarial"
       ],
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "creator": {
@@ -1251,16 +1253,10 @@ const fetchInterestRate = async (country) => {
             try {
                 const githubUrl = `https://globalinvesting.github.io/rates/${country.code}.json`;
                 
-                // Edge-compatible timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
                 const response = await fetchWithRetry(githubUrl, { 
-    cache: 'no-cache',
-    mode: 'cors'
-}, 3);
-                
-                clearTimeout(timeoutId);
+                    cache: 'no-cache',
+                    mode: 'cors'
+                }, 3);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -1350,33 +1346,6 @@ const fetchExtendedData = async (countryCode) => {
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                const response = await fetchWithRetry(githubUrl, { 
-    cache: 'no-cache',
-    mode: 'cors'
-}, 3);
-                
-                clearTimeout(timeoutId);
-                
-                if (response.ok) {
-                    const scrapedData = await response.json();
-                    
-                    if (scrapedData.data && scrapedData.data.production !== undefined) {
-                        const value = scrapedData.data.production;
-                        console.log(`✅ Scraped production for ${countryCode}: ${value}%`);
-                        CacheManager.set(cacheKey, value, CACHE_CONFIG.ECONOMIC_DATA);
-                        return value;
-                    }
-                }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.warn(`Scraped production fetch failed for ${countryCode}:`, error.message);
-                }
-            }
-
-            console.warn(`❌ No production data available for ${countryCode}`);
-            return null;
-        };
         
         // ✅ OUTLOOK 100% DINÁMICO (sin hardcoding)
         const determineCentralBankOutlook = async (countryCode, economicData) => {
@@ -1810,8 +1779,10 @@ const generateForexPairRecommendations = (economicData, forexRates) => {
 };
 
 const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
-            const cacheKey = 'all_economic_data';
-            const DASHBOARD_VERSION = '4.7.0'; // ✅ Health checks + retry logic + error boundary
+                        const cacheKey = 'all_economic_data';
+            // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
+            // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
+            const DASHBOARD_VERSION = '4.7.0-2026-02-17'; // ✅ Health checks + retry logic + error boundary
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2431,8 +2402,8 @@ const checkDataHealth = (economicData) => {
         }
         
         // Check 4: Data completeness score
-        const allIndicators = [
-            'gdp', 'gdpGrowth', 'interestRate', 'inflation', 'unemployment',
+        const indicators = [
+            'gdpGrowth', 'interestRate', 'inflation', 'unemployment',
             'currentAccount', 'debt', 'tradeBalance', 'production',
             'retailSales', 'wageGrowth', 'manufacturingPMI', 'cotPositioning',
             'bond10y', 'consumerConfidence', 'businessConfidence',
@@ -3209,6 +3180,40 @@ if (data.cotPositioning !== null && data.cotPositioning !== undefined) {
         }
     }
     
+    // 8C. ANÁLISIS DE CONFIANZA Y EXPECTATIVAS
+    if (data.consumerConfidence !== null && data.consumerConfidence !== undefined) {
+        const ccStr = fmt(data.consumerConfidence, 1);
+        if (data.consumerConfidence > 108) {
+            analysis.push(`Confianza del consumidor en zona de optimismo (índice ${ccStr}) anticipa expansión del gasto privado y sostiene perspectivas de crecimiento.`);
+        } else if (data.consumerConfidence > 100) {
+            analysis.push(`Confianza del consumidor positiva (índice ${ccStr}) señala disposición al gasto en el corto plazo.`);
+        } else if (data.consumerConfidence < 92) {
+            analysis.push(`Confianza del consumidor deteriorada (índice ${ccStr}) anticipa contracción del consumo privado y presiona el crecimiento a la baja.`);
+        } else if (data.consumerConfidence < 100) {
+            analysis.push(`Confianza del consumidor en territorio pesimista (índice ${ccStr}) refleja cautela en el gasto doméstico.`);
+        }
+    }
+
+    if (data.businessConfidence !== null && data.businessConfidence !== undefined) {
+        const bcStr = fmt(data.businessConfidence, 1);
+        if (data.businessConfidence > 105) {
+            analysis.push(`Confianza empresarial elevada (índice ${bcStr}) anticipa expansión de inversión y contrataciones en los próximos trimestres.`);
+        } else if (data.businessConfidence < 95) {
+            analysis.push(`Confianza empresarial deteriorada (índice ${bcStr}) señala reducción esperada de inversión y posibles recortes de empleo.`);
+        }
+    }
+
+    if (data.inflationExpectations !== null && data.inflationExpectations !== undefined) {
+        const ieStr = fmt(data.inflationExpectations, 1);
+        if (data.inflationExpectations > 3.0) {
+            analysis.push(`Expectativas de inflación desancladas (${ieStr}%) presionan al banco central hacia una postura más restrictiva para preservar credibilidad.`);
+        } else if (data.inflationExpectations >= 1.8 && data.inflationExpectations <= 2.5) {
+            analysis.push(`Expectativas de inflación bien ancladas (${ieStr}%) refuerzan credibilidad del banco central y reducen necesidad de ajustes adicionales.`);
+        } else if (data.inflationExpectations < 1.5) {
+            analysis.push(`Expectativas de inflación por debajo del objetivo (${ieStr}%) aumentan presión deflacionaria y limitan margen de maniobra del banco central.`);
+        }
+    }
+
     // 9. CONCLUSIÓN PROSPECTIVA
     if (sentiment === 'alcista') {
         analysis.push(`Perspectivas favorables mientras fundamentos económicos se mantengan sólidos y política monetaria evite giros abruptos.`);
@@ -3934,6 +3939,24 @@ const sentiment = getSentiment(strength);
         <div className="section-header">
                                     <div className="section-title">Tendencias Históricas y Análisis de Datos</div>
                                 </div>
+
+                                <div style={{
+                                    background: 'rgba(255, 111, 0, 0.08)',
+                                    border: '1px solid rgba(255, 111, 0, 0.3)',
+                                    borderRadius: '6px',
+                                    padding: '0.875rem 1.25rem',
+                                    marginBottom: '1.5rem',
+                                    fontSize: '0.8125rem',
+                                    color: 'var(--text-secondary)',
+                                    lineHeight: '1.6'
+                                }}>
+                                    <strong style={{ color: 'var(--orange)' }}>ℹ️ Nota metodológica:</strong>{' '}
+                                    La línea <strong>Tasa de Interés</strong> refleja datos reales de los JSON de GitHub Pages.
+                                    El <strong>Índice de Fortaleza histórico</strong> es una estimación algorítmica
+                                    basada en el score actual con variación simulada — no representa datos históricos reales.
+                                    Para análisis retrospectivo preciso, consulte las fuentes primarias (FRED, Trading Economics).
+                                </div>
+
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '1.5rem' }}>
                                     {countries.map(country => (
                                         <div key={country.code} className="chart-container">
