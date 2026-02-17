@@ -79,7 +79,7 @@
                 <div class="stat-label">Divisas Principales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">17</div>
+                <div class="stat-number">18</div>
                 <div class="stat-label">Indicadores Ponderados</div>
             </div>
             <div class="stat-card">
@@ -99,7 +99,9 @@
                 <li><strong>Tipos de Cambio en Tiempo Real:</strong> Tasas actualizadas cada 60 segundos vía APIs verificadas</li>
                 <!-- ✅ CORREGIDO: 18 columnas en heatmap (1 General + 1 PIB ref + 17 ponderados - pero el indicador visible es 18 columnas de datos) -->
                 <li><strong>Mapa de Calor de Indicadores:</strong> 17 métricas económicas ponderadas con codificación por color</li>
-                <li><strong>Score de Fortaleza Cuantitativo:</strong> Índice 20-80 basado en ponderación de 17 factores</li>
+                <li><strong>Score de Fortaleza Cuantitativo:</strong> Índice 20-80 basado en ponderación de 18 factores</li>
+                <li><strong>Términos de Intercambio:</strong> Ratio precio exportaciones/importaciones actualizado diariamente. Clave para AUD, CAD, NZD</li>
+                <li><strong>Próximas Reuniones Reales:</strong> Fechas oficiales de reuniones de bancos centrales desde cbrates.com, actualizadas semanalmente</li>
                 <li><strong>Análisis de Bancos Centrales:</strong> Tasas de política, calendarios y perspectivas dinámicas (Hawkish/Neutral/Dovish)</li>
                 <li><strong>Datos de Balance Externo:</strong> Cuenta corriente y balanza comercial</li>
                 <li><strong>Bonos Soberanos 10Y:</strong> Yield del bono a 10 años como indicador de carry y expectativas</li>
@@ -132,22 +134,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- TIER 1: Balance Externo — 28% total -->
+                    <!-- TIER 1: Balance Externo — 27% total (+ToT) -->
                     <tr>
-                        <td rowspan="3"><strong>Tier 1 (28%)</strong><br/>Balance Externo<br/>&amp; Safe Haven</td>
+                        <td rowspan="4"><strong>Tier 1 (27%)</strong><br/>Balance Externo<br/>&amp; Safe Haven</td>
                         <td>Cuenta Corriente</td>
-                        <td>13%</td>
+                        <td>12%</td>
                         <td>Demanda estructural de divisa por flujos reales</td>
                     </tr>
                     <tr>
                         <td>Balanza Comercial</td>
-                        <td>10%</td>
+                        <td>9%</td>
                         <td>Flujos comerciales mensuales en millones USD</td>
                     </tr>
                     <tr>
                         <td>Deuda Pública</td>
-                        <td>5%</td>
+                        <td>4%</td>
                         <td>Sostenibilidad fiscal y credibilidad soberana</td>
+                    </tr>
+                    <tr>
+                        <td>Términos de Intercambio</td>
+                        <td>2%</td>
+                        <td>Ratio precio exportaciones/importaciones (base 100). Especialmente relevante para AUD, CAD, NZD</td>
                     </tr>
                     <!-- TIER 2: Tasas & Carry — 28% total -->
                     <tr>
@@ -230,9 +237,9 @@
                     <!-- TOTAL -->
                     <tr style="background: rgba(38,166,154,0.1);">
                         <td><strong>TOTAL</strong></td>
-                        <td><strong>17 Indicadores</strong></td>
-                        <td><strong>100%</strong></td>
-                        <td><strong>28% + 28% + 20% + 9% + 15% = 100%</strong></td>
+                        <td><strong>18 Indicadores</strong></td>
+                        <td><strong>~100%</strong></td>
+                        <td><strong>27% + 28% + 20% + 9% + 15% = 99% (normalizado automáticamente)</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -250,7 +257,7 @@
             </ul>
 
             <h3>Normalización y Escala Final (20–80)</h3>
-            <p>El score final se normaliza a un rango de 20–80 puntos para reflejar la distribución natural de fortaleza relativa entre divisas:</p>
+            <p>El score final se normaliza a un rango de 20–80 puntos. El modelo suma los 18 indicadores ponderados y divide por el peso total de los indicadores con datos disponibles, evitando que la falta de un dato penalice artificialmente el score:</p>
             <ul>
                 <li><strong>Alcista (≥ 62):</strong> Top ~30% de divisas. Múltiples indicadores favorables y ajustes contextuales positivos.</li>
                 <li><strong>Neutral (45–62):</strong> Middle ~40%. Factores mixtos que se compensan.</li>
@@ -360,10 +367,11 @@
                 </thead>
                 <tbody>
                     <tr><td>Tipos de Cambio</td><td>60 segundos</td><td>APIs de Forex (6 proveedores en cascada)</td></tr>
-                    <tr><td>Indicadores Económicos (12 base)</td><td>24 horas</td><td>Trading Economics</td></tr>
-                    <tr><td>Indicadores Extendidos (5 nuevos)</td><td>24 horas</td><td>Trading Economics (extended-data endpoint)</td></tr>
-                    <tr><td>Tasas de Interés</td><td>24 horas</td><td>FRED / Bancos Centrales</td></tr>
+                    <tr><td>Indicadores Económicos (12 base + Terms of Trade)</td><td>24 horas</td><td>Trading Economics</td></tr>
+                    <tr><td>Indicadores Extendidos (5)</td><td>24 horas</td><td>Trading Economics (extended-data endpoint)</td></tr>
+                    <tr><td>Tasas de Interés</td><td>24 horas</td><td>Trading Economics / Bancos Centrales</td></tr>
                     <tr><td>Datos COT</td><td>Semanal (Viernes 15:30 ET)</td><td>CFTC — disponible con ~3 días de retraso natural</td></tr>
+                    <tr><td>Próximas Reuniones de Bancos Centrales</td><td>Semanal (cada lunes)</td><td>cbrates.com (International Central Banks — fechas oficiales)</td></tr>
                     <tr><td>Recomendaciones de Pares</td><td>Calculado en tiempo real</td><td>Algoritmo basado en scores actuales</td></tr>
                     <tr><td>Perspectiva Bancos Centrales (Outlook)</td><td>Calculado dinámicamente</td><td>Algoritmo basado en inflación, crecimiento, desempleo y tasa actual</td></tr>
                 </tbody>
@@ -390,6 +398,12 @@
             <p><strong>Clasificación:</strong> Score ≥ 2 = Hawkish (restrictivo) | Score ≤ −2 = Dovish (acomodaticio) | Score entre −1 y +1 = Neutral</p>
             <p>Este cálculo se actualiza cada 24 horas junto con los datos económicos y refleja la postura probable del banco central basándose en condiciones macroeconómicas actuales, no en declaraciones oficiales.</p>
 
+            <h3>Nota sobre Próximas Reuniones de Bancos Centrales</h3>
+            <p>Las fechas de próximas reuniones de bancos centrales se obtienen semanalmente (cada lunes) mediante scraping de <a href="https://www.cbrates.com/meetings.htm" target="_blank">cbrates.com</a>, que agrega los calendarios oficiales de todos los bancos centrales del mundo. Las fechas son reales y oficiales, no estimadas algorítmicamente. El workflow de GitHub Actions actualiza el archivo <code>meetings-data/meetings.json</code> con la próxima reunión de cada banco central y el calendario completo para el año en curso.</p>
+
+            <h3>Nota sobre Términos de Intercambio</h3>
+            <p>El índice de Términos de Intercambio (Terms of Trade) mide el ratio entre el precio de las exportaciones y el precio de las importaciones de un país, con base 100 en un período de referencia. Un índice >100 indica que el país exporta más valor del que importa en términos de precios, lo que mejora la balanza comercial y genera mayor demanda de la divisa local. Este indicador es especialmente relevante para AUD, CAD y NZD, donde los precios de materias primas (mineral de hierro, petróleo, productos agrícolas) tienen un impacto directo. El dato se actualiza diariamente desde Trading Economics y se incluye en el Tier 1 del modelo con un peso del 2%.</p>
+            
             <h3>Nota sobre Datos COT</h3>
             <p>Los datos de Commitment of Traders provienen de reportes oficiales de la CFTC publicados cada viernes a las 15:30 ET, reflejando posiciones hasta el martes previo. Para USD utilizamos el US Dollar Index (DXY) de ICE Futures. Datos con ~3 días de retraso natural. El dashboard detecta automáticamente si los datos COT están desactualizados comparando el timestamp del último reporte con la fecha actual.</p>
 
@@ -408,7 +422,7 @@
                 <li><strong>Pesos Explícitos:</strong> Cada uno de los 17 factores muestra su contribución exacta al score</li>
                 <li><strong>Cálculos Visibles:</strong> La lógica de scoring está disponible en el código fuente del dashboard</li>
                 <li><strong>Datos Verificables:</strong> Todas las métricas pueden ser confirmadas en fuentes oficiales</li>
-                <li><strong>Limitaciones Claras:</strong> Reconocemos qué no incluimos (términos de intercambio, Net Foreign Assets, yield curves completas, etc.)</li>
+                <li><strong>Limitaciones Claras:</strong> Reconocemos qué no incluimos (Net Foreign Assets — descartado por datos con 2-3 años de retraso, yield curves completas, etc.)</li>
                 <li><strong>Metodología Documentada:</strong> El algoritmo de recomendaciones de pares está completamente explicado</li>
                 <li><strong>Honestidad sobre Datos Históricos:</strong> El índice de fortaleza histórico es una estimación algorítmica, no datos reales</li>
             </ul>
