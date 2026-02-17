@@ -1,0 +1,206 @@
+name: Update Extended Data (Bonds + Sentiment + Flows)
+on:
+  schedule:
+    - cron: '30 6 * * *'  # Daily at 6:30 AM UTC (runs AFTER economic data at 6:00)
+  workflow_dispatch:
+
+jobs:
+  update-extended-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 lxml --break-system-packages
+
+      - name: Create directory
+        run: mkdir -p extended-data
+
+      - name: Scrape extended indicators
+        run: |
+          python3 << 'EOFPYTHON'
+          import requests
+          from bs4 import BeautifulSoup
+          import json, re, os, time
+          from datetime import date, datetime
+
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          }
+
+          CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'NZD']
+
+          COUNTRY_NAMES = {
+              'USD': ['United States'],
+              'EUR': ['Euro Area'],
+              'GBP': ['United Kingdom'],
+              'JPY': ['Japan'],
+              'CAD': ['Canada'],
+              'AUD': ['Australia'],
+              'CHF': ['Switzerland'],
+              'NZD': ['New Zealand']
+          }
+
+          TE_URLS = {
+              'bond10y':              'https://tradingeconomics.com/country-list/government-bond-yield',
+              'consumerConfidence':   'https://tradingeconomics.com/country-list/consumer-confidence',
+              'businessConfidence':   'https://tradingeconomics.com/country-list/business-confidence',
+              'capitalFlows':         'https://tradingeconomics.com/country-list/capital-flows',
+              'fdi':                  'https://tradingeconomics.com/country-list/foreign-direct-investment',
+              'inflationExpectations':'https://tradingeconomics.com/country-list/inflation-expectations',
+          }
+
+          def clean_num(text):
+              if not text: return None
+              text = str(text).strip().replace(',','').replace('%','')
+              m = re.search(r'(-?\d+\.?\d*)', text)
+              return float(m.group(1)) if m else None
+
+          def parse_te_date(date_text):
+              if not date_text: return str(date.today())
+              date_text = date_text.strip()
+              try:
+                  if re.search(r'[A-Za-z]{3}\s*[/\s]\s*\d{2,4}', date_text):
+                      m = re.search(r'([A-Za-z]{3})\s*[/\s]\s*(\d{2,4})', date_text)
+                      if m:
+                          yr = m.group(2)
+                          if len(yr) == 2: yr = '20' + yr
+                          dt = datetime.strptime(f"{m.group(1)} {yr}", '%b %Y')
+                          return dt.strftime('%Y-%m-15')
+                  if re.search(r'Q\d[/\s]\d{4}', date_text):
+                      m = re.search(r'Q(\d)[/\s](\d{4})', date_text)
+                      if m:
+                          month = (int(m.group(1)) - 1) * 3 + 2
+                          return f"{m.group(2)}-{month:02d}-15"
+              except: pass
+              return str(date.today())
+
+          def scrape_te_table(url, label):
+              print(f"\n{'='*50}\nSCRAPING: {label}\n{'='*50}")
+              data, dates = {}, {}
+              try:
+                  r = requests.get(url, headers=HEADERS, timeout=20)
+                  r.raise_for_status()
+                  soup = BeautifulSoup(r.content, 'lxml')
+                  table = soup.find('table', {'class': 'table'})
+                  if not table:
+                      print("  ❌ No table found"); return data, dates
+                  headers_row = [h.get_text(strip=True).lower() for h in table.find_all('th')]
+                  actual_idx = headers_row.index('actual') if 'actual' in headers_row else 1
+                  date_idx   = headers_row.index('reference') if 'reference' in headers_row else None
+                  for row in table.find_all('tr')[1:]:
+                      cols = row.find_all('td')
+                      if len(cols) < 2: continue
+                      ctry = cols[0].get_text(strip=True)
+                      for code, names in COUNTRY_NAMES.items():
+                          if any(n.lower() in ctry.lower() for n in names):
+                              val = clean_num(cols[actual_idx].get_text(strip=True))
+                              dt  = parse_te_date(cols[date_idx].get_text(strip=True)) if date_idx and len(cols) > date_idx else str(date.today())
+                              if val is not None:
+                                  data[code] = round(val, 4)
+                                  dates[code] = dt
+                                  print(f"  ✓ {code}: {val} ({dt})")
+                              break
+              except Exception as e:
+                  print(f"  ❌ {e}")
+              return data, dates
+
+          def scrape_worldgovernmentbonds():
+              """Primary bond source — public, no auth, clean table."""
+              print(f"\n{'='*50}\nBOND YIELDS: worldgovernmentbonds.com\n{'='*50}")
+              WGB_NAMES = {
+                  'USD': ['U.S.', 'United States'],
+                  'EUR': ['Germany'],  # EUR proxy = German 10Y Bund
+                  'GBP': ['U.K.', 'United Kingdom'],
+                  'JPY': ['Japan'],
+                  'CAD': ['Canada'],
+                  'AUD': ['Australia'],
+                  'CHF': ['Switzerland'],
+                  'NZD': ['New Zealand']
+              }
+              data, dates = {}, {}
+              try:
+                  r = requests.get('https://www.worldgovernmentbonds.com/', headers=HEADERS, timeout=15)
+                  r.raise_for_status()
+                  soup = BeautifulSoup(r.content, 'lxml')
+                  for table in soup.find_all('table'):
+                      for row in table.find_all('tr'):
+                          cols = row.find_all('td')
+                          if len(cols) < 3: continue
+                          ctry = cols[0].get_text(strip=True)
+                          for code, names in WGB_NAMES.items():
+                              if code in data: continue
+                              if any(n.lower() in ctry.lower() for n in names):
+                                  for idx in [1, 2, 3]:
+                                      if idx < len(cols):
+                                          val = clean_num(cols[idx].get_text(strip=True))
+                                          if val and 0 < val < 20:
+                                              data[code] = round(val, 3)
+                                              dates[code] = str(date.today())
+                                              print(f"  ✓ {code}: {val}%")
+                                              break
+              except Exception as e:
+                  print(f"  ❌ {e}")
+              return data, dates
+
+          # ── MAIN ──────────────────────────────────────
+          all_data  = {c: {} for c in CURRENCIES}
+          all_dates = {c: {} for c in CURRENCIES}
+
+          # 1. Bond yields
+          bond_data, bond_dates = scrape_worldgovernmentbonds()
+          missing = [c for c in CURRENCIES if c not in bond_data]
+          if missing:
+              te_b, te_bd = scrape_te_table(TE_URLS['bond10y'], 'bond10y_fallback')
+              for c in missing:
+                  if c in te_b:
+                      bond_data[c]  = te_b[c]
+                      bond_dates[c] = te_bd.get(c, str(date.today()))
+          for c in CURRENCIES:
+              all_data[c]['bond10y']  = bond_data.get(c)
+              all_dates[c]['bond10y'] = bond_dates.get(c, str(date.today()))
+          time.sleep(2)
+
+          # 2-6. Remaining indicators
+          for key, url in {k: v for k, v in TE_URLS.items() if k != 'bond10y'}.items():
+              d, dt = scrape_te_table(url, key)
+              for c in CURRENCIES:
+                  all_data[c][key]  = d.get(c)
+                  all_dates[c][key] = dt.get(c, str(date.today()))
+              time.sleep(2)
+
+          # Save
+          for curr in CURRENCIES:
+              pkg = {
+                  'lastUpdate': str(date.today()),
+                  'source': 'worldgovernmentbonds.com + TradingEconomics',
+                  'data':   all_data[curr],
+                  'dates':  all_dates[curr]
+              }
+              with open(f'extended-data/{curr}.json', 'w') as f:
+                  json.dump(pkg, f, indent=2)
+              available = [k for k, v in all_data[curr].items() if v is not None]
+              print(f"{'✅' if len(available) >= 4 else '⚠️ '} {curr}: {', '.join(available) or 'NO DATA'}")
+
+          print("\n✅ COMPLETE")
+          EOFPYTHON
+
+      - name: Commit and push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add extended-data/
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "📊 Extended data $(date +'%Y-%m-%d') — bonds/sentiment/flows"
+            git pull --rebase origin main || true
+            git push
+          fi
