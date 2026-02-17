@@ -1052,21 +1052,35 @@
             }
         }
 
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
 
-            .page-nav-links {
-                order: -1;
-            }
+    .page-nav-links {
+        order: -1;
+    }
 
-            .tooltip-box {
-                width: 250px;
-                font-size: 0.75rem;
-            }
-        }
+    .tooltip-box {
+        width: 250px;
+        font-size: 0.75rem;
+    }
+
+    /* Tendencias Históricas */
+    .chart-container {
+        padding: 1rem;
+    }
+
+    .chart-wrapper {
+        height: 280px;
+    }
+
+    /* Padding general más compacto en móvil */
+    .content {
+        padding: 1rem;
+    }
+}
     </style>
 </head>
 <body>
@@ -3971,7 +3985,7 @@ const sentiment = getSentiment(strength);
                                     Para análisis retrospectivo preciso, consulte las fuentes primarias (FRED, Trading Economics).
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '1.5rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(500px, 100%), 1fr))', gap: '1.5rem' }}>
                                     {countries.map(country => (
                                         <div key={country.code} className="chart-container">
                                             <div className="chart-wrapper">
@@ -4018,10 +4032,10 @@ const sentiment = getSentiment(strength);
         </div>
         
         <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-            gap: '1.5rem' 
-        }}>
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))', 
+    gap: '1.5rem' 
+}}>
             {dynamicAlerts.map((rec, index) => (
                 <div key={index} className="currency-card" style={{
                     borderLeft: `4px solid ${rec.type === 'long' ? 'var(--green-strong)' : 'var(--red-strong)'}`
