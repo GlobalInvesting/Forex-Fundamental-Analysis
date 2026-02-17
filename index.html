@@ -1317,6 +1317,29 @@ if (country.code === 'USD') {
             return null;
         };
 
+    // ========== FETCH EXTENDED DATA (bonds, sentiment, flows) ==========
+const fetchExtendedData = async (countryCode) => {
+    const cacheKey = `extended_${countryCode}`;
+    const cached = CacheManager.get(cacheKey);
+    if (cached !== null) return cached;
+
+    try {
+        const url = `https://globalinvesting.github.io/extended-data/${countryCode}.json`;
+        const response = await fetchWithRetry(url, { cache: 'no-cache', mode: 'cors' }, 3);
+        if (response.ok) {
+            const json = await response.json();
+            if (json.data) {
+                console.log(`✅ Extended data for ${countryCode}:`, Object.keys(json.data).filter(k => json.data[k] !== null));
+                CacheManager.set(cacheKey, json, CACHE_CONFIG.ECONOMIC_DATA);
+                return json;
+            }
+        }
+    } catch (error) {
+        console.warn(`Extended data fetch failed for ${countryCode}:`, error.message);
+    }
+    return null;
+};
+
        const fetchProductionDynamic = async (countryCode) => {
             const cacheKey = `production_${countryCode}`;
             const cached = CacheManager.get(cacheKey);
@@ -1788,7 +1811,7 @@ const generateForexPairRecommendations = (economicData, forexRates) => {
 
 const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
             const cacheKey = 'all_economic_data';
-            const DASHBOARD_VERSION = '4.6.0'; // ✅ Health checks + retry logic + error boundary
+            const DASHBOARD_VERSION = '4.7.0'; // ✅ Health checks + retry logic + error boundary
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -1932,6 +1955,34 @@ if (cotResponse.ok) {
                             console.warn(`No COT data for ${country.code}`);
                         }
                     }
+
+// CARGAR DATOS EXTENDIDOS (bonds, sentiment, flows)
+try {
+    const extData = await fetchExtendedData(country.code);
+    if (extData && extData.data) {
+        const d = extData.data;
+        const dt = extData.dates || {};
+        const lastUpd = extData.lastUpdate;
+
+        economicData[country.code].bond10y               = d.bond10y              ?? null;
+        economicData[country.code].bond10yDate            = dt.bond10y             || lastUpd;
+        economicData[country.code].consumerConfidence     = d.consumerConfidence   ?? null;
+        economicData[country.code].consumerConfidenceDate = dt.consumerConfidence  || lastUpd;
+        economicData[country.code].businessConfidence     = d.businessConfidence   ?? null;
+        economicData[country.code].businessConfidenceDate = dt.businessConfidence  || lastUpd;
+        economicData[country.code].capitalFlows           = d.capitalFlows         ?? null;
+        economicData[country.code].capitalFlowsDate       = dt.capitalFlows        || lastUpd;
+        economicData[country.code].fdi                    = d.fdi                  ?? null;
+        economicData[country.code].fdiDate                = dt.fdi                 || lastUpd;
+        economicData[country.code].inflationExpectations  = d.inflationExpectations ?? null;
+        economicData[country.code].inflationExpectationsDate = dt.inflationExpectations || lastUpd;
+
+        console.log(`✅ Extended data loaded for ${country.code}`);
+    }
+} catch (error) {
+    console.warn(`No extended data for ${country.code}`);
+}
+                    
                 } catch (error) {
                     console.error(`❌ Error loading data for ${country.code}:`, error);
                 }
@@ -1962,100 +2013,92 @@ const calculateStrength = (currency, data = null, forexRates = {}, allEconomicDa
         dataQuality: 0 
     };
     
-// ========== TRADING-ORIENTED WEIGHTS (CALIBRADO CON REALIDAD DE MERCADO) ==========
+// ========== TRADING-ORIENTED WEIGHTS ==========
+// Suma total = 1.00 exacto
+// Tier 1: External Balance & Safe Haven  → 0.28
+// Tier 2: Rate Differentials & Carry     → 0.28
+// Tier 3: Growth & Employment            → 0.20
+// Tier 4: Consumption & Wages            → 0.09
+// Tier 5: Market Sentiment               → 0.15
+// TOTAL                                  → 1.00
 const TRADING_WEIGHTS = {
-    // Tier 1: External Balance & Safe Haven (30%)
-    currentAccount: { weight: 0.15, optimal: { min: 0, max: 5 }, direction: 'higher' },
-    tradeBalance: { weight: 0.10, optimal: { min: 0, max: null }, direction: 'higher' },
-    debt: { weight: 0.05, optimal: { min: 0, max: 60 }, direction: 'lower' },
-    
-    // Tier 2: Rate Differentials & Carry (30%)
-    interestRate: { weight: 0.20, optimal: { min: 2.5, max: 5.0 }, direction: 'higher' },
-    inflation: { weight: 0.10, optimal: { min: 1.8, max: 2.5 }, direction: 'target' },
-    
-    // Tier 3: Growth & Employment (20%)
-    gdpGrowth: { weight: 0.10, optimal: { min: 2.0, max: 3.5 }, direction: 'higher' },
-    unemployment: { weight: 0.06, optimal: { min: 3.0, max: 5.0 }, direction: 'lower' },
-    production: { weight: 0.04, optimal: { min: 1.0, max: 3.0 }, direction: 'stable' },
-    
-    // Tier 4: Consumption & Wages (10%)
-    retailSales: { weight: 0.05, optimal: { min: 0.3, max: 1.0 }, direction: 'stable' },
-    wageGrowth: { weight: 0.05, optimal: { min: 2.5, max: 4.0 }, direction: 'stable' },
-    
-    // Tier 5: Market Sentiment (10%)
-    cotPositioning: { weight: 0.07, optimal: { min: 5000, max: 15000 }, direction: 'moderate_bullish' },
-    manufacturingPMI: { weight: 0.03, optimal: { min: 50, max: 55 }, direction: 'expansion' }
+    // Tier 1: External Balance & Safe Haven (0.28)
+    currentAccount:        { weight: 0.13, direction: 'higher' },
+    tradeBalance:          { weight: 0.10, direction: 'higher' },
+    debt:                  { weight: 0.05, direction: 'lower'  },
+
+    // Tier 2: Rate Differentials & Carry (0.28)
+    interestRate:          { weight: 0.18, direction: 'higher' },
+    inflation:             { weight: 0.08, direction: 'target' },
+    bond10y:               { weight: 0.02, direction: 'carry_yield'   },
+
+    // Tier 3: Growth & Employment (0.20)
+    gdpGrowth:             { weight: 0.10, direction: 'higher' },
+    unemployment:          { weight: 0.06, direction: 'lower'  },
+    production:            { weight: 0.04, direction: 'stable' },
+
+    // Tier 4: Consumption & Wages (0.09)
+    retailSales:           { weight: 0.04, direction: 'stable' },
+    wageGrowth:            { weight: 0.03, direction: 'stable' },
+    inflationExpectations: { weight: 0.02, direction: 'target' },
+
+    // Tier 5: Market Sentiment (0.15)
+    manufacturingPMI:      { weight: 0.03, direction: 'expansion'       },
+    cotPositioning:        { weight: 0.04, direction: 'moderate_bullish' },
+    consumerConfidence:    { weight: 0.03, direction: 'sentiment_index'  },
+    businessConfidence:    { weight: 0.02, direction: 'sentiment_index'  },
+    capitalFlows:          { weight: 0.03, direction: 'flows'            },
 };
-    
+// Verificación de suma (comentario de documentación):
+// 0.13+0.10+0.05 + 0.18+0.08+0.02 + 0.10+0.06+0.04 + 0.04+0.03+0.02 + 0.03+0.04+0.03+0.02+0.03 = 1.00
+
     // ========== SCORING FUNCTIONS ==========
     const scoreIndicator = (value, indicator) => {
         const config = TRADING_WEIGHTS[indicator];
-        if (!config || config.weight === 0) return 0;
-        
+        if (!config) return 0;
         let score = 0;
-        
-        switch(config.direction) {
+
+        switch (config.direction) {
+
             case 'higher':
-                // Para interestRate y gdpGrowth - más alto es mejor
                 if (indicator === 'interestRate') {
-                    // 4%+ = excelente (100)
-                    // 2.5-4% = bueno (70)
-                    // 0.5-2.5% = regular (30)
-                    // <0.5% = malo (0)
-                    if (value >= 4.0) {
-                        score = 100;
-                    } else if (value >= 2.5) {
-                        score = 70 + ((value - 2.5) / 1.5) * 30;
-                    } else if (value >= 0.5) {
-                        score = 30 + ((value - 0.5) / 2.0) * 40;
-                    } else {
-                        score = (value / 0.5) * 30;
-                    }
+                    if (value >= 4.0)      score = 100;
+                    else if (value >= 2.5) score = 70 + ((value - 2.5) / 1.5) * 30;
+                    else if (value >= 0.5) score = 30 + ((value - 0.5) / 2.0) * 40;
+                    else                   score = (value / 0.5) * 30;
                 } else if (indicator === 'gdpGrowth') {
-                    // 2.5%+ = excelente (100)
-                    // 1.5-2.5% = bueno (70)
-                    // 0.5-1.5% = regular (40)
-                    // <0.5% = malo (0)
-                    if (value >= 2.5) {
-                        score = 100;
-                    } else if (value >= 1.5) {
-                        score = 70 + ((value - 1.5) / 1.0) * 30;
-                    } else if (value >= 0.5) {
-                        score = 40 + ((value - 0.5) / 1.0) * 30;
-                    } else if (value >= 0) {
-                        score = (value / 0.5) * 40;
-                    } else {
-                        score = Math.max(0, 40 + (value * 20)); // Penalización por crecimiento negativo
-                    }
-                } else if (indicator === 'currentAccount' || indicator === 'tradeBalance') {
-                    // Superávit = 100, Déficit = proporcional
-                    if (value > 5) {
-                        score = 100;
-                    } else if (value > 0) {
-                        score = 70 + (value / 5) * 30;
-                    } else if (value > -5) {
-                        score = 50 + (value / 5) * 20;
-                    } else {
-                        score = Math.max(0, 50 + (value / 10) * 50);
-                    }
-                }
-                break;
-            
-            case 'lower':
-                // Para unemployment - más bajo es mejor
-                if (value < 3.0) {
-                    score = 100;
-                } else if (value < 4.0) {
-                    score = 80 + ((4.0 - value) / 1.0) * 20;
-                } else if (value < 6.0) {
-                    score = 50 + ((6.0 - value) / 2.0) * 30;
+                    if (value >= 2.5)      score = 100;
+                    else if (value >= 1.5) score = 70 + ((value - 1.5) / 1.0) * 30;
+                    else if (value >= 0.5) score = 40 + ((value - 0.5) / 1.0) * 30;
+                    else if (value >= 0)   score = (value / 0.5) * 40;
+                    else                   score = Math.max(0, 40 + value * 20);
                 } else {
-                    score = Math.max(0, 50 - ((value - 6.0) / 4.0) * 50);
+                    // currentAccount, tradeBalance
+                    if (value > 5)        score = 100;
+                    else if (value > 0)   score = 70 + (value / 5) * 30;
+                    else if (value > -5)  score = 50 + (value / 5) * 20;
+                    else                  score = Math.max(0, 50 + (value / 10) * 50);
                 }
                 break;
-            
+
+            case 'lower':
+                // unemployment
+                if (value < 3.0)      score = 100;
+                else if (value < 4.0) score = 80 + ((4.0 - value) / 1.0) * 20;
+                else if (value < 6.0) score = 50 + ((6.0 - value) / 2.0) * 30;
+                else                  score = Math.max(0, 50 - ((value - 6.0) / 4.0) * 50);
+                // debt (inverse)
+                if (indicator === 'debt') {
+                    if (value < 40)       score = 100;
+                    else if (value < 60)  score = 80 - ((value - 40) / 20) * 20;
+                    else if (value < 90)  score = 60 - ((value - 60) / 30) * 20;
+                    else if (value < 150) score = 40 - ((value - 90) / 60) * 25;
+                    else                  score = Math.max(0, 15 - ((value - 150) / 100) * 15);
+                }
+                break;
+
             case 'target':
-                // Para inflation - objetivo 1.8-2.5%
+                // inflation & inflationExpectations: objective 1.8-2.5%
                 if (value >= 1.8 && value <= 2.5) {
                     score = 100;
                 } else if (value > 2.5 && value <= 3.5) {
@@ -2068,416 +2111,259 @@ const TRADING_WEIGHTS = {
                     score = Math.max(0, 70 - ((1.0 - value) / 1.0) * 70);
                 }
                 break;
-            
+
             case 'expansion':
-                // Para manufacturingPMI - >50 es expansión
-                if (value > 52) {
-                    score = 80 + Math.min((value - 52) / 8, 1) * 20;
-                } else if (value >= 50) {
-                    score = 60 + ((value - 50) / 2) * 20;
-                } else if (value >= 48) {
-                    score = 40 + ((value - 48) / 2) * 20;
-                } else {
-                    score = Math.max(0, 40 - ((48 - value) / 10) * 40);
+                // manufacturingPMI
+                if (value > 52)      score = 80 + Math.min((value - 52) / 8, 1) * 20;
+                else if (value >= 50) score = 60 + ((value - 50) / 2) * 20;
+                else if (value >= 48) score = 40 + ((value - 48) / 2) * 20;
+                else                  score = Math.max(0, 40 - ((48 - value) / 10) * 40);
+                break;
+
+            case 'stable':
+                if (indicator === 'production') {
+                    if (value > 1.5)       score = 100;
+                    else if (value > 0.5)  score = 70 + ((value - 0.5) / 1.0) * 30;
+                    else if (value > 0)    score = 40 + (value / 0.5) * 30;
+                    else if (value > -1.0) score = 20 + ((value + 1.0) / 1.0) * 20;
+                    else                   score = Math.max(0, 20 + ((value + 2.0) / 1.0) * 20);
+                } else if (indicator === 'retailSales') {
+                    if (value > 0.5)       score = 100;
+                    else if (value > 0)    score = 60 + (value / 0.5) * 40;
+                    else if (value > -0.5) score = 40 + ((value + 0.5) / 0.5) * 20;
+                    else                   score = Math.max(0, 40 + ((value + 1.0) / 0.5) * 40);
+                } else if (indicator === 'wageGrowth') {
+                    if (value >= 2.5 && value <= 4.5) score = 100;
+                    else if (value > 4.5 && value <= 6.0) score = 70 + ((6.0 - value) / 1.5) * 30;
+                    else if (value > 6.0) score = Math.max(0, 70 - ((value - 6.0) / 2.0) * 70);
+                    else if (value >= 1.5) score = 40 + ((value - 1.5) / 1.0) * 60;
+                    else score = Math.max(0, 40 - ((1.5 - value) / 1.5) * 40);
                 }
                 break;
 
-                case 'stable':
-                // Para production, retailSales, wageGrowth - estabilidad es positiva
-                if (indicator === 'production') {
-                    // >1.5% = fuerte (100)
-                    // 0.5-1.5% = moderado (70)
-                    // 0-0.5% = débil (40)
-                    // <0% = contracción (0-40)
-                    if (value > 1.5) {
-                        score = 100;
-                    } else if (value > 0.5) {
-                        score = 70 + ((value - 0.5) / 1.0) * 30;
-                    } else if (value > 0) {
-                        score = 40 + (value / 0.5) * 30;
-                    } else if (value > -1.0) {
-                        score = 20 + ((value + 1.0) / 1.0) * 20;
-                    } else {
-                        score = Math.max(0, 20 + ((value + 2.0) / 1.0) * 20);
-                    }
-                } else if (indicator === 'retailSales') {
-                    // >0.5% = fuerte consumo (100)
-                    // 0-0.5% = moderado (60)
-                    // <0% = contracción (0-50)
-                    if (value > 0.5) {
-                        score = 100;
-                    } else if (value > 0) {
-                        score = 60 + (value / 0.5) * 40;
-                    } else if (value > -0.5) {
-                        score = 40 + ((value + 0.5) / 0.5) * 20;
-                    } else {
-                        score = Math.max(0, 40 + ((value + 1.0) / 0.5) * 40);
-                    }
-                } else if (indicator === 'wageGrowth') {
-                    // 2.5-4.5% = ideal (100)
-                    // >5% = inflacionario (70)
-                    // <2% = débil (40)
-                    if (value >= 2.5 && value <= 4.5) {
-                        score = 100;
-                    } else if (value > 4.5 && value <= 6.0) {
-                        score = 70 + ((6.0 - value) / 1.5) * 30;
-                    } else if (value > 6.0) {
-                        score = Math.max(0, 70 - ((value - 6.0) / 2.0) * 70);
-                    } else if (value >= 1.5) {
-                        score = 40 + ((value - 1.5) / 1.0) * 60;
-                    } else {
-                        score = Math.max(0, 40 - ((1.5 - value) / 1.5) * 40);
-                    }
-                }
+            case 'carry_yield':
+                // bond10y: higher yield = more carry attractive
+                if (value >= 4.5)      score = 90 + Math.min((value - 4.5) / 2, 1) * 10;
+                else if (value >= 3.0) score = 70 + ((value - 3.0) / 1.5) * 20;
+                else if (value >= 2.0) score = 50 + ((value - 2.0) / 1.0) * 20;
+                else if (value >= 0.5) score = 20 + ((value - 0.5) / 1.5) * 30;
+                else                   score = Math.max(0, value * 40);
                 break;
-            
-case 'moderate_bullish':
-    // COT Positioning: Valores positivos = bullish (buenos), negativos = bearish (malos)
-    // La "moderación" se refiere a evitar extremos de saturación
-    
-    if (value > 30000) {
-        // Extremadamente alcista = posible saturación, pero sigue siendo bullish
-        score = 85 - ((value - 30000) / 20000) * 15; // 85-70
-    } else if (value > 15000) {
-        // Fuertemente alcista = muy bueno
-        score = 95 - ((value - 15000) / 15000) * 10; // 95-85
-    } else if (value > 5000) {
-        // Moderadamente alcista = óptimo (zona dorada)
-        score = 100 - ((value - 5000) / 10000) * 5; // 100-95
-    } else if (value > 0) {
-        // Ligeramente alcista = bueno pero débil
-        score = 70 + (value / 5000) * 30; // 70-100
-    } else if (value === 0) {
-        // Neutral = punto medio
-        score = 50;
-    } else if (value > -5000) {
-        // Ligeramente bajista = malo
-        score = 30 + ((value + 5000) / 5000) * 20; // 30-50
-    } else if (value > -15000) {
-        // Moderadamente bajista = muy malo
-        score = 15 + ((value + 15000) / 10000) * 15; // 15-30
-    } else if (value > -30000) {
-        // Fuertemente bajista = pésimo
-        score = 5 + ((value + 30000) / 15000) * 10; // 5-15
-    } else {
-        // Extremadamente bajista = capitulación (oversold extremo, puede rebotar)
-        score = Math.max(0, 20 - ((Math.abs(value) - 30000) / 20000) * 15); // 20-5
-    }
-    break;
+
+            case 'sentiment_index':
+                // consumerConfidence, businessConfidence: base 100
+                if (value > 110)      score = 90 + Math.min((value - 110) / 20, 1) * 10;
+                else if (value > 100) score = 70 + ((value - 100) / 10) * 20;
+                else if (value >= 95) score = 50 + ((value - 95) / 5) * 20;
+                else if (value >= 85) score = 20 + ((value - 85) / 10) * 30;
+                else                  score = Math.max(0, 20 - ((85 - value) / 15) * 20);
+                break;
+
+            case 'flows':
+                // capitalFlows: positive = net inflow → currency demand
+                if (value > 50000)        score = 90 + Math.min((value - 50000) / 100000, 1) * 10;
+                else if (value > 10000)   score = 70 + ((value - 10000) / 40000) * 20;
+                else if (value > 0)       score = 50 + (value / 10000) * 20;
+                else if (value > -10000)  score = 30 + ((value + 10000) / 10000) * 20;
+                else if (value > -50000)  score = 10 + ((value + 50000) / 40000) * 20;
+                else                      score = Math.max(0, 10 - ((Math.abs(value) - 50000) / 100000) * 10);
+                break;
+
+            case 'moderate_bullish':
+                // cotPositioning
+                if (value > 30000)       score = 85 - ((value - 30000) / 20000) * 15;
+                else if (value > 15000)  score = 95 - ((value - 15000) / 15000) * 10;
+                else if (value > 5000)   score = 100 - ((value - 5000) / 10000) * 5;
+                else if (value > 0)      score = 70 + (value / 5000) * 30;
+                else if (value === 0)    score = 50;
+                else if (value > -5000)  score = 30 + ((value + 5000) / 5000) * 20;
+                else if (value > -15000) score = 15 + ((value + 15000) / 10000) * 15;
+                else if (value > -30000) score = 5  + ((value + 30000) / 15000) * 10;
+                else                     score = Math.max(0, 20 - ((Math.abs(value) - 30000) / 20000) * 15);
+                break;
         }
-        
-        return score;
+
+        return Math.max(0, Math.min(100, score));
     };
-    
-    // ========== SCORING ==========
-    let totalScore = 0;
-    let totalWeight = 0;
+
+    // ========== SCORING LOOP ==========
+    let weightedScoreSum = 0;   // Suma de (score_i * weight_i)
+    let totalWeight = 0;        // Suma de pesos de indicadores con datos
     const contributions = {};
     let validIndicators = 0;
-    
+
     Object.keys(TRADING_WEIGHTS).forEach(indicator => {
         const value = data[indicator];
         if (value === null || value === undefined || isNaN(value)) {
             contributions[indicator] = 0;
             return;
         }
-        
         const config = TRADING_WEIGHTS[indicator];
-        if (config.weight === 0) return;
-        
-        const indicatorScore = scoreIndicator(value, indicator);
-        const weightedScore = indicatorScore * config.weight;
-        
-        contributions[indicator] = weightedScore;
-        totalScore += weightedScore;
-        totalWeight += config.weight;
+        const rawScore    = scoreIndicator(value, indicator);   // 0-100
+        const weighted    = rawScore * config.weight;
+        contributions[indicator] = weighted;
+        weightedScoreSum += weighted;
+        totalWeight      += config.weight;
         validIndicators++;
     });
-    
-    // ========== CONTEXTUAL ADJUSTMENTS ==========
-    
-    // 1. Safe Haven Score - 100% DINÁMICO basado en métricas reales
+
+    // ========== WEIGHTED AVERAGE → 0-100 scale ==========
+    // Normalise by actual weight sum so missing data doesn't deflate the score
+    const baseScore = totalWeight > 0 ? (weightedScoreSum / totalWeight) : 50;
+
+    // ========== CONTEXTUAL ADJUSTMENTS (additive, in score points) ==========
+
+    // 1. Safe Haven Score — fully dynamic
     const calculateSafeHavenScore = (currency, data, allEconomicData) => {
-        // Factores que determinan safe haven status (0-100 cada uno)
         let safeHavenScore = 0;
-        
-        // A) Estabilidad Fiscal (30 puntos)
         if (data.debt !== null && data.debt !== undefined) {
-            if (data.debt < 40) safeHavenScore += 30;
-            else if (data.debt < 60) safeHavenScore += 20;
-            else if (data.debt < 90) safeHavenScore += 10;
-            else safeHavenScore += 0;
+            if (data.debt < 40)       safeHavenScore += 30;
+            else if (data.debt < 60)  safeHavenScore += 20;
+            else if (data.debt < 90)  safeHavenScore += 10;
         }
-        
-        // B) Balance Externo (30 puntos)
         if (data.currentAccount !== null && data.currentAccount !== undefined) {
-            if (data.currentAccount > 5) safeHavenScore += 30;
-            else if (data.currentAccount > 2) safeHavenScore += 20;
-            else if (data.currentAccount > 0) safeHavenScore += 10;
-            else if (data.currentAccount > -3) safeHavenScore += 0;
-            else safeHavenScore -= 10; // Penalización por déficit grande
+            if (data.currentAccount > 5)       safeHavenScore += 30;
+            else if (data.currentAccount > 2)  safeHavenScore += 20;
+            else if (data.currentAccount > 0)  safeHavenScore += 10;
+            else if (data.currentAccount < -3) safeHavenScore -= 10;
         }
-        
-        // C) Estabilidad de Precios (20 puntos)
         if (data.inflation !== null && data.inflation !== undefined) {
-            const inflationDeviation = Math.abs(data.inflation - 2.0);
-            if (inflationDeviation < 0.5) safeHavenScore += 20;
-            else if (inflationDeviation < 1.0) safeHavenScore += 15;
-            else if (inflationDeviation < 2.0) safeHavenScore += 10;
-            else safeHavenScore += 0;
+            const dev = Math.abs(data.inflation - 2.0);
+            if (dev < 0.5)      safeHavenScore += 20;
+            else if (dev < 1.0) safeHavenScore += 15;
+            else if (dev < 2.0) safeHavenScore += 10;
         }
-        
-        // D) Tamaño de Economía Relativo (20 puntos)
         if (data.gdp !== null && data.gdp !== undefined) {
-            if (data.gdp > 20) safeHavenScore += 20; // Economías grandes (USD, EUR, JPY)
-            else if (data.gdp > 5) safeHavenScore += 15;
-            else if (data.gdp > 1) safeHavenScore += 10;
-            else safeHavenScore += 5; // Economías pequeñas pero estables (CHF)
+            if (data.gdp > 20)      safeHavenScore += 20;
+            else if (data.gdp > 5)  safeHavenScore += 15;
+            else if (data.gdp > 1)  safeHavenScore += 10;
+            else                    safeHavenScore += 5;
         }
-        
-        // E) Régimen de mercado (amplifica o reduce el efecto)
-        const calculateMarketRegime = () => {
-            const cotValues = Object.values(allEconomicData)
-                .map(d => d.cotPositioning)
-                .filter(v => v !== null && v !== undefined && !isNaN(v));
-            
-            if (cotValues.length < 3) return 'neutral';
-            
-            const avgCOT = cotValues.reduce((a, b) => a + b, 0) / cotValues.length;
-            
-            if (avgCOT < -5000) return 'risk-off';
-            if (avgCOT > 5000) return 'risk-on';
-            return 'neutral';
-        };
-        
-        const marketRegime = calculateMarketRegime();
-        
-        // F) Aplicar multiplicador según régimen de mercado
+        const cotValues = Object.values(allEconomicData)
+            .map(d => d.cotPositioning)
+            .filter(v => v !== null && v !== undefined && !isNaN(v));
+        const avgCOT = cotValues.length >= 3
+            ? cotValues.reduce((a, b) => a + b, 0) / cotValues.length : 0;
+        const regime = avgCOT < -5000 ? 'risk-off' : avgCOT > 5000 ? 'risk-on' : 'neutral';
         let multiplier = 1.0;
-        if (marketRegime === 'risk-off') {
-            // En risk-off, safe havens se benefician más
-            multiplier = safeHavenScore > 60 ? 1.5 : 1.0;
-        } else if (marketRegime === 'risk-on') {
-            // En risk-on, safe havens se penalizan (excepto los muy fuertes)
-            multiplier = safeHavenScore > 70 ? 1.1 : 0.7;
-        }
-        
-        // G) Normalizar a escala -10 a +20
-        const normalizedScore = ((safeHavenScore * multiplier) / 100) * 30 - 10;
-        
-        return Math.max(-10, Math.min(20, normalizedScore));
+        if (regime === 'risk-off') multiplier = safeHavenScore > 60 ? 1.5 : 1.0;
+        if (regime === 'risk-on')  multiplier = safeHavenScore > 70 ? 1.1 : 0.7;
+        // Normalize to -5 / +10 score-point range
+        return Math.max(-5, Math.min(10, ((safeHavenScore * multiplier) / 100) * 15 - 5));
     };
-    
-    const safeHavenBonus = calculateSafeHavenScore(currency, data, allEconomicData);
-    totalScore += safeHavenBonus;
-    contributions['safe_haven_score'] = safeHavenBonus;
-    
- // 2. Commodity Exposure Score - DINÁMICO
-const calculateCommodityScore = (currency, data, allEconomicData) => {
-    // Solo aplica a divisas commodity
-    const commodityCurrencies = ['AUD', 'CAD', 'NZD'];
-    if (!commodityCurrencies.includes(currency)) return 0;
-    
-    // A) Dependencia de commodities (medida por trade balance + production)
-    let commodityDependence = 0;
-    
-    if (data.tradeBalance !== null && data.tradeBalance > 1000) {
-        // Superávit comercial indica exportador neto
-        commodityDependence = Math.min(data.tradeBalance / 10000, 1.0); // 0-1 scale
-    }
-    
-    if (data.production !== null && data.production !== undefined) {
-        // Producción industrial fuerte indica economía commodity-driven
-        if (data.production > 2.0) commodityDependence += 0.3;
-        else if (data.production > 0.5) commodityDependence += 0.15;
-    }
-    
-    // B) Crecimiento global (determina demanda de commodities)
-    const growthRates = Object.values(allEconomicData)
-        .map(d => d.gdpGrowth)
-        .filter(v => v !== null && v !== undefined && !isNaN(v));
-    
-    const globalGrowth = growthRates.length > 0 
-        ? growthRates.reduce((a, b) => a + b, 0) / growthRates.length 
-        : 1.5;
-    
-    // C) Score: dependencia alta + growth bajo = penalización
-    let score = 0;
-    if (globalGrowth > 2.5) {
-        // Crecimiento fuerte beneficia commodities
-        score = commodityDependence * 5;
-    } else if (globalGrowth > 1.5) {
-        // Crecimiento moderado = neutral
-        score = 0;
-    } else {
-        // Crecimiento débil penaliza commodities
-        score = -commodityDependence * 8;
-    }
-    
-    return score;
-};
 
-const commodityScore = calculateCommodityScore(currency, data, allEconomicData);
-totalScore += commodityScore;
-contributions['commodity_exposure'] = commodityScore;
-
-// 3. Carry Trade Premium - DINÁMICO
-const calculateCarryPremium = (data, allEconomicData) => {
-    if (!data.interestRate) return 0;
-    
-    // A) Calcular tasa promedio global
-    const allRates = Object.values(allEconomicData)
-        .map(d => d.interestRate)
-        .filter(v => v !== null && v !== undefined && !isNaN(v));
-    
-    const avgRate = allRates.length > 0 
-        ? allRates.reduce((a, b) => a + b, 0) / allRates.length 
-        : 3.0;
-    
-    // B) Diferencial de tasa
-    const rateDifferential = data.interestRate - avgRate;
-    
-    // C) Solo bonus si está significativamente por encima del promedio
-    if (rateDifferential > 1.0) {
-        // Bonus proporcional al diferencial, max +8 puntos
-        return Math.min(rateDifferential * 2.5, 8);
-    }
-    
-    return 0;
-};
-
-const carryPremium = calculateCarryPremium(data, allEconomicData);
-totalScore += carryPremium;
-contributions['carry_premium'] = carryPremium;
-
-// 4. Recession Impact - DINÁMICO
-const calculateRecessionImpact = (data) => {
-    if (data.gdpGrowth === null || data.gdpGrowth >= 0) return 0;
-    
-    // A) Severidad de la recesión
-    const recessionDepth = Math.abs(data.gdpGrowth);
-    
-    // B) Contexto de desempleo
-    let multiplier = 3.0; // Base
-    
-    if (data.unemployment !== null) {
-        if (data.unemployment > 8.0) multiplier = 5.0; // Recesión + desempleo alto = muy malo
-        else if (data.unemployment > 6.0) multiplier = 4.0;
-        else if (data.unemployment < 4.0) multiplier = 2.0; // Recesión técnica, no crisis
-    }
-    
-    // C) Penalización proporcional
-    return -recessionDepth * multiplier;
-};
-
-const recessionImpact = calculateRecessionImpact(data);
-totalScore += recessionImpact;
-contributions['recession_impact'] = recessionImpact;
-
-// 5. Structural Deficit Score - DINÁMICO (reemplaza Twin Deficits)
-const calculateStructuralDeficit = (data) => {
-    let deficitScore = 0;
-    
-    // A) Déficit de cuenta corriente
-    if (data.currentAccount !== null && data.currentAccount < -3) {
-        const severity = Math.abs(data.currentAccount + 3) / 3; // 0-1+ scale
-        deficitScore -= severity * 8;
-    }
-    
-    // B) Déficit comercial grande
-    if (data.tradeBalance !== null && data.tradeBalance < -30000) {
-        const severity = Math.abs(data.tradeBalance + 30000) / 30000; // 0-1+ scale
-        deficitScore -= severity * 8;
-    }
-    
-    // C) Penalización adicional si ambos déficits están presentes (twin deficit)
-    if (data.currentAccount !== null && data.currentAccount < -3 && 
-        data.tradeBalance !== null && data.tradeBalance < -30000) {
-        deficitScore -= 5; // Penalización extra por twin deficit
-    }
-    
-    return Math.max(deficitScore, -20); // Cap en -20 puntos
-};
-
-const structuralDeficit = calculateStructuralDeficit(data);
-totalScore += structuralDeficit;
-contributions['structural_deficit'] = structuralDeficit;
-
-// 6. Debt Sustainability Score - DINÁMICO (reemplaza Extreme Debt)
-const calculateDebtSustainability = (data) => {
-    if (data.debt === null || data.debt === undefined) return 0;
-    
-    // A) Nivel de deuda vs crecimiento
-    let sustainabilityScore = 0;
-    
-    if (data.debt > 150) {
-        // Deuda muy alta
-        const excessDebt = (data.debt - 150) / 100; // 0-1+ scale
-        sustainabilityScore -= excessDebt * 6;
-        
-        // B) Agravante si hay bajo crecimiento
-        if (data.gdpGrowth !== null && data.gdpGrowth < 1.0) {
-            sustainabilityScore -= 4; // Deuda alta + crecimiento bajo = insostenible
+    // 2. Commodity Exposure — dynamic
+    const calculateCommodityScore = (currency, data, allEconomicData) => {
+        if (!['AUD', 'CAD', 'NZD'].includes(currency)) return 0;
+        let dep = 0;
+        if (data.tradeBalance !== null && data.tradeBalance > 1000)
+            dep = Math.min(data.tradeBalance / 10000, 1.0);
+        if (data.production !== null && data.production !== undefined) {
+            if (data.production > 2.0) dep += 0.3;
+            else if (data.production > 0.5) dep += 0.15;
         }
-        
-        // C) Mitigante si hay superávit comercial (puede servir deuda)
-        if (data.currentAccount !== null && data.currentAccount > 2.0) {
-            sustainabilityScore += 3; // Puede financiar la deuda
+        const growthRates = Object.values(allEconomicData)
+            .map(d => d.gdpGrowth).filter(v => v !== null && v !== undefined && !isNaN(v));
+        const globalGrowth = growthRates.length > 0
+            ? growthRates.reduce((a, b) => a + b, 0) / growthRates.length : 1.5;
+        if (globalGrowth > 2.5) return dep * 3;
+        if (globalGrowth > 1.5) return 0;
+        return -(dep * 5);
+    };
+
+    // 3. Carry Trade Premium — dynamic
+    const calculateCarryPremium = (data, allEconomicData) => {
+        if (!data.interestRate) return 0;
+        const allRates = Object.values(allEconomicData)
+            .map(d => d.interestRate).filter(v => v !== null && v !== undefined && !isNaN(v));
+        const avgRate = allRates.length > 0
+            ? allRates.reduce((a, b) => a + b, 0) / allRates.length : 3.0;
+        const diff = data.interestRate - avgRate;
+        return diff > 1.0 ? Math.min(diff * 2, 5) : 0;
+    };
+
+    // 4. Recession Impact — dynamic
+    const calculateRecessionImpact = (data) => {
+        if (data.gdpGrowth === null || data.gdpGrowth >= 0) return 0;
+        const depth = Math.abs(data.gdpGrowth);
+        let mult = 3.0;
+        if (data.unemployment !== null) {
+            if (data.unemployment > 8.0)      mult = 5.0;
+            else if (data.unemployment > 6.0) mult = 4.0;
+            else if (data.unemployment < 4.0) mult = 2.0;
         }
-    }
-    
-    return Math.max(sustainabilityScore, -12); // Cap en -12 puntos
-};
+        return -(depth * mult);
+    };
 
-const debtSustainability = calculateDebtSustainability(data);
-totalScore += debtSustainability;
-contributions['debt_sustainability'] = debtSustainability;
+    // 5. Structural Deficit — dynamic
+    const calculateStructuralDeficit = (data) => {
+        let score = 0;
+        if (data.currentAccount !== null && data.currentAccount < -3)
+            score -= (Math.abs(data.currentAccount + 3) / 3) * 5;
+        if (data.tradeBalance !== null && data.tradeBalance < -30000)
+            score -= (Math.abs(data.tradeBalance + 30000) / 30000) * 5;
+        if (data.currentAccount !== null && data.currentAccount < -3 &&
+            data.tradeBalance !== null && data.tradeBalance < -30000)
+            score -= 3;
+        return Math.max(score, -12);
+    };
 
-// 7. Inflation Stability Score - DINÁMICO
-const calculateInflationStability = (data) => {
-    if (data.inflation === null || data.inflation === undefined) return 0;
-    
-    const inflationTarget = 2.0;
-    const deviation = Math.abs(data.inflation - inflationTarget);
-    
-    // A) Inflación muy alta (> 4%) es preocupante
-    if (data.inflation > 4.0) {
-        const severity = (data.inflation - 4.0) / 2.0; // 0-1+ scale
-        let penalty = -severity * 4;
-        
-        // B) Agravante si hay tasas bajas (no están controlando inflación)
-        if (data.interestRate !== null && data.interestRate < data.inflation - 1.0) {
-            penalty -= 3; // Política monetaria no está conteniendo inflación
+    // 6. Debt Sustainability — dynamic
+    const calculateDebtSustainability = (data) => {
+        if (data.debt === null || data.debt === undefined || data.debt <= 150) return 0;
+        let s = -((data.debt - 150) / 100) * 4;
+        if (data.gdpGrowth !== null && data.gdpGrowth < 1.0) s -= 2;
+        if (data.currentAccount !== null && data.currentAccount > 2.0) s += 2;
+        return Math.max(s, -8);
+    };
+
+    // 7. Inflation Stability — dynamic
+    const calculateInflationStability = (data) => {
+        if (data.inflation === null || data.inflation === undefined) return 0;
+        if (data.inflation > 4.0) {
+            let pen = -((data.inflation - 4.0) / 2.0) * 3;
+            if (data.interestRate !== null && data.interestRate < data.inflation - 1.0) pen -= 2;
+            return Math.max(pen, -6);
         }
-        
-        return Math.max(penalty, -10);
-    }
-    
-    // C) Deflación también es problemática
-    if (data.inflation < 0) {
-        return Math.abs(data.inflation) * -2;
-    }
-    
-    return 0;
-};
+        if (data.inflation < 0) return data.inflation * -1.5;
+        return 0;
+    };
 
-const inflationStability = calculateInflationStability(data);
-totalScore += inflationStability;
-contributions['inflation_stability'] = inflationStability;
-    
-    // ========== NORMALIZATION ==========
-    // Normalizar a escala 20-80 (con centro en 50)
-    const normalizedScore = Math.max(20, Math.min(80, totalScore));
-    
-    // Calcular calidad de datos
-    const dataQuality = validIndicators / Object.keys(TRADING_WEIGHTS).filter(k => TRADING_WEIGHTS[k].weight > 0).length;
+    // Apply contextual adjustments
+    const safeHavenAdj      = calculateSafeHavenScore(currency, data, allEconomicData);
+    const commodityAdj      = calculateCommodityScore(currency, data, allEconomicData);
+    const carryAdj          = calculateCarryPremium(data, allEconomicData);
+    const recessionAdj      = calculateRecessionImpact(data);
+    const deficitAdj        = calculateStructuralDeficit(data);
+    const debtAdj           = calculateDebtSustainability(data);
+    const inflationStabAdj  = calculateInflationStability(data);
+
+    contributions['safe_haven_score']   = safeHavenAdj;
+    contributions['commodity_exposure'] = commodityAdj;
+    contributions['carry_premium']      = carryAdj;
+    contributions['recession_impact']   = recessionAdj;
+    contributions['structural_deficit'] = deficitAdj;
+    contributions['debt_sustainability']= debtAdj;
+    contributions['inflation_stability']= inflationStabAdj;
+
+    // All adjustments are in "score point" units (same scale as 0-100)
+    // Cap total adjustment so it can shift the score ±15 points max
+    const totalAdj = safeHavenAdj + commodityAdj + carryAdj +
+                     recessionAdj + deficitAdj + debtAdj + inflationStabAdj;
+    const cappedAdj = Math.max(-15, Math.min(15, totalAdj));
+
+    // ========== FINAL SCORE (20-80 range) ==========
+    const rawFinal     = baseScore + cappedAdj;
+    const normalizedScore = Math.max(20, Math.min(80, rawFinal));
+
+    // Data quality
+    const dataQuality  = validIndicators / Object.keys(TRADING_WEIGHTS).length;
     const standardError = (1 - dataQuality * 0.8) * 8;
-    
     const confidenceInterval = {
         lower: Math.max(20, normalizedScore - 1.96 * standardError),
         upper: Math.min(80, normalizedScore + 1.96 * standardError)
     };
-    
+
     return {
         score: parseFloat(normalizedScore.toFixed(1)),
         confidence: {
@@ -2640,7 +2526,12 @@ const indicatorTooltips = {
     retailSales: "Cambio mensual en ventas minoristas. >0.5% indica consumo robusto.",
     wageGrowth: "Crecimiento salarial anual. >3.5% presiona inflación al alza.",
     manufacturingPMI: "Índice de actividad manufacturera. >50 = expansión, <50 = contracción.",
-    cotPositioning: "Posicionamiento neto de traders especulativos según reporte CFTC. Valores positivos indican contratos largos netos (bullish), valores negativos indican cortos netos (bearish). >20K o <-20K pueden indicar extremos de mercado."
+    cotPositioning: "Posicionamiento neto de traders especulativos según reporte CFTC. Valores positivos indican contratos largos netos (bullish), valores negativos indican cortos netos (bearish). >20K o <-20K pueden indicar extremos de mercado.",
+    bond10y: "Rendimiento del bono soberano a 10 años. Refleja las expectativas del mercado sobre tasas futuras e inflación. Diferencial vs. otros países es el 'yield spread' que mueve grandes flujos de capital.",
+    consumerConfidence: "Índice de confianza del consumidor. Base 100. >100 = optimismo, <100 = pesimismo. Indicador adelantado del gasto doméstico y crecimiento futuro.",
+    businessConfidence: "Índice de confianza empresarial. Base 100. >100 = expansión esperada, <100 = contracción. Predice inversión, contrataciones y actividad futura.",
+    capitalFlows: "Flujos netos de capital (cuenta financiera de la balanza de pagos). Positivo = entrada neta de inversión extranjera → demanda estructural de la divisa. Millones USD.",
+    inflationExpectations: "Expectativas de inflación a 1-2 años. Si superan el objetivo del BC (2%), presionan al alza las tasas futuras → hawkish implícito."
 };
 
         // ========== COMPONENTE PRINCIPAL ==========
@@ -2852,7 +2743,12 @@ const HeatmapCell = ({ value, type, currency, indicator, lastUpdate }) => {
         'retailSales': 'Ventas Minoristas',
         'wageGrowth': 'Crecimiento Salarial',
         'manufacturingPMI': 'PMI Manufacturero',
-        'cotPositioning': 'COT Positioning'
+        'cotPositioning': 'COT Positioning',
+        'bond10y': 'Bono 10Y',
+        'consumerConfidence': 'Conf. Consumidor',
+        'businessConfidence': 'Conf. Empresarial',
+        'capitalFlows': 'Flujos de Capital',
+        'inflationExpectations': 'Exp. Inflación',
     };
 
     // Crear el contenido del tooltip
@@ -2959,233 +2855,129 @@ const HeatmapCell = ({ value, type, currency, indicator, lastUpdate }) => {
             };
 
 const getHeatmapColor = (value, type) => {
-                if (value === null || value === undefined) return 'var(--bg-card)';
-                let intensity = 0;
-                let isPositive = true;
+    if (value === null || value === undefined) return 'var(--bg-card)';
+    let intensity = 0;
+    let isPositive = true;
 
-                switch(type) {
-                    case 'gdp': return 'var(--bg-card)';
-                    
-                    case 'gdpGrowth':
-                        // >2.5% = muy bueno (verde fuerte)
-                        // 1.5-2.5% = bueno (verde medio)
-                        // 0.5-1.5% = débil (rojo medio)
-                        // <0.5% = muy débil (rojo fuerte)
-                        if (value >= 2.5) {
-                            intensity = 1.0;
-                            isPositive = true;
-                        } else if (value >= 1.5) {
-                            intensity = 0.6;
-                            isPositive = true;
-                        } else if (value >= 0.5) {
-                            intensity = 0.4;
-                            isPositive = false;
-                        } else {
-                            intensity = Math.min(Math.abs(value - 0.5) / 2, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'interestRate':
-                        // Tasas altas (>4%) = atractivo para carry trade (verde)
-                        // Tasas medias (2-4%) = neutral-positivo
-                        // Tasas bajas (<2%) = poco atractivo (rojo)
-                        if (value >= 4.0) {
-                            intensity = Math.min((value - 4.0) / 2, 1);
-                            isPositive = true;
-                        } else if (value >= 2.0) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else if (value >= 0.5) {
-                            intensity = 0.5;
-                            isPositive = false;
-                        } else {
-                            intensity = 1.0;
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'inflation':
-                        // 1.8-2.5% = objetivo ideal (verde)
-                        // 2.5-3.5% = elevado pero controlado (amarillo/neutro)
-                        // >3.5% o <1.0% = problemático (rojo)
-                        if (value >= 1.8 && value <= 2.5) {
-                            intensity = 0.8;
-                            isPositive = true;
-                        } else if (value > 2.5 && value <= 3.5) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else if (value > 3.5) {
-                            intensity = Math.min((value - 3.5) / 2, 1);
-                            isPositive = false;
-                        } else {
-                            intensity = Math.min((1.8 - value) / 1.5, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'unemployment':
-                        // <4% = pleno empleo (verde)
-                        // 4-6% = aceptable (neutro)
-                        // >6% = alto (rojo)
-                        if (value < 4.0) {
-                            intensity = 0.8;
-                            isPositive = true;
-                        } else if (value < 6.0) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else {
-                            intensity = Math.min((value - 6.0) / 4, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'currentAccount':
-                    case 'tradeBalance':
-                        // Superávit = verde
-                        // Déficit = rojo
-                        intensity = Math.min(Math.abs(value) / 15, 1);
-                        isPositive = value > 0;
-                        break;
-                    
-                    case 'debt':
-                        // <60% = saludable (verde)
-                        // 60-90% = moderado (neutro)
-                        // >90% = alto (rojo)
-                        if (value < 60) {
-                            intensity = 0.7;
-                            isPositive = true;
-                        } else if (value < 90) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else {
-                            intensity = Math.min((value - 90) / 100, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'production':
-                        // >1.5% = fuerte (verde)
-                        // 0-1.5% = débil positivo
-                        // <0% = contracción (rojo)
-                        if (value > 1.5) {
-                            intensity = Math.min(value / 3, 1);
-                            isPositive = true;
-                        } else if (value > 0) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else {
-                            intensity = Math.min(Math.abs(value) / 3, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'retailSales':
-                        // >0.5% = consumo fuerte (verde)
-                        // 0-0.5% = débil (neutro)
-                        // <0% = contracción (rojo)
-                        if (value > 0.5) {
-                            intensity = Math.min(value / 1.5, 1);
-                            isPositive = true;
-                        } else if (value > 0) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else {
-                            intensity = Math.min(Math.abs(value) / 1.5, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'wageGrowth':
-                        // 2.5-4.5% = ideal (verde)
-                        // >5% = inflacionario (amarillo)
-                        // <2% = débil (rojo)
-                        if (value >= 2.5 && value <= 4.5) {
-                            intensity = 0.8;
-                            isPositive = true;
-                        } else if (value > 4.5 && value <= 6.0) {
-                            intensity = 0.4;
-                            isPositive = true;
-                        } else if (value > 6.0) {
-                            intensity = Math.min((value - 6.0) / 3, 1);
-                            isPositive = false;
-                        } else {
-                            intensity = Math.min((2.5 - value) / 2, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-                    case 'manufacturingPMI':
-                        // >52 = expansión fuerte (verde)
-                        // 50-52 = expansión débil (verde claro)
-                        // 48-50 = contracción leve (rojo claro)
-                        // <48 = contracción fuerte (rojo)
-                        if (value > 52) {
-                            intensity = Math.min((value - 50) / 10, 1);
-                            isPositive = true;
-                        } else if (value >= 50) {
-                            intensity = 0.3;
-                            isPositive = true;
-                        } else if (value >= 48) {
-                            intensity = 0.4;
-                            isPositive = false;
-                        } else {
-                            intensity = Math.min((50 - value) / 10, 1);
-                            isPositive = false;
-                        }
-                        break;
-                    
-case 'cotPositioning':
-    // Posicionamiento COT: Positivo = Bullish (Verde), Negativo = Bearish (Rojo)
-    if (value > 20000) {
-        // Extremadamente alcista = verde fuerte (puede estar sobrecomprado pero sigue siendo bullish)
-        intensity = 0.8;
-        isPositive = true;
-    } else if (value > 10000) {
-        // Fuertemente alcista = verde medio-fuerte
-        intensity = 0.7;
-        isPositive = true;
-    } else if (value > 5000) {
-        // Moderadamente alcista = verde medio
-        intensity = 0.5;
-        isPositive = true;
-    } else if (value > 0) {
-        // Ligeramente alcista = verde débil
-        intensity = 0.3;
-        isPositive = true;
-    } else if (value === 0) {
-        // Neutral = sin color
-        return 'var(--bg-card)';
-    } else if (value > -5000) {
-        // Ligeramente bajista = rojo débil
-        intensity = 0.3;
-        isPositive = false;
-    } else if (value > -10000) {
-        // Moderadamente bajista = rojo medio
-        intensity = 0.5;
-        isPositive = false;
-    } else if (value > -20000) {
-        // Fuertemente bajista = rojo medio-fuerte
-        intensity = 0.7;
-        isPositive = false;
-    } else {
-        // Extremadamente bajista = rojo fuerte (oversold, puede rebotar)
-        intensity = 0.8;
-        isPositive = false;
+    switch (type) {
+        case 'gdp':
+            return 'var(--bg-card)';
+
+        case 'gdpGrowth':
+            if (value >= 2.5)      { intensity = 1.0; isPositive = true;  }
+            else if (value >= 1.5) { intensity = 0.6; isPositive = true;  }
+            else if (value >= 0.5) { intensity = 0.4; isPositive = false; }
+            else { intensity = Math.min(Math.abs(value - 0.5) / 2, 1); isPositive = false; }
+            break;
+
+        case 'interestRate':
+            if (value >= 4.0)      { intensity = Math.min((value - 4.0) / 2, 1); isPositive = true;  }
+            else if (value >= 2.0) { intensity = 0.3;  isPositive = true;  }
+            else if (value >= 0.5) { intensity = 0.5;  isPositive = false; }
+            else                   { intensity = 1.0;  isPositive = false; }
+            break;
+
+        case 'inflation':
+        case 'inflationExpectations':
+            if (value >= 1.8 && value <= 2.5) { intensity = 0.8; isPositive = true;  }
+            else if (value > 2.5 && value <= 3.5) { intensity = 0.3; isPositive = true;  }
+            else if (value > 3.5) { intensity = Math.min((value - 3.5) / 2, 1); isPositive = false; }
+            else { intensity = Math.min((1.8 - value) / 1.5, 1); isPositive = false; }
+            break;
+
+        case 'unemployment':
+            if (value < 4.0)      { intensity = 0.8; isPositive = true;  }
+            else if (value < 6.0) { intensity = 0.3; isPositive = true;  }
+            else { intensity = Math.min((value - 6.0) / 4, 1); isPositive = false; }
+            break;
+
+        case 'currentAccount':
+        case 'tradeBalance':
+            intensity = Math.min(Math.abs(value) / 15, 1);
+            isPositive = value > 0;
+            break;
+
+        case 'debt':
+            if (value < 60)       { intensity = 0.7; isPositive = true;  }
+            else if (value < 90)  { intensity = 0.3; isPositive = true;  }
+            else { intensity = Math.min((value - 90) / 100, 1); isPositive = false; }
+            break;
+
+        case 'production':
+            if (value > 1.5)     { intensity = Math.min(value / 3, 1); isPositive = true;  }
+            else if (value > 0)  { intensity = 0.3; isPositive = true;  }
+            else { intensity = Math.min(Math.abs(value) / 3, 1); isPositive = false; }
+            break;
+
+        case 'retailSales':
+            if (value > 0.5)     { intensity = Math.min(value / 1.5, 1); isPositive = true;  }
+            else if (value > 0)  { intensity = 0.3; isPositive = true;  }
+            else { intensity = Math.min(Math.abs(value) / 1.5, 1); isPositive = false; }
+            break;
+
+        case 'wageGrowth':
+            if (value >= 2.5 && value <= 4.5)      { intensity = 0.8; isPositive = true;  }
+            else if (value > 4.5 && value <= 6.0)  { intensity = 0.4; isPositive = true;  }
+            else if (value > 6.0) { intensity = Math.min((value - 6.0) / 3, 1); isPositive = false; }
+            else { intensity = Math.min((2.5 - value) / 2, 1); isPositive = false; }
+            break;
+
+        case 'manufacturingPMI':
+            if (value > 52)       { intensity = Math.min((value - 50) / 10, 1); isPositive = true;  }
+            else if (value >= 50) { intensity = 0.3;  isPositive = true;  }
+            else if (value >= 48) { intensity = 0.4;  isPositive = false; }
+            else { intensity = Math.min((50 - value) / 10, 1); isPositive = false; }
+            break;
+
+        case 'cotPositioning':
+            if (value === 0)       return 'var(--bg-card)';
+            if (value > 20000)     { intensity = 0.8; isPositive = true;  }
+            else if (value > 10000){ intensity = 0.7; isPositive = true;  }
+            else if (value > 5000) { intensity = 0.5; isPositive = true;  }
+            else if (value > 0)    { intensity = 0.3; isPositive = true;  }
+            else if (value > -5000){ intensity = 0.3; isPositive = false; }
+            else if (value > -10000){ intensity = 0.5; isPositive = false; }
+            else if (value > -20000){ intensity = 0.7; isPositive = false; }
+            else                   { intensity = 0.8; isPositive = false; }
+            break;
+
+        case 'bond10y':
+            if (value >= 4.0)      { intensity = Math.min((value - 4.0) / 2, 1); isPositive = true;  }
+            else if (value >= 2.5) { intensity = 0.35; isPositive = true;  }
+            else if (value >= 1.0) { intensity = 0.4;  isPositive = false; }
+            else { intensity = Math.min((1.0 - value) / 1.5, 1); isPositive = false; }
+            break;
+
+        case 'consumerConfidence':
+        case 'businessConfidence':
+            if (value > 105)      { intensity = Math.min((value - 105) / 15, 1); isPositive = true;  }
+            else if (value >= 100){ intensity = 0.3;  isPositive = true;  }
+            else if (value >= 95) { intensity = 0.3;  isPositive = false; }
+            else { intensity = Math.min((95 - value) / 20, 1); isPositive = false; }
+            break;
+
+        case 'capitalFlows':
+            if (value > 20000)     { intensity = Math.min(value / 100000, 1); isPositive = true;  }
+            else if (value > 0)    { intensity = 0.3; isPositive = true;  }
+            else if (value > -20000){ intensity = 0.4; isPositive = false; }
+            else { intensity = Math.min(Math.abs(value) / 100000, 1); isPositive = false; }
+            break;
+
+        default:
+            return 'var(--bg-card)';
     }
-    break;
-    }                    
-                // Aplicar colores con intensidad
-                if (isPositive) {
-                    if (intensity > 0.7) return '#26a69a';      // Verde fuerte
-                    if (intensity > 0.4) return '#00897b';      // Verde medio
-                    return '#00695c';                           // Verde débil
-                } else {
-                    if (intensity > 0.7) return '#ef5350';      // Rojo fuerte
-                    if (intensity > 0.4) return '#e53935';      // Rojo medio
-                    return '#c62828';                           // Rojo débil
-                }
-            };
+
+    // Apply colour tiers
+    if (isPositive) {
+        if (intensity > 0.7) return '#26a69a';
+        if (intensity > 0.4) return '#00897b';
+        return '#00695c';
+    } else {
+        if (intensity > 0.7) return '#ef5350';
+        if (intensity > 0.4) return '#e53935';
+        return '#c62828';
+    }
+};
 
 const getSentiment = (strength) => {
     const numStrength = typeof strength === 'object' && strength.score !== undefined 
@@ -3897,6 +3689,65 @@ const DataHealthCheck = ({ economicData }) => {
                                                 : 'N/A'}
                                         </div>
                                     </div>
+<div className="metric">
+    <div className="metric-label">Bono 10Y</div>
+    <div className="metric-value metric-value-small" style={{
+        color: data.bond10y !== null && data.bond10y > 4.0 ? 'var(--green-strong)' :
+               data.bond10y !== null && data.bond10y < 1.5 ? 'var(--red-strong)' :
+               'var(--text-primary)'
+    }}>
+        {data.bond10y !== null && data.bond10y !== undefined
+            ? `${formatValue(data.bond10y, 2)}%` : 'N/D'}
+    </div>
+</div>
+
+<div className="metric">
+    <div className="metric-label">Conf. Consumidor</div>
+    <div className="metric-value metric-value-small" style={{
+        color: data.consumerConfidence !== null && data.consumerConfidence > 100 ? 'var(--green-strong)' :
+               data.consumerConfidence !== null && data.consumerConfidence < 95 ? 'var(--red-strong)' :
+               'var(--text-primary)'
+    }}>
+        {formatValue(data.consumerConfidence, 1)}
+    </div>
+</div>
+
+<div className="metric">
+    <div className="metric-label">Conf. Empresarial</div>
+    <div className="metric-value metric-value-small" style={{
+        color: data.businessConfidence !== null && data.businessConfidence > 100 ? 'var(--green-strong)' :
+               data.businessConfidence !== null && data.businessConfidence < 95 ? 'var(--red-strong)' :
+               'var(--text-primary)'
+    }}>
+        {formatValue(data.businessConfidence, 1)}
+    </div>
+</div>
+
+<div className="metric">
+    <div className="metric-label">Flujos Capital</div>
+    <div className="metric-value metric-value-small" style={{
+        color: data.capitalFlows !== null && data.capitalFlows > 5000 ? 'var(--green-strong)' :
+               data.capitalFlows !== null && data.capitalFlows < -5000 ? 'var(--red-strong)' :
+               'var(--text-primary)'
+    }}>
+        {data.capitalFlows !== null && data.capitalFlows !== undefined
+            ? `${data.capitalFlows > 0 ? '+' : ''}${(data.capitalFlows / 1000).toFixed(1)}B`
+            : 'N/D'}
+    </div>
+</div>
+
+<div className="metric">
+    <div className="metric-label">Exp. Inflación</div>
+    <div className="metric-value metric-value-small" style={{
+        color: data.inflationExpectations !== null && data.inflationExpectations >= 1.8 && data.inflationExpectations <= 2.5
+            ? 'var(--green-strong)'
+            : data.inflationExpectations !== null && data.inflationExpectations > 3.5
+            ? 'var(--red-strong)' : 'var(--text-primary)'
+    }}>
+        {data.inflationExpectations !== null && data.inflationExpectations !== undefined
+            ? `${formatValue(data.inflationExpectations, 1)}%` : 'N/D'}
+    </div>
+</div>            
                                 </div>
 
                                 <div className="analysis-section">
@@ -3971,6 +3822,21 @@ const DataHealthCheck = ({ economicData }) => {
 <TooltipCell title="Posicionamiento COT" tooltip={indicatorTooltips.cotPositioning}>
     COT Positioning<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Net Contratos</span>
 </TooltipCell>
+<TooltipCell title="Bono 10Y" tooltip={indicatorTooltips.bond10y}>
+    Bono 10Y<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Yield %</span>
+</TooltipCell>
+<TooltipCell title="Conf. Consumidor" tooltip={indicatorTooltips.consumerConfidence}>
+    Conf. Consumidor<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Índice</span>
+</TooltipCell>
+<TooltipCell title="Conf. Empresarial" tooltip={indicatorTooltips.businessConfidence}>
+    Conf. Empresarial<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>Índice</span>
+</TooltipCell>
+<TooltipCell title="Flujos de Capital" tooltip={indicatorTooltips.capitalFlows}>
+    Flujos Capital<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>MM USD</span>
+</TooltipCell>
+<TooltipCell title="Expectativas Inflación" tooltip={indicatorTooltips.inflationExpectations}>
+    Exp. Inflación<br/><span style={{fontSize: '0.6rem', fontWeight: 400, color: 'var(--text-tertiary)'}}>%</span>
+</TooltipCell>                                                
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -4011,6 +3877,11 @@ const sentiment = getSentiment(strength);
 <HeatmapCell value={data.wageGrowth} type="wageGrowth" currency={country.code} indicator="wageGrowth" lastUpdate={data.wageGrowthDate} />
 <HeatmapCell value={data.manufacturingPMI} type="manufacturingPMI" currency={country.code} indicator="manufacturingPMI" lastUpdate={data.manufacturingPMIDate} />
 <HeatmapCell value={data.cotPositioning} type="cotPositioning" currency={country.code} indicator="cotPositioning" lastUpdate={data.cotPositioningDate} />
+<HeatmapCell value={data.bond10y} type="bond10y" currency={country.code} indicator="bond10y" lastUpdate={data.bond10yDate} />
+<HeatmapCell value={data.consumerConfidence} type="consumerConfidence" currency={country.code} indicator="consumerConfidence" lastUpdate={data.consumerConfidenceDate} />
+<HeatmapCell value={data.businessConfidence} type="businessConfidence" currency={country.code} indicator="businessConfidence" lastUpdate={data.businessConfidenceDate} />
+<HeatmapCell value={data.capitalFlows} type="capitalFlows" currency={country.code} indicator="capitalFlows" lastUpdate={data.capitalFlowsDate} />
+<HeatmapCell value={data.inflationExpectations} type="inflationExpectations" currency={country.code} indicator="inflationExpectations" lastUpdate={data.inflationExpectationsDate} />                                                        
                                                     </tr>
                                                 );
                                             })}
@@ -4329,7 +4200,7 @@ const sentiment = getSentiment(strength);
             Limpiar Caché y Recargar Datos
         </button>
         <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-            Dashboard v4.6.0 • Sistema de Validación de Datos Activo • {new Date().getFullYear()}
+            Dashboard v4.7.0 • Sistema de Validación de Datos Activo • {new Date().getFullYear()}
         </div>
     </div>
 </div>
