@@ -13,6 +13,7 @@
     "retailSales": 0.4,
     "wageGrowth": 4.2,
     "manufacturingPMI": 51.8,
+    "termsOfTrade": 101.8,
     "cotPositioning": -25800
   },
   "dates": {
@@ -26,6 +27,7 @@
     "tradeBalance": "2025-12-15",
     "retailSales": "2025-12-15",
     "wageGrowth": "2025-12-15",
-    "manufacturingPMI": "2026-01-15"
+    "manufacturingPMI": "2026-01-15",
+    "termsOfTrade": "2026-02-17"
   }
 }
