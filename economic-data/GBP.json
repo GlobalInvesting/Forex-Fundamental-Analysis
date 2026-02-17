@@ -5,13 +5,13 @@
     "gdp": 3644.0,
     "gdpGrowth": 0.1,
     "inflation": 3.4,
-    "unemployment": 5.1,
+    "unemployment": 5.2,
     "debt": 93.6,
     "currentAccount": -2.2,
     "production": 0.5,
-    "tradeBalance": -5920.71,
+    "tradeBalance": -5877.1,
     "retailSales": 0.4,
-    "wageGrowth": 4.7,
+    "wageGrowth": 4.2,
     "manufacturingPMI": 51.8,
     "cotPositioning": -25800
   },
@@ -19,13 +19,13 @@
     "gdp": "2024-12-15",
     "gdpGrowth": "2025-12-15",
     "inflation": "2025-12-15",
-    "unemployment": "2025-11-15",
+    "unemployment": "2025-12-15",
     "debt": "2024-12-15",
     "currentAccount": "2024-12-15",
     "production": "2025-12-15",
     "tradeBalance": "2025-12-15",
     "retailSales": "2025-12-15",
-    "wageGrowth": "2025-11-15",
+    "wageGrowth": "2025-12-15",
     "manufacturingPMI": "2026-01-15"
   }
 }
