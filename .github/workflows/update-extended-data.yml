@@ -87,6 +87,14 @@ jobs:
               data, dates = {}, {}
               try:
                   r = requests.get(url, headers=HEADERS, timeout=20)
+
+# Handle rate limiting
+              if r.status_code == 429:
+                  print(f"  ⚠️ Rate limited by TE, waiting 30s...")
+                  time.sleep(30)
+                  r = requests.get(url, headers=HEADERS, timeout=20)
+              r.raise_for_status()
+                  
                   r.raise_for_status()
                   soup = BeautifulSoup(r.content, 'lxml')
                   table = soup.find('table', {'class': 'table'})
