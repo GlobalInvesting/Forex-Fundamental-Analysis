@@ -2082,18 +2082,18 @@ const TRADING_WEIGHTS = {
                 break;
 
             case 'lower':
-                // unemployment
-                if (value < 3.0)      score = 100;
-                else if (value < 4.0) score = 80 + ((4.0 - value) / 1.0) * 20;
-                else if (value < 6.0) score = 50 + ((6.0 - value) / 2.0) * 30;
-                else                  score = Math.max(0, 50 - ((value - 6.0) / 4.0) * 50);
-                // debt (inverse)
                 if (indicator === 'debt') {
                     if (value < 40)       score = 100;
                     else if (value < 60)  score = 80 - ((value - 40) / 20) * 20;
                     else if (value < 90)  score = 60 - ((value - 60) / 30) * 20;
                     else if (value < 150) score = 40 - ((value - 90) / 60) * 25;
                     else                  score = Math.max(0, 15 - ((value - 150) / 100) * 15);
+                } else {
+                    // unemployment
+                    if (value < 3.0)      score = 100;
+                    else if (value < 4.0) score = 80 + ((4.0 - value) / 1.0) * 20;
+                    else if (value < 6.0) score = 50 + ((6.0 - value) / 2.0) * 30;
+                    else                  score = Math.max(0, 50 - ((value - 6.0) / 4.0) * 50);
                 }
                 break;
 
@@ -2434,7 +2434,9 @@ const checkDataHealth = (economicData) => {
         const allIndicators = [
             'gdp', 'gdpGrowth', 'interestRate', 'inflation', 'unemployment',
             'currentAccount', 'debt', 'tradeBalance', 'production',
-            'retailSales', 'wageGrowth', 'manufacturingPMI', 'cotPositioning'
+            'retailSales', 'wageGrowth', 'manufacturingPMI', 'cotPositioning',
+            'bond10y', 'consumerConfidence', 'businessConfidence',
+            'capitalFlows', 'inflationExpectations'
         ];
         
         const available = allIndicators.filter(ind => 
