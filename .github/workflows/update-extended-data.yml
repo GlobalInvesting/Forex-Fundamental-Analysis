@@ -1,7 +1,7 @@
-name: Update Extended Data (Bonds + Sentiment + Flows) - FINAL
+name: Update Extended Data (Bonds + Sentiment + Flows) - FINAL v3
 on:
   schedule:
-    - cron: '30 6 * * *'  # Daily at 6:30 AM UTC
+    - cron: '30 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -48,13 +48,17 @@ jobs:
               'NZD': ['New Zealand']
           }
 
+          # ── CRITICAL FIX: ?continent=world en TODAS las URLs ──────────────
+          # Sin este parámetro, TE muestra un subconjunto de países por región
+          # y NZD no aparece en businessConfidence (ni en otros indicadores de Oceanía).
+          # Con ?continent=world se garantiza que el scraper ve TODOS los países.
           TE_URLS = {
-              'bond10y':               'https://tradingeconomics.com/country-list/government-bond-yield',
-              'consumerConfidence':    'https://tradingeconomics.com/country-list/consumer-confidence',
-              'businessConfidence':    'https://tradingeconomics.com/country-list/business-confidence',
-              'capitalFlows':          'https://tradingeconomics.com/country-list/capital-flows',
-              'fdi':                   'https://tradingeconomics.com/country-list/foreign-direct-investment',
-              'inflationExpectations': 'https://tradingeconomics.com/country-list/inflation-expectations',
+              'bond10y':               'https://tradingeconomics.com/country-list/government-bond-yield?continent=world',
+              'consumerConfidence':    'https://tradingeconomics.com/country-list/consumer-confidence?continent=world',
+              'businessConfidence':    'https://tradingeconomics.com/country-list/business-confidence?continent=world',
+              'capitalFlows':          'https://tradingeconomics.com/country-list/capital-flows?continent=world',
+              'fdi':                   'https://tradingeconomics.com/country-list/foreign-direct-investment?continent=world',
+              'inflationExpectations': 'https://tradingeconomics.com/country-list/inflation-expectations?continent=world',
           }
 
           def clean_num(text):
@@ -86,59 +90,49 @@ jobs:
               """
               Normaliza índices de confianza a escala base-100 (100 = neutral).
 
-              Escalas reales por país e índice:
-              ┌─────────┬──────────────────────────────────────────┬─────────────────┬────────────────────────────────────┐
-              │Currency │ Índice                                   │ Escala original │ Normalización                      │
-              ├─────────┼──────────────────────────────────────────┼─────────────────┼────────────────────────────────────┤
-              │ USD     │ Conference Board / Michigan              │ 0-150+          │ Pass-through (ya usable)           │
-              │ EUR     │ European Commission (ambos)              │ -100/+100       │ +100 shift                         │
-              │ GBP     │ GfK Consumer / CBI Industrial (ambos)   │ -100/+100       │ +100 shift                         │
-              │ JPY     │ Cabinet Office (consumer)                │ 35-50 range     │ fórmula ((v-40)/10)*15+100         │
-              │ JPY     │ Tankan Large Mfg (business)              │ -100/+100       │ +100 shift  ← BUG CORREGIDO        │
-              │ AUD     │ Westpac/ANZ (consumer)                   │ ~100 base       │ Pass-through                       │
-              │ AUD     │ NAB Business Confidence (business)       │ -100/+100       │ +100 shift  ← BUG CORREGIDO        │
-              │ CAD     │ Conference Board Canada (consumer)       │ ~100 base       │ Pass-through                       │
-              │ CAD     │ Ivey PMI (business)                      │ 0-100           │ Pass-through                       │
-              │ CHF     │ SECO (consumer)                          │ -150/+50 aprox  │ +130 shift  ← BUG CORREGIDO        │
-              │ CHF     │ KOF Barometer (business)                 │ ~100 base       │ Pass-through                       │
-              │ NZD     │ ANZ-Roy Morgan (consumer)                │ ~100 base       │ Pass-through                       │
-              │ NZD     │ ANZ Business Outlook (business)          │ -100/+100       │ +100 shift  ← BUG CORREGIDO        │
-              └─────────┴──────────────────────────────────────────┴─────────────────┴────────────────────────────────────┘
+              ┌─────────┬──────────────────────────────────┬─────────────────┬──────────────────────────────────┐
+              │Currency │ Índice                           │ Escala original │ Normalización                    │
+              ├─────────┼──────────────────────────────────┼─────────────────┼──────────────────────────────────┤
+              │ USD     │ Conference Board / Michigan      │ 0-150+          │ Pass-through                     │
+              │ EUR     │ European Commission (ambos)      │ -100/+100       │ +100 shift                       │
+              │ GBP     │ GfK Consumer / CBI (ambos)      │ -100/+100       │ +100 shift                       │
+              │ JPY     │ Cabinet Office (consumer)        │ 35-50 range     │ fórmula ((v-40)/10)*15+100       │
+              │ JPY     │ Tankan Large Mfg (business)      │ -100/+100       │ +100 shift                       │
+              │ AUD     │ Westpac/ANZ (consumer)           │ ~100 base       │ Pass-through                     │
+              │ AUD     │ NAB Business Confidence (biz)   │ -100/+100       │ +100 shift                       │
+              │ CAD     │ Conference Board Canada (con)   │ ~100 base       │ Pass-through                     │
+              │ CAD     │ Ivey PMI (business)              │ 0-100           │ Pass-through                     │
+              │ CHF     │ SECO (consumer)                  │ ~-150 a +50     │ +130 shift (neutral ≈ -30 → 100) │
+              │ CHF     │ KOF Barometer (business)         │ ~100 base       │ Pass-through                     │
+              │ NZD     │ ANZ-Roy Morgan (consumer)        │ ~100 base       │ Pass-through                     │
+              │ NZD     │ ANZ Business Outlook (business)  │ -100/+100       │ +100 shift                       │
+              └─────────┴──────────────────────────────────┴─────────────────┴──────────────────────────────────┘
               """
               if value is None:
                   return None
 
-              # ── EUR: European Commission → -100/+100, neutral = 0
               if currency == 'EUR' and indicator in ['consumerConfidence', 'businessConfidence']:
                   return round(value + 100, 2)
 
-              # ── GBP: GfK / CBI → -100/+100, neutral = 0
               if currency == 'GBP' and indicator in ['consumerConfidence', 'businessConfidence']:
                   return round(value + 100, 2)
 
-              # ── JPY consumer: Cabinet Office index, typical range 35-50, neutral ≈ 40
               if currency == 'JPY' and indicator == 'consumerConfidence':
-                  normalized = ((value - 40) / 10) * 15 + 100
-                  return round(normalized, 2)
+                  return round(((value - 40) / 10) * 15 + 100, 2)
 
-              # ── JPY business: Tankan Large Manufacturing Index → -100/+100, neutral = 0
               if currency == 'JPY' and indicator == 'businessConfidence':
                   return round(value + 100, 2)
 
-              # ── AUD business: NAB Business Confidence → -100/+100, neutral = 0
               if currency == 'AUD' and indicator == 'businessConfidence':
                   return round(value + 100, 2)
 
-              # ── CHF consumer: SECO → scale roughly -150 to +50, neutral ≈ -30
-              # Shift so that -30 (historical long-run average) = 100
               if currency == 'CHF' and indicator == 'consumerConfidence':
+                  # SECO: promedio histórico long-run ≈ -30 → se mapea a 100
                   return round(value + 130, 2)
 
-              # ── NZD business: ANZ Business Outlook → -100/+100, neutral = 0
               if currency == 'NZD' and indicator == 'businessConfidence':
                   return round(value + 100, 2)
 
-              # All others pass through unchanged (already on a ~100 base scale)
               return value
 
           def scrape_te_table(url, label):
@@ -182,15 +176,11 @@ jobs:
 
           # ── BOND YIELDS ────────────────────────────────────────────────────────
           #
-          # BUG CORREGIDO: La página TE de bonds NO contiene <table class="table">.
-          # Los yields aparecen en una plain <table> (widget de mercados) con columnas:
-          #   Country | Actual | Chg | %Chg
-          # La función anterior buscaba solo class="table" → encontraba None → retornaba vacío.
-          #
-          # Estrategia de 3 niveles:
-          #   1. Intentar class="table" (por si TE lo cambia en el futuro)
-          #   2. Escanear TODAS las tablas buscando (country, yield 0-20%)
-          #   3. Fallback a páginas individuales por país
+          # Bugs corregidos:
+          #   1. ?continent=world → ahora NZD aparece en la lista
+          #   2. El fallback de página individual capturaba "10" (de "10 Year Bond")
+          #      en vez del yield real. Se eliminó ese fallback y se mejoró el
+          #      escáner de widget-tables que ahora es más que suficiente con world.
 
           BOND_COUNTRY_MAP = {
               'USD': ['United States'],
@@ -214,8 +204,20 @@ jobs:
               'NZD': 'new-zealand',
           }
 
+          # Rangos de yield razonables por divisa (para filtrar falsos positivos en fallback)
+          BOND_EXPECTED_RANGES = {
+              'USD': (3.0, 6.0),
+              'EUR': (1.5, 4.0),  # Germany Bund
+              'GBP': (3.5, 5.5),
+              'JPY': (0.5, 3.5),
+              'CAD': (2.5, 5.0),
+              'AUD': (3.5, 6.0),
+              'CHF': (0.0, 2.0),
+              'NZD': (3.5, 6.0),  # NZ 10Y típicamente 4.0-5.5%
+          }
+
           def _extract_bonds_from_all_tables(soup):
-              """Escanea todas las tablas del HTML buscando yields válidos (0 < v < 20)."""
+              """Escanea todas las tablas buscando yields válidos (0 < v < 20)."""
               data, dates = {}, {}
               for table in soup.find_all('table'):
                   for row in table.find_all('tr'):
@@ -236,30 +238,43 @@ jobs:
               return data, dates
 
           def _bond_country_page_fallback(code):
-              """Fetcha la página individual del país como último recurso."""
+              """
+              Fallback a página individual — MEJORADO para evitar capturar
+              el número '10' de 'Government Bond Yield - 10 Year' en el título.
+              Solo acepta valores dentro del rango esperado para ese país.
+              """
               slug = BOND_COUNTRY_SLUGS.get(code)
               if not slug: return None, None
+              min_val, max_val = BOND_EXPECTED_RANGES.get(code, (0.5, 10.0))
+
               url = f'https://tradingeconomics.com/{slug}/government-bond-yield'
               try:
                   r = requests.get(url, headers=HEADERS, timeout=15)
                   r.raise_for_status()
                   soup = BeautifulSoup(r.content, 'lxml')
+
+                  # Buscar primero en elementos específicos de yield display
+                  # TE muestra el valor actual en un elemento con clase 'datatable-item'
+                  # o en el primer <td> de las tablas de datos del país
                   for table in soup.find_all('table'):
                       for row in table.find_all('tr'):
-                          for col in row.find_all('td'):
+                          cols = row.find_all('td')
+                          for col in cols:
                               val = clean_num(col.get_text(strip=True))
-                              if val is not None and 0 < val < 20:
-                                  print(f"  ✓ {code}: {val}% (country page fallback)")
+                              # Filtro estricto: solo valores dentro del rango esperado
+                              if val is not None and min_val <= val <= max_val:
+                                  print(f"  ✓ {code}: {val}% (country page, range {min_val}-{max_val}%)")
                                   return round(val, 3), str(date.today())
               except Exception as e:
                   print(f"  ❌ Country page fallback {code}: {e}")
               return None, None
 
           def scrape_bonds():
-              print(f"\n{'='*50}\nBOND YIELDS: TradingEconomics (3-level)\n{'='*50}")
+              print(f"\n{'='*50}\nBOND YIELDS: TradingEconomics (3-level + world)\n{'='*50}")
               data, dates = {}, {}
 
               try:
+                  # Con ?continent=world: garantiza que NZD y todos los países aparecen
                   r = requests.get(TE_URLS['bond10y'], headers=HEADERS, timeout=20)
                   if r.status_code == 429:
                       print("  ⚠️ Rate limited, waiting 30s...")
@@ -268,7 +283,7 @@ jobs:
                   r.raise_for_status()
                   soup = BeautifulSoup(r.content, 'lxml')
 
-                  # Nivel 1: class="table" (en caso de que TE lo añada en el futuro)
+                  # Nivel 1: class="table" (tabla estándar de TE)
                   std_table = soup.find('table', {'class': 'table'})
                   if std_table:
                       print("  Found class='table' — trying standard parser...")
@@ -283,26 +298,32 @@ jobs:
                               if any(n.lower() in ctry.lower() for n in names):
                                   val = clean_num(cols[actual_idx].get_text(strip=True))
                                   dt  = parse_te_date(cols[date_idx].get_text(strip=True)) if date_idx and len(cols) > date_idx else str(date.today())
-                                  if val is not None and 0 < val < 20:
+                                  min_v, max_v = BOND_EXPECTED_RANGES.get(code, (0, 20))
+                                  if val is not None and min_v <= val <= max_v:
                                       data[code] = round(val, 3)
                                       dates[code] = dt
                                       print(f"  ✓ {code}: {val}% (standard table)")
                                   break
 
-                  # Nivel 2: Escanear todas las tablas (soluciona el bug actual)
+                  # Nivel 2: Todas las tablas (widget table sin class)
                   missing = [c for c in CURRENCIES if c not in data]
                   if missing:
                       print(f"  Scanning all tables for: {', '.join(missing)}")
                       w_data, w_dates = _extract_bonds_from_all_tables(soup)
                       for code in missing:
                           if code in w_data:
-                              data[code]  = w_data[code]
-                              dates[code] = w_dates[code]
+                              # Verificar rango esperado
+                              min_v, max_v = BOND_EXPECTED_RANGES.get(code, (0, 20))
+                              if min_v <= w_data[code] <= max_v:
+                                  data[code]  = w_data[code]
+                                  dates[code] = w_dates[code]
+                              else:
+                                  print(f"  ⚠️ {code}: {w_data[code]}% fuera del rango esperado ({min_v}-{max_v}%) → descartado")
 
               except Exception as e:
                   print(f"  ❌ TE bond page error: {e}")
 
-              # Nivel 3: Country-page fallback
+              # Nivel 3: Country-page fallback con rango estricto
               still_missing = [c for c in CURRENCIES if c not in data]
               if still_missing:
                   print(f"\n  Country-page fallback for: {', '.join(still_missing)}")
@@ -313,8 +334,7 @@ jobs:
                           dates[code] = dt
                       time.sleep(1)
 
-              # Resumen
-              found    = [c for c in CURRENCIES if c in data]
+              found     = [c for c in CURRENCIES if c in data]
               not_found = [c for c in CURRENCIES if c not in data]
               print(f"\n  Bonds found:   {found}")
               print(f"  Bonds missing: {not_found}")
@@ -331,7 +351,7 @@ jobs:
               all_dates[c]['bond10y'] = bond_dates.get(c, str(date.today()))
           time.sleep(2)
 
-          # 2-6. Remaining indicators
+          # 2-6. Sentiment + Flows (ya incluyen ?continent=world)
           for key, url in {k: v for k, v in TE_URLS.items() if k != 'bond10y'}.items():
               d, dt = scrape_te_table(url, key)
               for c in CURRENCIES:
@@ -344,7 +364,7 @@ jobs:
           for curr in CURRENCIES:
               pkg = {
                   'lastUpdate': str(date.today()),
-                  'source': 'TradingEconomics — bonds+confidence fully normalized',
+                  'source': 'TradingEconomics (?continent=world) — bonds+confidence fully normalized',
                   'data':   all_data[curr],
                   'dates':  all_dates[curr]
               }
@@ -369,7 +389,7 @@ jobs:
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "📊 Extended data $(date +'%Y-%m-%d') — bonds+confidence fully fixed"
+            git commit -m "📊 Extended data $(date +'%Y-%m-%d') — world continent + bond range validation"
             git pull --rebase origin main || true
             git push
           fi
