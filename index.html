@@ -2050,9 +2050,6 @@ try {
             return economicData;
         };
 
-// ← eliminar las líneas anteriores del scope global, no poner nada aquí
-
-const calculateStrength = (currency, data = null, forexRates = {}, allEconomicData = {}) => {
 // Ejemplos:
 //   Régimen 2022 (avg ~4.5%): threshold = max(1.0, 3.0) = 3.0%  → CHF 1.4% califica ✓
 //   Régimen 2021 (avg ~0.3%): threshold = max(1.0, −1.2) = 1.0% → solo 0-1% califica
