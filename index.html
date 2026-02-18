@@ -1786,7 +1786,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '4.9.2-2026-02-18'; // ✅ Fix: EUR bond10y usa GEUGB10Y (EA aggregate) en lugar de Bund alemán
+            const DASHBOARD_VERSION = '4.9.3-2026-02-18'; // ✅ Fix: outlookScore(6%), COT contrarian, yield curve proxy, rateMomentum upgrade/downgrade
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -1967,6 +1967,10 @@ try {
         economicData[country.code].fdiDate                = dt.fdi                 || lastUpd;
         economicData[country.code].inflationExpectations  = d.inflationExpectations ?? null;
         economicData[country.code].inflationExpectationsDate = dt.inflationExpectations || lastUpd;
+        // rateMomentum: tasa_actual - tasa_hace_12_meses (scrapeado en update-extended-data.yml v7)
+        // Positivo = BC subiendo tasas (hawkish momentum), negativo = recortando (dovish momentum)
+        economicData[country.code].rateMomentum = d.rateMomentum ?? null;
+        economicData[country.code].rateMomentumDate = dt.rateMomentum || lastUpd;
 
         console.log(`✅ Extended data loaded for ${country.code}`);
     }
@@ -2014,8 +2018,9 @@ const TRADING_WEIGHTS = {
     termsOfTrade:          { weight: 0.02, direction: 'terms_of_trade' },
 
     // Tier 2: Rate Differentials & Carry (0.28)
-    interestRate:          { weight: 0.18, direction: 'higher' },
+    interestRate:          { weight: 0.12, direction: 'higher' },
     inflation:             { weight: 0.08, direction: 'target' },
+    outlookScore:          { weight: 0.06, direction: 'outlook_direction' },
     bond10y:               { weight: 0.02, direction: 'carry_yield'   },
 
     // Tier 3: Growth & Employment (0.20)
@@ -2035,8 +2040,8 @@ const TRADING_WEIGHTS = {
     businessConfidence:    { weight: 0.02, direction: 'sentiment_index'  },
     capitalFlows:          { weight: 0.03, direction: 'flows'            },
 };
-// Verificación de suma (18 indicadores):
-// Tier1: 0.12+0.09+0.04+0.02=0.27 | Tier2: 0.18+0.08+0.02=0.28
+// Verificación de suma (19 indicadores incluyendo outlookScore):
+// Tier1: 0.12+0.09+0.04+0.02=0.27 | Tier2: 0.12+0.08+0.02+0.06(outlook)=0.28
 // Tier3: 0.10+0.06+0.04=0.20 | Tier4: 0.04+0.03+0.02=0.09 | Tier5: 0.03+0.04+0.03+0.02+0.03=0.15
 // TOTAL: 0.27+0.28+0.20+0.09+0.15 = 0.99 ← se normaliza automáticamente por totalWeight
 
@@ -2178,8 +2183,13 @@ if (indicator === 'tradeBalance') {
                 break;               
 
             case 'moderate_bullish':
-                // cotPositioning
-                if (value > 30000)       score = 85 - ((value - 30000) / 20000) * 15;
+                // cotPositioning — con lógica contrarian para extremos.
+                // >100K o <-100K = saturación de mercado → señal contrarian inversa.
+                // Rango histórico CFTC majors: ±150K contratos (data-driven, no hardcoded por divisa).
+                if (value > 100000) {
+                    // Extremo alcista → contrarian bearish (mercado sobrecomprado)
+                    score = Math.max(20, 60 - ((value - 100000) / 50000) * 30);
+                } else if (value > 30000)       score = 85 - ((value - 30000) / 70000) * 25;
                 else if (value > 15000)  score = 95 - ((value - 15000) / 15000) * 10;
                 else if (value > 5000)   score = 100 - ((value - 5000) / 10000) * 5;
                 else if (value > 0)      score = 70 + (value / 5000) * 30;
@@ -2187,7 +2197,22 @@ if (indicator === 'tradeBalance') {
                 else if (value > -5000)  score = 30 + ((value + 5000) / 5000) * 20;
                 else if (value > -15000) score = 15 + ((value + 15000) / 10000) * 15;
                 else if (value > -30000) score = 5  + ((value + 30000) / 15000) * 10;
-                else score = Math.max(0, 5 - ((Math.abs(value) - 30000) / 50000) * 5);
+                else if (value > -100000) score = Math.max(5, 5 - ((Math.abs(value) - 30000) / 70000) * 5);
+                else {
+                    // Extremo bajista → contrarian bullish (mercado sobrevendido)
+                    score = Math.min(80, 20 + ((Math.abs(value) - 100000) / 50000) * 30);
+                }
+                break;
+                
+case 'outlook_direction':
+                // Convierte el outlook scrapeado del banco central en score numérico.
+                // Hawkish = expectativa de subida de tasas → bullish para la divisa.
+                // Dovish = expectativa de bajada → bearish.
+                // Escala: Hawkish=90, Neutral=50, Dovish=10
+                if (value === 'Hawkish')      score = 90;
+                else if (value === 'Neutral') score = 50;
+                else if (value === 'Dovish')  score = 10;
+                else score = 50; // fallback para 'Calculando...' o sin dato
                 break;
         }
 
@@ -2199,6 +2224,33 @@ if (indicator === 'tradeBalance') {
     let totalWeight = 0;        // Suma de pesos de indicadores con datos
     const contributions = {};
     let validIndicators = 0;
+
+    // Capturar el objeto país para acceder al outlook y rateMomentum scrapeados.
+    const countryObj = (typeof countries !== 'undefined')
+        ? countries.find(c => c.code === currency)
+        : null;
+
+    // Inyectar outlookScore como indicador numérico desde el campo 'outlook' del país.
+    // Si el rateMomentum indica normalización (tasa subiendo) pero el outlook dinámico
+    // dice Dovish, hacer upgrade automático a Neutral (data-driven: el cambio importa más que el nivel).
+    let effectiveOutlook = (countryObj && countryObj.outlook && countryObj.outlook !== 'Calculando...')
+        ? countryObj.outlook
+        : null;
+
+    if (effectiveOutlook && data.rateMomentum !== null && data.rateMomentum !== undefined) {
+        // Upgrade: BC normalizando (subiendo tasas) pero nivel bajo → Dovish injusto
+        if (data.rateMomentum > 0.3 && effectiveOutlook === 'Dovish') {
+            effectiveOutlook = 'Neutral';
+        }
+        // Downgrade: BC recortando agresivamente pero nivel alto → Hawkish injusto
+        if (data.rateMomentum < -1.0 && effectiveOutlook === 'Hawkish') {
+            effectiveOutlook = 'Neutral';
+        }
+    }
+
+    if (effectiveOutlook) {
+        scoringData.outlookScore = effectiveOutlook;
+    }
 
     // NZD businessConfidence: ANZ Business Outlook is net balance centred at 0.
     // Re-map to base-100 for uniform scoring: 0→50 (neutral), +100→100, -100→0
@@ -2354,6 +2406,29 @@ if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData
         return 0;
     };
 
+    // 8b. Yield Curve Proxy — bond10y < interestRate = curva invertida = mercado
+    // descuenta recortes agresivos futuros → bearish para la divisa.
+    const calculateYieldCurveAdj = (data) => {
+        if (data.bond10y === null || data.bond10y === undefined) return 0;
+        if (data.interestRate === null || data.interestRate === undefined) return 0;
+        const spread = data.bond10y - data.interestRate; // negativo = inversión
+        if (spread < -1.5) return -6;
+        if (spread < -0.5) return Math.max(-6, spread * 4); // lineal hasta -6 pts
+        return 0; // spread positivo = curva normal, sin penalización
+    };
+
+    // 8c. COT Contrarian Hawkish — posición bajista extrema en divisa con outlook hawkish.
+    // Indica desalineamiento: el mercado está corto pero el BC sube tasas → contrarian bullish.
+    const calculateCotContrarianAdj = (data, countryObj) => {
+        if (data.cotPositioning === null || data.cotPositioning === undefined) return 0;
+        if (!countryObj || countryObj.outlook !== 'Hawkish') return 0;
+        if (data.cotPositioning < -25000) {
+            const extremeness = Math.min(Math.abs(data.cotPositioning) - 25000, 50000);
+            return Math.min(6, (extremeness / 50000) * 6);
+        }
+        return 0;
+    };
+
     // 8. Low-Rate Safe Haven Premium — corrige penalización por tasas bajas en monedas refugio
     const calculateLowRateSafeHavenAdj = (currency, data, allEconomicData) => {
         if (!['CHF', 'JPY'].includes(currency)) return 0;
@@ -2369,28 +2444,33 @@ if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData
     };
 
     // Apply contextual adjustments
-    const safeHavenAdj      = calculateSafeHavenScore(currency, data, allEconomicData);
-    const commodityAdj      = calculateCommodityScore(currency, data, allEconomicData);
-    const carryAdj          = calculateCarryPremium(data, allEconomicData);
-    const recessionAdj      = calculateRecessionImpact(data);
-    const deficitAdj        = calculateStructuralDeficit(data);
-    const debtAdj           = calculateDebtSustainability(data);
-    const inflationStabAdj  = calculateInflationStability(data);
+    const safeHavenAdj        = calculateSafeHavenScore(currency, data, allEconomicData);
+    const commodityAdj        = calculateCommodityScore(currency, data, allEconomicData);
+    const carryAdj            = calculateCarryPremium(data, allEconomicData);
+    const recessionAdj        = calculateRecessionImpact(data);
+    const deficitAdj          = calculateStructuralDeficit(data);
+    const debtAdj             = calculateDebtSustainability(data);
+    const inflationStabAdj    = calculateInflationStability(data);
     const lowRateSafeHavenAdj = calculateLowRateSafeHavenAdj(currency, data, allEconomicData);
+    const yieldCurveAdj       = calculateYieldCurveAdj(data);
+    const cotContrarianAdj    = calculateCotContrarianAdj(data, countryObj);
 
-    contributions['safe_haven_score']   = safeHavenAdj;
+    contributions['safe_haven_score']    = safeHavenAdj;
     contributions['low_rate_safe_haven'] = lowRateSafeHavenAdj;
-    contributions['commodity_exposure'] = commodityAdj;
-    contributions['carry_premium']      = carryAdj;
-    contributions['recession_impact']   = recessionAdj;
-    contributions['structural_deficit'] = deficitAdj;
-    contributions['debt_sustainability']= debtAdj;
-    contributions['inflation_stability']= inflationStabAdj;
+    contributions['commodity_exposure']  = commodityAdj;
+    contributions['carry_premium']       = carryAdj;
+    contributions['recession_impact']    = recessionAdj;
+    contributions['structural_deficit']  = deficitAdj;
+    contributions['debt_sustainability'] = debtAdj;
+    contributions['inflation_stability'] = inflationStabAdj;
+    contributions['yield_curve_proxy']   = yieldCurveAdj;
+    contributions['cot_contrarian']      = cotContrarianAdj;
 
     // All adjustments are in "score point" units (same scale as 0-100)
     // Cap total adjustment so it can shift the score ±15 points max
     const totalAdj = safeHavenAdj + commodityAdj + carryAdj +
-                     recessionAdj + deficitAdj + debtAdj + inflationStabAdj + lowRateSafeHavenAdj;
+                     recessionAdj + deficitAdj + debtAdj + inflationStabAdj +
+                     lowRateSafeHavenAdj + yieldCurveAdj + cotContrarianAdj;
     const cappedAdj = Math.max(-15, Math.min(15, totalAdj));
 
     // ========== FINAL SCORE (20-80 range) ==========
@@ -4366,7 +4446,7 @@ const sentiment = getSentiment(strength);
     © {new Date().getFullYear()} Santiago Plá · Global Investing. Todos los derechos reservados.
 </div>
 <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-    Dashboard v4.9.2
+    Dashboard v4.9.3
 </div>
     </div>
 </div>
