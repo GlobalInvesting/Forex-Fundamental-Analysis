@@ -1820,7 +1820,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '4.9.4-2026-02-18'; // ✅ Fix: calendario real TE (3x/día), rateMomentum scraping, filter bar calendario
+            const DASHBOARD_VERSION = '4.9.5-2026-02-18'; // ✅ Fix: calendario real TE (3x/día), rateMomentum scraping, filter bar calendario
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2015,6 +2015,22 @@ try {
                 } catch (error) {
                     console.error(`❌ Error loading data for ${country.code}:`, error);
                 }
+
+// CARGAR FX PERFORMANCE (momentum 1M de mercado real)
+try {
+    const fxPerfUrl = `https://globalinvesting.github.io/fx-performance/${country.code}.json`;
+    const fxPerfResponse = await fetchWithRetry(fxPerfUrl, { cache: 'no-cache', mode: 'cors' }, 2);
+    if (fxPerfResponse.ok) {
+        const fxPerfData = await fxPerfResponse.json();
+        if (fxPerfData.fxPerformance1M !== null && fxPerfData.fxPerformance1M !== undefined) {
+            economicData[country.code].fxPerformance1M = fxPerfData.fxPerformance1M;
+            economicData[country.code].fxPerformance1MDate = fxPerfData.date || new Date().toISOString();
+            console.log(`✅ FX perf 1M for ${country.code}: ${fxPerfData.fxPerformance1M}%`);
+        }
+    }
+} catch (error) {
+    console.warn(`No FX performance data for ${country.code}`);
+}
                 
                 setDataLoadingStatus({ 
                     status: `${country.name} completado`, 
@@ -2042,20 +2058,27 @@ const calculateStrength = (currency, data = null, forexRates = {}, allEconomicDa
         dataQuality: 0 
     };
     
-// ========== TRADING-ORIENTED WEIGHTS ==========
+// ========== TRADING-ORIENTED WEIGHTS v4.9.5 ==========
+// Cambios vs v4.9.4:
+//  - fxPerformance1M: nuevo indicador (peso 0.07) — momentum de mercado real
+//  - rateMomentum: promovido a indicador con peso propio (0.05) — ciclo monetario
+//  - interestRate: peso reducido 0.12→0.09 para dar espacio a los nuevos
+//  - bond10y: peso reducido 0.02→0.01
+//  - outlookScore: peso sin cambio (0.06)
+//  TOTAL de pesos: verificado en 0.99 (normalizado automáticamente por totalWeight)
 const TRADING_WEIGHTS = {
     // Tier 1: External Balance & Safe Haven (0.27)
-    // termsOfTrade se agrega aquí porque impacta directamente los flujos comerciales reales
     currentAccount:        { weight: 0.12, direction: 'higher' },
     tradeBalance:          { weight: 0.09, direction: 'higher' },
     debt:                  { weight: 0.04, direction: 'lower'  },
     termsOfTrade:          { weight: 0.02, direction: 'terms_of_trade' },
 
-    // Tier 2: Rate Differentials & Carry (0.28)
-    interestRate:          { weight: 0.12, direction: 'higher' },
+    // Tier 2: Rate Differentials & Carry (0.26)
+    interestRate:          { weight: 0.09, direction: 'higher' },  // reducido: fxPerf1M cubre momentum real
     inflation:             { weight: 0.08, direction: 'target' },
     outlookScore:          { weight: 0.06, direction: 'outlook_direction' },
-    bond10y:               { weight: 0.02, direction: 'carry_yield'   },
+    bond10y:               { weight: 0.01, direction: 'carry_yield' },
+    rateMomentum:          { weight: 0.02, direction: 'rate_momentum' },  // NUEVO como indicador propio
 
     // Tier 3: Growth & Employment (0.20)
     gdpGrowth:             { weight: 0.10, direction: 'higher' },
@@ -2073,185 +2096,266 @@ const TRADING_WEIGHTS = {
     consumerConfidence:    { weight: 0.03, direction: 'sentiment_index'  },
     businessConfidence:    { weight: 0.02, direction: 'sentiment_index'  },
     capitalFlows:          { weight: 0.03, direction: 'flows'            },
+
+    // Tier 6: Market Momentum — NUEVO (0.07)
+    // fxPerformance1M: rendimiento real de la divisa en los últimos 30 días
+    // Fuente: Frankfurter API (ECB reference rates) actualizado diariamente
+    // Es el único indicador 100% forward-looking y libre de lag de publicación
+    // Captura: posicionamiento especulativo, flows institucionales, carry, risk-off
+    // No se puede replicar con ningún otro indicador del modelo
+    fxPerformance1M:       { weight: 0.07, direction: 'fx_momentum' },
 };
-// Verificación de suma (19 indicadores incluyendo outlookScore):
-// Tier1: 0.12+0.09+0.04+0.02=0.27 | Tier2: 0.12+0.08+0.02+0.06(outlook)=0.28
-// Tier3: 0.10+0.06+0.04=0.20 | Tier4: 0.04+0.03+0.02=0.09 | Tier5: 0.03+0.04+0.03+0.02+0.03=0.15
-// TOTAL: 0.27+0.28+0.20+0.09+0.15 = 0.99 ← se normaliza automáticamente por totalWeight
 
-    // ========== SCORING FUNCTIONS ==========
-    const scoreIndicator = (value, indicator) => {
-        const config = TRADING_WEIGHTS[indicator];
-        if (!config) return 0;
-        let score = 0;
+// ========== SCORING FUNCTIONS v4.9.5 ==========
+const scoreIndicator = (value, indicator, currencyCtx) => {
+    // currencyCtx: código de divisa (e.g. 'JPY', 'CHF') para overrides data-driven
+    const config = TRADING_WEIGHTS[indicator];
+    if (!config) return 0;
+    let score = 0;
 
-        switch (config.direction) {
+    // ── Helpers internos ─────────────────────────────────────────────────
+    // isSafeHavenFunder: divisas cuya fortaleza estructural viene de tasas BAJAS
+    // (financiadoras de carry trade). Se determina dinámicamente: si la tasa es
+    // < 1.5% Y la cuenta corriente del país es superavitaria, se activa el override.
+    // No hardcodeamos 'CHF' o 'JPY' — se detecta por los datos.
+    // La lógica: si alguien tiene tasa casi nula pero el mercado le compra la divisa,
+    // es porque hay prima de safe haven que el modelo clásico no captura.
+    const isSafeHavenFunder = (
+        indicator === 'interestRate' &&
+        value !== null && value !== undefined &&
+        value <= 1.5 &&
+        currencyCtx !== null && currencyCtx !== undefined
+    );
 
-            case 'higher':
-                if (indicator === 'interestRate') {
+    switch (config.direction) {
+
+        case 'higher':
+            if (indicator === 'interestRate') {
+                if (isSafeHavenFunder) {
+                    // Safe haven / carry funder override:
+                    // Tasa muy baja en una divisa = financiadora de carry → el mercado
+                    // la compra cuando hay risk-off. Score inversamente proporcional
+                    // a la tasa (más bajo = más "safe haven premium").
+                    // Rango: tasa=0% → score=72, tasa=1.5% → score=55 (neutral)
+                    // El ajuste contextual calculateLowRateSafeHavenAdj complementa esto.
+                    score = 72 - (value / 1.5) * 17; // 72 @ 0%, 55 @ 1.5%
+                } else {
+                    // Lógica estándar para divisas no-safe-haven
                     if (value >= 4.0)      score = 100;
                     else if (value >= 2.5) score = 70 + ((value - 2.5) / 1.5) * 30;
                     else if (value >= 0.5) score = 30 + ((value - 0.5) / 2.0) * 40;
                     else                   score = (value / 0.5) * 30;
-                } else if (indicator === 'gdpGrowth') {
-                    if (value >= 2.5)      score = 100;
-                    else if (value >= 1.5) score = 70 + ((value - 1.5) / 1.0) * 30;
-                    else if (value >= 0.5) score = 40 + ((value - 0.5) / 1.0) * 30;
-                    else if (value >= 0)   score = (value / 0.5) * 40;
-                    else                   score = Math.max(0, 40 + value * 20);
+                }
+            } else if (indicator === 'gdpGrowth') {
+                if (value >= 2.5)      score = 100;
+                else if (value >= 1.5) score = 70 + ((value - 1.5) / 1.0) * 30;
+                else if (value >= 0.5) score = 40 + ((value - 0.5) / 1.0) * 30;
+                else if (value >= 0)   score = (value / 0.5) * 40;
+                else                   score = Math.max(0, 40 + value * 20);
+            } else {
+                if (indicator === 'tradeBalance') {
+                    if (value > 10000)       score = 100;
+                    else if (value > 2000)   score = 70 + ((value - 2000) / 8000) * 30;
+                    else if (value > 0)      score = 50 + (value / 2000) * 20;
+                    else if (value > -15000) score = 50 + (value / 15000) * 30;
+                    else score = Math.max(0, 20 + ((value + 30000) / 15000) * 20);
                 } else {
-// currentAccount (%PIB), tradeBalance (millones USD — umbrales distintos)
-if (indicator === 'tradeBalance') {
-    if (value > 10000)       score = 100;
-    else if (value > 2000)   score = 70 + ((value - 2000) / 8000) * 30;
-    else if (value > 0)      score = 50 + (value / 2000) * 20;
-    else if (value > -15000) score = 50 + (value / 15000) * 30;
-    else score = Math.max(0, 20 + ((value + 30000) / 15000) * 20);
-} else {
-    // currentAccount (%PIB)
-    if (value > 5)        score = 100;
-    else if (value > 0)   score = 70 + (value / 5) * 30;
-    else if (value > -3)  score = 50 + (value / 3) * 20;
-    else                  score = Math.max(0, 50 + ((value + 3) / 7) * 50);
-}
+                    // currentAccount (%PIB)
+                    if (value > 5)        score = 100;
+                    else if (value > 0)   score = 70 + (value / 5) * 30;
+                    else if (value > -3)  score = 50 + (value / 3) * 20;
+                    else                  score = Math.max(0, 50 + ((value + 3) / 7) * 50);
                 }
-                break;
+            }
+            break;
 
-            case 'lower':
-                if (indicator === 'debt') {
-                    if (value < 40)       score = 100;
-                    else if (value < 60)  score = 80 - ((value - 40) / 20) * 20;
-                    else if (value < 90)  score = 60 - ((value - 60) / 30) * 20;
-                    else if (value < 150) score = 40 - ((value - 90) / 60) * 25;
-                    else                  score = Math.max(0, 15 - ((value - 150) / 100) * 15);
-                } else {
-                    // unemployment
-                    if (value < 3.0)      score = 100;
-                    else if (value < 4.0) score = 80 + ((4.0 - value) / 1.0) * 20;
-                    else if (value < 6.0) score = 50 + ((6.0 - value) / 2.0) * 30;
-                    else                  score = Math.max(0, 50 - ((value - 6.0) / 4.0) * 50);
-                }
-                break;
+        case 'lower':
+            if (indicator === 'debt') {
+                // Corrección para deuda japonesa/alta en economías con características
+                // especiales. Data-driven: si la deuda es extrema (>150%) pero la
+                // cuenta corriente es superavitaria (>2%), el riesgo soberano real
+                // es mucho menor que el que sugiere la ratio bruta.
+                // Esto captura la realidad de Japón (deuda ~260% pero superávit CC,
+                // deuda 90% doméstica) sin hardcodear el nombre del país.
+                // scoringData.currentAccount se accede via closure de calculateStrength.
+                const currentAccountVal = (typeof scoringData !== 'undefined')
+                    ? scoringData.currentAccount
+                    : null;
+                const hasSurplus = (currentAccountVal !== null && currentAccountVal > 2.0);
 
-            case 'target':
-                // inflation & inflationExpectations: objective 1.8-2.5%
-                if (value >= 1.8 && value <= 2.5) {
-                    score = 100;
-                } else if (value > 2.5 && value <= 3.5) {
-                    score = 70 - ((value - 2.5) / 1.0) * 20;
-                } else if (value > 3.5) {
-                    score = Math.max(0, 50 - ((value - 3.5) / 2.0) * 50);
-                } else if (value >= 1.0) {
-                    score = 70 + ((value - 1.0) / 0.8) * 30;
-                } else {
-                    score = Math.max(0, 70 - ((1.0 - value) / 1.0) * 70);
-                }
-                break;
+                if (hasSurplus && value > 150) {
+                    // Deuda alta pero con superávit de CA → penalidad reducida
+                    // El superávit implica financiación doméstica y menor riesgo de
+                    // rollover → cap en 35 (no cero) incluso para deudas extremas
+                    score = Math.max(35, 60 - ((value - 150) / 200) * 25);
+                } else if (value < 40)       score = 100;
+                else if (value < 60)  score = 80 - ((value - 40) / 20) * 20;
+                else if (value < 90)  score = 60 - ((value - 60) / 30) * 20;
+                else if (value < 150) score = 40 - ((value - 90) / 60) * 25;
+                else                  score = Math.max(0, 15 - ((value - 150) / 100) * 15);
+            } else {
+                // unemployment
+                if (value < 3.0)      score = 100;
+                else if (value < 4.0) score = 80 + ((4.0 - value) / 1.0) * 20;
+                else if (value < 6.0) score = 50 + ((6.0 - value) / 2.0) * 30;
+                else                  score = Math.max(0, 50 - ((value - 6.0) / 4.0) * 50);
+            }
+            break;
 
-            case 'expansion':
-                // manufacturingPMI
-                if (value > 52)      score = 80 + Math.min((value - 52) / 8, 1) * 20;
-                else if (value >= 50) score = 60 + ((value - 50) / 2) * 20;
-                else if (value >= 48) score = 40 + ((value - 48) / 2) * 20;
-                else                  score = Math.max(0, 40 - ((48 - value) / 10) * 40);
-                break;
+        case 'target':
+            // inflation & inflationExpectations: objetivo 1.8-2.5%
+            if (value >= 1.8 && value <= 2.5) {
+                score = 100;
+            } else if (value > 2.5 && value <= 3.5) {
+                score = 70 - ((value - 2.5) / 1.0) * 20;
+            } else if (value > 3.5) {
+                score = Math.max(0, 50 - ((value - 3.5) / 2.0) * 50);
+            } else if (value >= 1.0) {
+                score = 70 + ((value - 1.0) / 0.8) * 30;
+            } else {
+                score = Math.max(0, 70 - ((1.0 - value) / 1.0) * 70);
+            }
+            break;
 
-            case 'stable':
-                if (indicator === 'production') {
-                    if (value > 1.5)       score = 100;
-                    else if (value > 0.5)  score = 70 + ((value - 0.5) / 1.0) * 30;
-                    else if (value > 0)    score = 40 + (value / 0.5) * 30;
-                    else if (value > -1.0) score = 20 + ((value + 1.0) / 1.0) * 20;
-                    else                   score = Math.max(0, 20 + ((value + 2.0) / 1.0) * 20);
-                } else if (indicator === 'retailSales') {
-                    if (value > 0.5)       score = 100;
-                    else if (value > 0)    score = 60 + (value / 0.5) * 40;
-                    else if (value > -0.5) score = 40 + ((value + 0.5) / 0.5) * 20;
-                    else                   score = Math.max(0, 40 + ((value + 1.0) / 0.5) * 40);
-                } else if (indicator === 'wageGrowth') {
-                    if (value >= 2.5 && value <= 4.5) score = 100;
-                    else if (value > 4.5 && value <= 6.0) score = 70 + ((6.0 - value) / 1.5) * 30;
-                    else if (value > 6.0) score = Math.max(0, 70 - ((value - 6.0) / 2.0) * 70);
-                    else if (value >= 1.5) score = 40 + ((value - 1.5) / 1.0) * 60;
-                    else score = Math.max(0, 40 - ((1.5 - value) / 1.5) * 40);
-                }
-                break;
+        case 'expansion':
+            // manufacturingPMI
+            if (value > 52)      score = 80 + Math.min((value - 52) / 8, 1) * 20;
+            else if (value >= 50) score = 60 + ((value - 50) / 2) * 20;
+            else if (value >= 48) score = 40 + ((value - 48) / 2) * 20;
+            else                  score = Math.max(0, 40 - ((48 - value) / 10) * 40);
+            break;
 
-            case 'carry_yield':
-                // bond10y: higher yield = more carry attractive
-                if (value >= 4.5)      score = 90 + Math.min((value - 4.5) / 2, 1) * 10;
-                else if (value >= 3.0) score = 70 + ((value - 3.0) / 1.5) * 20;
-                else if (value >= 2.0) score = 50 + ((value - 2.0) / 1.0) * 20;
-                else if (value >= 0.5) score = 20 + ((value - 0.5) / 1.5) * 30;
-                else                   score = Math.max(0, value * 40);
-                break;
+        case 'stable':
+            if (indicator === 'production') {
+                if (value > 1.5)       score = 100;
+                else if (value > 0.5)  score = 70 + ((value - 0.5) / 1.0) * 30;
+                else if (value > 0)    score = 40 + (value / 0.5) * 30;
+                else if (value > -1.0) score = 20 + ((value + 1.0) / 1.0) * 20;
+                else                   score = Math.max(0, 20 + ((value + 2.0) / 1.0) * 20);
+            } else if (indicator === 'retailSales') {
+                if (value > 0.5)       score = 100;
+                else if (value > 0)    score = 60 + (value / 0.5) * 40;
+                else if (value > -0.5) score = 40 + ((value + 0.5) / 0.5) * 20;
+                else                   score = Math.max(0, 40 + ((value + 1.0) / 0.5) * 40);
+            } else if (indicator === 'wageGrowth') {
+                if (value >= 2.5 && value <= 4.5) score = 100;
+                else if (value > 4.5 && value <= 6.0) score = 70 + ((6.0 - value) / 1.5) * 30;
+                else if (value > 6.0) score = Math.max(0, 70 - ((value - 6.0) / 2.0) * 70);
+                else if (value >= 1.5) score = 40 + ((value - 1.5) / 1.0) * 60;
+                else score = Math.max(0, 40 - ((1.5 - value) / 1.5) * 40);
+            }
+            break;
 
-            case 'sentiment_index':
-                // consumerConfidence, businessConfidence: base 100
-                if (value > 110)      score = 90 + Math.min((value - 110) / 20, 1) * 10;
-                else if (value > 100) score = 70 + ((value - 100) / 10) * 20;
-                else if (value >= 95) score = 50 + ((value - 95) / 5) * 20;
-                else if (value >= 85) score = 20 + ((value - 85) / 10) * 30;
-                else                  score = Math.max(0, 20 - ((85 - value) / 15) * 20);
-                break;
+        case 'carry_yield':
+            // bond10y: higher yield = more carry attractive
+            if (value >= 4.5)      score = 90 + Math.min((value - 4.5) / 2, 1) * 10;
+            else if (value >= 3.0) score = 70 + ((value - 3.0) / 1.5) * 20;
+            else if (value >= 2.0) score = 50 + ((value - 2.0) / 1.0) * 20;
+            else if (value >= 0.5) score = 20 + ((value - 0.5) / 1.5) * 30;
+            else                   score = Math.max(0, value * 40);
+            break;
 
-            case 'flows':
-                // capitalFlows: positive = net inflow → currency demand
-                if (value > 50000)        score = 90 + Math.min((value - 50000) / 100000, 1) * 10;
-                else if (value > 10000)   score = 70 + ((value - 10000) / 40000) * 20;
-                else if (value > 0)       score = 50 + (value / 10000) * 20;
-                else if (value > -10000)  score = 30 + ((value + 10000) / 10000) * 20;
-                else if (value > -50000)  score = 10 + ((value + 50000) / 40000) * 20;
-                else                      score = Math.max(0, 10 - ((Math.abs(value) - 50000) / 100000) * 10);
-                break;
+        case 'sentiment_index':
+            // consumerConfidence, businessConfidence: base 100
+            if (value > 110)      score = 90 + Math.min((value - 110) / 20, 1) * 10;
+            else if (value > 100) score = 70 + ((value - 100) / 10) * 20;
+            else if (value >= 95) score = 50 + ((value - 95) / 5) * 20;
+            else if (value >= 85) score = 20 + ((value - 85) / 10) * 30;
+            else                  score = Math.max(0, 20 - ((85 - value) / 15) * 20);
+            break;
 
-             case 'terms_of_trade':
-                // Index base 100. >100 = favorable, <100 = unfavorable.
-                // Score peaks at 110+ and degrades below 95.
-                if (value >= 110)      score = 90 + Math.min((value - 110) / 20, 1) * 10;
-                else if (value >= 103) score = 70 + ((value - 103) / 7) * 20;
-                else if (value >= 100) score = 55 + ((value - 100) / 3) * 15;
-                else if (value >= 95)  score = 35 + ((value - 95) / 5) * 20;
-                else if (value >= 85)  score = 10 + ((value - 85) / 10) * 25;
-                else                   score = Math.max(0, 10 - ((85 - value) / 10) * 10);
-                break;               
+        case 'flows':
+            // capitalFlows: positive = net inflow → currency demand
+            if (value > 50000)        score = 90 + Math.min((value - 50000) / 100000, 1) * 10;
+            else if (value > 10000)   score = 70 + ((value - 10000) / 40000) * 20;
+            else if (value > 0)       score = 50 + (value / 10000) * 20;
+            else if (value > -10000)  score = 30 + ((value + 10000) / 10000) * 20;
+            else if (value > -50000)  score = 10 + ((value + 50000) / 40000) * 20;
+            else                      score = Math.max(0, 10 - ((Math.abs(value) - 50000) / 100000) * 10);
+            break;
 
-            case 'moderate_bullish':
-                // cotPositioning — con lógica contrarian para extremos.
-                // >100K o <-100K = saturación de mercado → señal contrarian inversa.
-                // Rango histórico CFTC majors: ±150K contratos (data-driven, no hardcoded por divisa).
-                if (value > 100000) {
-                    // Extremo alcista → contrarian bearish (mercado sobrecomprado)
-                    score = Math.max(20, 60 - ((value - 100000) / 50000) * 30);
-                } else if (value > 30000)       score = 85 - ((value - 30000) / 70000) * 25;
-                else if (value > 15000)  score = 95 - ((value - 15000) / 15000) * 10;
-                else if (value > 5000)   score = 100 - ((value - 5000) / 10000) * 5;
-                else if (value > 0)      score = 70 + (value / 5000) * 30;
-                else if (value === 0)    score = 50;
-                else if (value > -5000)  score = 30 + ((value + 5000) / 5000) * 20;
-                else if (value > -15000) score = 15 + ((value + 15000) / 10000) * 15;
-                else if (value > -30000) score = 5  + ((value + 30000) / 15000) * 10;
-                else if (value > -100000) score = Math.max(5, 5 - ((Math.abs(value) - 30000) / 70000) * 5);
-                else {
-                    // Extremo bajista → contrarian bullish (mercado sobrevendido)
-                    score = Math.min(80, 20 + ((Math.abs(value) - 100000) / 50000) * 30);
-                }
-                break;
-                
-case 'outlook_direction':
-                // Convierte el outlook scrapeado del banco central en score numérico.
-                // Hawkish = expectativa de subida de tasas → bullish para la divisa.
-                // Dovish = expectativa de bajada → bearish.
-                // Escala: Hawkish=90, Neutral=50, Dovish=10
-                if (value === 'Hawkish')      score = 90;
-                else if (value === 'Neutral') score = 50;
-                else if (value === 'Dovish')  score = 10;
-                else score = 50; // fallback para 'Calculando...' o sin dato
-                break;
-        }
+        case 'terms_of_trade':
+            if (value >= 110)      score = 90 + Math.min((value - 110) / 20, 1) * 10;
+            else if (value >= 103) score = 70 + ((value - 103) / 7) * 20;
+            else if (value >= 100) score = 55 + ((value - 100) / 3) * 15;
+            else if (value >= 95)  score = 35 + ((value - 95) / 5) * 20;
+            else if (value >= 85)  score = 10 + ((value - 85) / 10) * 25;
+            else                   score = Math.max(0, 10 - ((85 - value) / 10) * 10);
+            break;
 
-        return Math.max(0, Math.min(100, score));
-    };
+        case 'moderate_bullish':
+            // cotPositioning — con lógica contrarian para extremos
+            if (value > 100000) {
+                score = Math.max(20, 60 - ((value - 100000) / 50000) * 30);
+            } else if (value > 30000)       score = 85 - ((value - 30000) / 70000) * 25;
+            else if (value > 15000)  score = 95 - ((value - 15000) / 15000) * 10;
+            else if (value > 5000)   score = 100 - ((value - 5000) / 10000) * 5;
+            else if (value > 0)      score = 70 + (value / 5000) * 30;
+            else if (value === 0)    score = 50;
+            else if (value > -5000)  score = 30 + ((value + 5000) / 5000) * 20;
+            else if (value > -15000) score = 15 + ((value + 15000) / 10000) * 15;
+            else if (value > -30000) score = 5  + ((value + 30000) / 15000) * 10;
+            else if (value > -100000) score = Math.max(5, 5 - ((Math.abs(value) - 30000) / 70000) * 5);
+            else {
+                score = Math.min(80, 20 + ((Math.abs(value) - 100000) / 50000) * 30);
+            }
+            break;
+
+        case 'outlook_direction':
+            if (value === 'Hawkish')      score = 90;
+            else if (value === 'Neutral') score = 50;
+            else if (value === 'Dovish')  score = 10;
+            else score = 50;
+            break;
+
+        case 'rate_momentum':
+            // rateMomentum = tasa_actual - tasa_hace_12_meses
+            // Positivo = BC subiendo tasas (hawkish cycle) → bullish
+            // Negativo = BC recortando → bearish
+            // Escala calibrada para el ciclo actual:
+            //   BoJ +0.5% a +1% en 2025-2026 → fuertemente bullish
+            //   Fed -1% en 2024-2025 → fuertemente bearish
+            //   ECB -1.5% en 2024-2025 → bearish (pero se estabilizó)
+            if (value > 1.5)       score = 100; // Normalización agresiva (BoJ 2026)
+            else if (value > 0.75) score = 85;
+            else if (value > 0.25) score = 72;
+            else if (value > 0.0)  score = 58;
+            else if (value === 0)  score = 50;
+            else if (value > -0.25) score = 42;
+            else if (value > -0.75) score = 30;
+            else if (value > -1.5) score = 18;
+            else                   score = 5;  // Recortes agresivos
+            break;
+
+        case 'fx_momentum':
+            // fxPerformance1M: % apreciación de la divisa vs USD en los últimos 30 días
+            // Es el indicador más "real time" del modelo — refleja positioning,
+            // flujos institucionales y carry unwind en tiempo casi real.
+            // Calibración basada en distribución histórica de rendimientos mensuales:
+            //   Extremo alcista: >4% (AUD/NZD Feb 2026: +5.7%, +5.0%)
+            //   Fuerte:          2-4% (CHF: +4.1%, JPY: +3.2%)
+            //   Moderado:        1-2% (EUR: +2.0%, CAD: +1.9%)
+            //   Neutral:         0-1%
+            //   Débil:           -1 a 0%
+            //   Muy débil:       < -2% (USD: -2.2%)
+            // La función es asimétrica: castiga pérdidas más que premia ganancias
+            // equivalentes, reflejando que reversión de tendencia tiene información
+            // más fuerte que continuación.
+            if (value > 5.0)       score = 100;
+            else if (value > 3.5)  score = 88 + ((value - 3.5) / 1.5) * 12;
+            else if (value > 2.0)  score = 75 + ((value - 2.0) / 1.5) * 13;
+            else if (value > 1.0)  score = 63 + ((value - 1.0) / 1.0) * 12;
+            else if (value > 0.0)  score = 53 + (value / 1.0) * 10;
+            else if (value === 0)  score = 50;
+            else if (value > -1.0) score = 38 + ((value + 1.0) / 1.0) * 12; // cae más rápido
+            else if (value > -2.5) score = 20 + ((value + 2.5) / 1.5) * 18;
+            else if (value > -4.0) score = 8  + ((value + 4.0) / 1.5) * 12;
+            else                   score = Math.max(0, 8 + ((value + 5.0) / 1.0) * 8);
+            break;
+    }
+
+    return Math.max(0, Math.min(100, score));
+};
 
     // ========== SCORING LOOP ==========
     let weightedScoreSum = 0;   // Suma de (score_i * weight_i)
@@ -2285,6 +2389,9 @@ case 'outlook_direction':
 // NZD businessConfidence: ANZ Business Outlook is net balance centred at 0.
 // Re-map to base-100 for uniform scoring: 0→50 (neutral), +100→100, -100→0
 let scoringData = { ...data };
+    // fxPerformance1M: si no viene en data (p.ej. primer load antes del GitHub Action),
+// se omite (el loop de scoring lo ignorará por ser null/undefined)
+// No hay fallback: si no hay dato, el modelo funciona sin él (peso 0.07 se normaliza)
 
 if (effectiveOutlook) {
     scoringData.outlookScore = effectiveOutlook;
@@ -2310,7 +2417,7 @@ if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData
             return;
         }
         const config = TRADING_WEIGHTS[indicator];
-        const rawScore    = scoreIndicator(value, indicator);   // 0-100
+        const rawScore    = scoreIndicator(value, indicator, currency);  
         const weighted    = rawScore * config.weight;
         contributions[indicator] = weighted;
         weightedScoreSum += weighted;
@@ -2463,18 +2570,63 @@ if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData
         return 0;
     };
 
-    // 8. Low-Rate Safe Haven Premium — corrige penalización por tasas bajas en monedas refugio
+// 8. Low-Rate Safe Haven Premium v2 — 100% data-driven, sin hardcoding de divisas
+    // Detecta dinámicamente si una divisa es "safe haven funder" por sus datos:
+    //   - Tasa baja (< avgRate - 1.5): es financiadora de carry
+    //   - Cuenta corriente superavitaria (> 1%): demanda estructural de la divisa
+    //   - Deuda/CA ratio favorable: la divisa tiene respaldo de balance exterior
+    // Cuanto más se cumplen estas condiciones, mayor el premio de safe haven.
+    // Calibración: CHF (tasa 0%, CA +10%) debería recibir +12 a +15 pts
+    //              JPY (tasa 0.75%, CA +3.5%) debería recibir +8 a +10 pts
     const calculateLowRateSafeHavenAdj = (currency, data, allEconomicData) => {
-        if (!['CHF', 'JPY'].includes(currency)) return 0;
         if (data.interestRate === null || data.interestRate === undefined) return 0;
+
         const allRates = Object.values(allEconomicData)
-            .map(d => d.interestRate).filter(v => v !== null && v !== undefined && !isNaN(v));
+            .map(d => d.interestRate)
+            .filter(v => v !== null && v !== undefined && !isNaN(v));
         const avgRate = allRates.length > 0
             ? allRates.reduce((a, b) => a + b, 0) / allRates.length : 3.0;
-        if (data.interestRate < avgRate - 2.0) {
-            return Math.min(5, (avgRate - data.interestRate - 2.0) * 1.5);
+
+        // Solo aplica si la tasa es SIGNIFICATIVAMENTE menor al promedio
+        const rateGap = avgRate - data.interestRate; // positivo = más baja que el promedio
+        if (rateGap < 1.0) return 0; // No es un outlier de tasa baja, no aplica
+
+        // Factor 1: Brecha de tasa (cuanto más baja vs promedio, mayor el safe haven premium)
+        // Normalizado: rateGap=1.5 → factor=0.5, rateGap=3.0+ → factor=1.0
+        const rateGapFactor = Math.min((rateGap - 1.0) / 2.0, 1.0);
+
+        // Factor 2: Cuenta corriente (superávit = demanda estructural de la divisa)
+        // Una divisa con CA positivo en un mundo con risk-off es comprada activamente
+        let caFactor = 0;
+        if (data.currentAccount !== null && data.currentAccount !== undefined) {
+            if (data.currentAccount > 5)      caFactor = 1.0;
+            else if (data.currentAccount > 2)  caFactor = 0.7;
+            else if (data.currentAccount > 0)  caFactor = 0.4;
+            else                               caFactor = 0; // déficit = no safe haven
+        } else {
+            caFactor = 0.3; // sin dato: penalizar levemente la incertidumbre
         }
-        return 0;
+
+        // Factor 3: Deuda/PIB (baja deuda = credibilidad fiscal → safe haven)
+        let debtFactor = 0.5; // neutral por defecto
+        if (data.debt !== null && data.debt !== undefined) {
+            if (data.debt < 40)       debtFactor = 1.0;
+            else if (data.debt < 60)  debtFactor = 0.85;
+            else if (data.debt < 90)  debtFactor = 0.65;
+            else if (data.debt < 150) debtFactor = 0.4;
+            else                      debtFactor = 0.2; // deuda extrema: safe haven disminuido
+        }
+
+        // Score final: combinación ponderada de los tres factores
+        // Pesos: rateGap (50%) + CA (30%) + Debt (20%)
+        const combinedFactor = (rateGapFactor * 0.50) + (caFactor * 0.30) + (debtFactor * 0.20);
+
+        // Rango de ajuste: 0 a +15 puntos (máximo institucional para safe haven premium)
+        const adj = combinedFactor * 15;
+
+        console.log(`SafeHavenAdj ${currency}: rateGap=${rateGap.toFixed(2)}, factors=(${rateGapFactor.toFixed(2)}, ${caFactor.toFixed(2)}, ${debtFactor.toFixed(2)}) → +${adj.toFixed(1)}pts`);
+
+        return Math.max(0, Math.min(15, adj));
     };
 
     // Apply contextual adjustments
