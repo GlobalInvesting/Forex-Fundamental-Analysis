@@ -44,12 +44,26 @@ jobs:
 
           print(f"Fetching FX performance: {d30_str} → {today_str}")
 
-          def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
+def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
               """
               Fetch USD/{currency} rate on a specific date via Frankfurter.
               Returns units of currency per 1 USD (i.e. how many JPY/EUR/etc per dollar).
-              Includes retry logic with exponential backoff for transient failures.
+
+              Frankfurter usa ECB reference rates publicados a las 16:00 CET.
+              Si pedimos 'latest' o la fecha de hoy antes de esa hora, puede devolver
+              el dato del día anterior. Para evitar desajustes temporales entre divisas,
+              siempre usamos la fecha de ayer como "hoy confiable" (latest confirmed).
               """
+              # Normalizar: si es la fecha de hoy, usar ayer para garantizar dato disponible
+              from datetime import date as _date, timedelta
+              try:
+                  requested = _date.fromisoformat(date_str)
+                  if requested >= _date.today():
+                      date_str = (_date.today() - timedelta(days=1)).isoformat()
+                      print(f"  Note: using {date_str} (yesterday) for {currency} — ECB rates published at 16:00 CET")
+              except:
+                  pass
+
               url = f"https://api.frankfurter.app/{date_str}?from=USD&to={currency}"
               for attempt in range(1, retries + 1):
                   try:
@@ -59,13 +73,16 @@ jobs:
                           rate = data.get('rates', {}).get(currency)
                           if rate:
                               return float(rate)
+                          # Si Frankfurter devuelve fecha diferente a la pedida (día no hábil),
+                          # igual aceptamos el dato — es el más cercano disponible
+                          print(f"  Warning: {currency} on {date_str}: rate not in response (keys: {list(data.get('rates',{}).keys())})")
                       else:
                           print(f"  Warning: {currency} on {date_str}: HTTP {r.status_code} (attempt {attempt}/{retries})")
                   except Exception as e:
                       print(f"  Warning: {currency} on {date_str}: {e} (attempt {attempt}/{retries})")
 
                   if attempt < retries:
-                      sleep_s = backoff ** (attempt - 1)  # 1s, 2s
+                      sleep_s = backoff ** (attempt - 1)
                       print(f"  Retrying in {sleep_s}s...")
                       time.sleep(sleep_s)
 
