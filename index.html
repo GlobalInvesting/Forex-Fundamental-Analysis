@@ -2050,14 +2050,9 @@ try {
             return economicData;
         };
 
-    // P-4 v4.9.6 — Umbral safe haven relativo al régimen de tasas
-const allRatesForSH = Object.values(allEconomicData)
-    .map(d => d.interestRate)
-    .filter(v => v != null && !isNaN(v));
-const avgRateForSH = allRatesForSH.length > 0
-    ? allRatesForSH.reduce((a, b) => a + b, 0) / allRatesForSH.length
-    : 3.0;  // fallback si no hay datos
-const safeHavenThreshold = Math.max(1.0, avgRateForSH - 1.5);
+// ← eliminar las líneas anteriores del scope global, no poner nada aquí
+
+const calculateStrength = (currency, data = null, forexRates = {}, allEconomicData = {}) => {
 // Ejemplos:
 //   Régimen 2022 (avg ~4.5%): threshold = max(1.0, 3.0) = 3.0%  → CHF 1.4% califica ✓
 //   Régimen 2021 (avg ~0.3%): threshold = max(1.0, −1.2) = 1.0% → solo 0-1% califica
@@ -2411,6 +2406,18 @@ if (isSafeHavenFunder) {
         }
     }
 
+    // P-4 v4.9.6 — Umbral safe haven relativo al régimen de tasas (DENTRO del scope correcto)
+    const allRatesForSH = Object.values(allEconomicData)
+        .map(d => d.interestRate)
+        .filter(v => v != null && !isNaN(v));
+    const avgRateForSH = allRatesForSH.length > 0
+        ? allRatesForSH.reduce((a, b) => a + b, 0) / allRatesForSH.length
+        : 3.0;
+    const safeHavenThreshold = Math.max(1.0, avgRateForSH - 1.5);
+    // Régimen 2026 (avg ~3.5%): threshold = 2.0% → CHF 0.25% y JPY 0.50% califican ✓
+    // Régimen 2022 (avg ~4.5%): threshold = 3.0% → CHF 1.4% califica ✓
+    // Régimen 2021 (avg ~0.3%): threshold = 1.0% → solo tasas ~0% califican
+    
 // NZD businessConfidence: ANZ Business Outlook is net balance centred at 0.
 // Re-map to base-100 for uniform scoring: 0→50 (neutral), +100→100, -100→0
 let scoringData = { ...data };
