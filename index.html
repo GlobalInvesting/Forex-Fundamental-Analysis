@@ -1786,7 +1786,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '4.9.0-2026-02-17'; // ✅ EUR ToT: TE export/import price ratio (v9) | about.html sincronizado
+            const DASHBOARD_VERSION = '4.9.1-2026-02-17'; // ✅ Fix: Low-rate safe haven premium para CHF/JPY
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2061,11 +2061,20 @@ const TRADING_WEIGHTS = {
                     else if (value >= 0)   score = (value / 0.5) * 40;
                     else                   score = Math.max(0, 40 + value * 20);
                 } else {
-                    // currentAccount, tradeBalance
-                    if (value > 5)        score = 100;
-                    else if (value > 0)   score = 70 + (value / 5) * 30;
-                    else if (value > -5)  score = 50 + (value / 5) * 20;
-                    else                  score = Math.max(0, 50 + (value / 10) * 50);
+// currentAccount (%PIB), tradeBalance (millones USD — umbrales distintos)
+if (indicator === 'tradeBalance') {
+    if (value > 10000)       score = 100;
+    else if (value > 2000)   score = 70 + ((value - 2000) / 8000) * 30;
+    else if (value > 0)      score = 50 + (value / 2000) * 20;
+    else if (value > -15000) score = 50 + (value / 15000) * 30;
+    else score = Math.max(0, 20 + ((value + 30000) / 15000) * 20);
+} else {
+    // currentAccount (%PIB)
+    if (value > 5)        score = 100;
+    else if (value > 0)   score = 70 + (value / 5) * 30;
+    else if (value > -3)  score = 50 + (value / 3) * 20;
+    else                  score = Math.max(0, 50 + ((value + 3) / 7) * 50);
+}
                 }
                 break;
 
@@ -2178,7 +2187,7 @@ const TRADING_WEIGHTS = {
                 else if (value > -5000)  score = 30 + ((value + 5000) / 5000) * 20;
                 else if (value > -15000) score = 15 + ((value + 15000) / 10000) * 15;
                 else if (value > -30000) score = 5  + ((value + 30000) / 15000) * 10;
-                else                     score = Math.max(0, 20 - ((Math.abs(value) - 30000) / 20000) * 15);
+                else score = Math.max(0, 5 - ((Math.abs(value) - 30000) / 50000) * 5);
                 break;
         }
 
@@ -2197,6 +2206,16 @@ const TRADING_WEIGHTS = {
     if (currency === 'NZD' && scoringData.businessConfidence !== null && scoringData.businessConfidence !== undefined) {
         scoringData.businessConfidence = Math.max(0, Math.min(100, (scoringData.businessConfidence / 100) * 50 + 50));
     }
+
+    // JPY consumerConfidence: Japan index ronda 33-40, no base 100
+// Normalizar: rango histórico 25-50 → mapeado a 75-115 (equivalente base 100)
+if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData.consumerConfidence !== undefined) {
+    if (scoringData.consumerConfidence < 60) {
+        // Es la escala japonesa (25-55) → mapear a base 100
+        scoringData.consumerConfidence = ((scoringData.consumerConfidence - 25) / 30) * 40 + 85;
+    }
+    // Si ya es >60, asumir que vino normalizado y dejarlo
+}
 
     Object.keys(TRADING_WEIGHTS).forEach(indicator => {
         const value = scoringData[indicator];
@@ -2335,6 +2354,20 @@ const TRADING_WEIGHTS = {
         return 0;
     };
 
+    // 8. Low-Rate Safe Haven Premium — corrige penalización por tasas bajas en monedas refugio
+    const calculateLowRateSafeHavenAdj = (currency, data, allEconomicData) => {
+        if (!['CHF', 'JPY'].includes(currency)) return 0;
+        if (data.interestRate === null || data.interestRate === undefined) return 0;
+        const allRates = Object.values(allEconomicData)
+            .map(d => d.interestRate).filter(v => v !== null && v !== undefined && !isNaN(v));
+        const avgRate = allRates.length > 0
+            ? allRates.reduce((a, b) => a + b, 0) / allRates.length : 3.0;
+        if (data.interestRate < avgRate - 2.0) {
+            return Math.min(5, (avgRate - data.interestRate - 2.0) * 1.5);
+        }
+        return 0;
+    };
+
     // Apply contextual adjustments
     const safeHavenAdj      = calculateSafeHavenScore(currency, data, allEconomicData);
     const commodityAdj      = calculateCommodityScore(currency, data, allEconomicData);
@@ -2343,8 +2376,10 @@ const TRADING_WEIGHTS = {
     const deficitAdj        = calculateStructuralDeficit(data);
     const debtAdj           = calculateDebtSustainability(data);
     const inflationStabAdj  = calculateInflationStability(data);
+    const lowRateSafeHavenAdj = calculateLowRateSafeHavenAdj(currency, data, allEconomicData);
 
     contributions['safe_haven_score']   = safeHavenAdj;
+    contributions['low_rate_safe_haven'] = lowRateSafeHavenAdj;
     contributions['commodity_exposure'] = commodityAdj;
     contributions['carry_premium']      = carryAdj;
     contributions['recession_impact']   = recessionAdj;
@@ -2355,7 +2390,7 @@ const TRADING_WEIGHTS = {
     // All adjustments are in "score point" units (same scale as 0-100)
     // Cap total adjustment so it can shift the score ±15 points max
     const totalAdj = safeHavenAdj + commodityAdj + carryAdj +
-                     recessionAdj + deficitAdj + debtAdj + inflationStabAdj;
+                     recessionAdj + deficitAdj + debtAdj + inflationStabAdj + lowRateSafeHavenAdj;
     const cappedAdj = Math.max(-15, Math.min(15, totalAdj));
 
     // ========== FINAL SCORE (20-80 range) ==========
