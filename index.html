@@ -1832,9 +1832,19 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
             
             const cached = CacheManager.get(cacheKey);
             if (cached !== null) {
-                setEconomicData(cached);
-                setDataLoadingStatus({ status: 'Datos cargados desde caché', progress: 100 });
-                return cached;
+                // v5.0 cache validation: reject cache missing fxPerformance1M
+                const sampleCurrencies = ['AUD', 'CHF', 'USD', 'EUR'];
+                const hasFxPerf = sampleCurrencies.some(c => 
+                    cached[c] && cached[c].fxPerformance1M !== null && cached[c].fxPerformance1M !== undefined
+                );
+                if (!hasFxPerf) {
+                    console.log('⚠️ Caché sin fxPerformance1M — invalidando para cargar datos completos...');
+                    CacheManager.clear(cacheKey);
+                } else {
+                    setEconomicData(cached);
+                    setDataLoadingStatus({ status: 'Datos cargados desde caché', progress: 100 });
+                    return cached;
+                }
             }
 
             const economicData = {};
@@ -4749,7 +4759,7 @@ const sentiment = getSentiment(strength);
     </div>
     <div style={{ marginBottom: '1rem' }}>
         Metodología: Modelo cuantitativo basado en datos económicos reales • 20 indicadores ponderados en 6 tiers<br/>
-        Balance Externo &amp; Safe Haven (27%) • Tasas &amp; Carry (26%) • Crecimiento &amp; Empleo (20%) • Consumo &amp; Salarios (9%) • Sentimiento de Mercado (15%) • FX Momentum (7%)<br/>
+        Balance Externo &amp; Safe Haven (27%) • Tasas &amp; Carry (26%) • Crecimiento &amp; Empleo (20%) • Consumo &amp; Salarios (9%) • Sentimiento de Mercado (15%) • FX Momentum (14%)<br/>
         Datos actualizados diariamente desde Trading Economics, Frankfurter/ECB y CFTC
     </div>
 
@@ -4781,7 +4791,7 @@ const sentiment = getSentiment(strength);
             © {new Date().getFullYear()} Santiago Plá · Global Investing. Todos los derechos reservados.
         </div>
         <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-            Dashboard v5.0.0
+            Dashboard v5.0.1
         </div>
     </div>
 </div>
