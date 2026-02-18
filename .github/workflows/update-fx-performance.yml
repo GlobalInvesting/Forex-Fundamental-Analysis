@@ -48,7 +48,6 @@ jobs:
               Fetch USD/{currency} rate on a specific date via Frankfurter.
               Returns units of currency per 1 USD (i.e. how many JPY/EUR/etc per dollar).
               """
-              # Frankfurter returns EUR as base, we need to convert to USD base
               url = f"https://api.frankfurter.app/{date_str}?from=USD&to={currency}"
               try:
                   r = requests.get(url, headers=HEADERS, timeout=10)
@@ -64,10 +63,10 @@ jobs:
           def calc_performance(currency, rate_now, rate_before):
               """
               Calculate % change in currency value (appreciation = positive).
-              
+
               If USD/CCY rate goes DOWN → currency APPRECIATED vs USD → positive return.
               If USD/CCY rate goes UP   → currency DEPRECIATED vs USD → negative return.
-              
+
               Formula: (rate_before / rate_now - 1) * 100
               Example: USD/JPY was 158, now 145 → yen appreciated 8.3% → positive.
               Example: USD/EUR was 0.95, now 0.92 → EUR appreciated 3.3% → positive.
@@ -83,7 +82,7 @@ jobs:
           results = {}
 
           # USD performance vs basket (inverse of DXY logic)
-          # USD perf = -(average perf of all other currencies)
+          # USD perf = weighted inverse of other currencies (DXY weights)
           usd_perfs_1m = []
 
           for currency in CURRENCIES:
@@ -104,7 +103,7 @@ jobs:
               results[currency] = {
                   'fxPerformance1M': perf_1m,
                   'fxPerformance1W': perf_1w,
-                  'rateNow':   rate_now,
+                  'rateNow':    rate_now,
                   'rate30dAgo': rate_30d,
                   'rate7dAgo':  rate_7d,
                   'date': today_str,
@@ -113,38 +112,46 @@ jobs:
 
               print(f"  1M perf: {perf_1m}%  |  1W perf: {perf_1w}%")
 
-          # USD: calculated as inverse of basket average
+          # USD: P-2 v4.9.6 — Pesos DXY reales en lugar de peso igual
+          # Pesos oficiales del índice DXY (ICE):
+          #   EUR 57.6% | JPY 13.6% | GBP 11.9% | CAD 9.1% | CHF 3.6% | AUD+NZD 2.1% c/u
+          # El peso igual previo (14.3% por divisa) sobreestimaba JPY/AUD/CAD
+          # y subestimaba EUR, causando un error de ~1.04pp en Feb 2026.
           if usd_perfs_1m:
-              # P-2 v4.9.6 — Pesos DXY reales para USD fxPerformance1M
-DXY_WEIGHTS = {
-    'EUR': 0.576, 'JPY': 0.136, 'GBP': 0.119,
-    'CAD': 0.091, 'CHF': 0.036, 'AUD': 0.021, 'NZD': 0.021
-}
-available = [c for c in ['EUR', 'JPY', 'GBP', 'CAD', 'CHF', 'AUD', 'NZD']
-             if results.get(c, {}).get('fxPerformance1M') is not None]
-total_w = sum(DXY_WEIGHTS.get(c, 0) for c in available)
-if total_w > 0:
-    usd_perf = 0
-    for currency in available:
-        perf = results[currency]['fxPerformance1M']
-        w = DXY_WEIGHTS.get(currency, 0) / total_w
-        usd_perf -= perf * w  # USD se mueve inverso al resto
-    usd_perf = round(usd_perf, 4)
-else:
-    usd_perf = round(sum(usd_perfs_1m) / len(usd_perfs_1m), 4)  # fallback
+              DXY_WEIGHTS = {
+                  'EUR': 0.576, 'JPY': 0.136, 'GBP': 0.119,
+                  'CAD': 0.091, 'CHF': 0.036, 'AUD': 0.021, 'NZD': 0.021
+              }
+              available = [
+                  c for c in ['EUR', 'JPY', 'GBP', 'CAD', 'CHF', 'AUD', 'NZD']
+                  if results.get(c, {}).get('fxPerformance1M') is not None
+              ]
+              total_w = sum(DXY_WEIGHTS.get(c, 0) for c in available)
+              if total_w > 0:
+                  usd_perf = 0.0
+                  for c in available:
+                      perf = results[c]['fxPerformance1M']
+                      w = DXY_WEIGHTS.get(c, 0) / total_w  # renormalizar si falta alguna divisa
+                      usd_perf -= perf * w  # USD se mueve inverso al resto
+                  usd_perf = round(usd_perf, 4)
+                  print(f"\nUSD 1M perf (DXY-weighted, {len(available)}/{len(CURRENCIES)} currencies): {usd_perf}%")
+              else:
+                  # fallback: peso igual si DXY_WEIGHTS no cubre ninguna divisa disponible
+                  usd_perf = round(sum(usd_perfs_1m) / len(usd_perfs_1m), 4)
+                  print(f"\nUSD 1M perf (fallback equal-weight): {usd_perf}%")
           else:
               usd_perf = None
+              print("\nUSD 1M perf: None (no currency data available)")
 
           results['USD'] = {
               'fxPerformance1M': usd_perf,
               'fxPerformance1W': None,
-              'rateNow': 1.0,
+              'rateNow':    1.0,
               'rate30dAgo': 1.0,
               'rate7dAgo':  1.0,
               'date': today_str,
-              'source': 'Computed as inverse of currency basket average'
+              'source': 'Computed as DXY-weighted inverse of currency basket (P-2 v4.9.6)'
           }
-          print(f"\nUSD 1M perf (basket inverse): {usd_perf}%")
 
           # Save individual files
           import os
@@ -179,7 +186,7 @@ else:
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "📈 FX performance update $(date +'%Y-%m-%d') — 1M momentum"
+            git commit -m "📈 FX performance update $(date +'%Y-%m-%d') — 1M momentum DXY-weighted"
             git pull --rebase origin main || true
             git push
           fi
