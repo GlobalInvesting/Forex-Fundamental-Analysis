@@ -1,4 +1,4 @@
-name: Update Extended Data (Bonds + Sentiment + Flows + rateMomentum) - v7
+name: Update Extended Data (Bonds + Sentiment + Flows + rateMomentum) - v8
 
 on:
   schedule:
@@ -28,7 +28,8 @@ jobs:
           python3 << 'EOFPYTHON'
           import requests
           from bs4 import BeautifulSoup
-          import json, re, os, time
+          import json, re, os, time, csv
+          from io import StringIO
           from datetime import date, datetime
 
           HEADERS = {
@@ -58,25 +59,7 @@ jobs:
               'inflationExpectations': 'https://tradingeconomics.com/country-list/inflation-expectations?continent=world',
           }
 
-          # ── v6: EUR bond10y uses the dedicated TE /bonds page (GEUGB10Y:GOV) ────
           BONDS_MARKET_PAGE = 'https://tradingeconomics.com/bonds'
-
-          # ── v7 NEW: Interest rate history pages for rateMomentum calculation ────
-          # rateMomentum = current_rate - rate_12_months_ago
-          # Positive = BC raising rates (hawkish momentum), negative = cutting (dovish momentum)
-          RATE_HISTORY_URLS = {
-              'USD': 'https://tradingeconomics.com/united-states/interest-rate',
-              'EUR': 'https://tradingeconomics.com/euro-area/interest-rate',
-              'GBP': 'https://tradingeconomics.com/united-kingdom/interest-rate',
-              'JPY': 'https://tradingeconomics.com/japan/interest-rate',
-              'CAD': 'https://tradingeconomics.com/canada/interest-rate',
-              'AUD': 'https://tradingeconomics.com/australia/interest-rate',
-              'CHF': 'https://tradingeconomics.com/switzerland/interest-rate',
-              'NZD': 'https://tradingeconomics.com/new-zealand/interest-rate',
-          }
-
-          # ── country-list interest rate page (has "1Y ago" column) ────────────────
-          RATE_LIST_URL = 'https://tradingeconomics.com/country-list/interest-rate?continent=world'
 
           # ── FX RATES ─────────────────────────────────────────────────────────────
           exchange_rates = {}
@@ -125,228 +108,114 @@ jobs:
               except: pass
               return str(date.today())
 
-          # ── v7 NEW: rateMomentum scraping ────────────────────────────────────────
+          # ── v8: rateMomentum via FRED CSV (sin API key) ───────────────────────────
           def scrape_rate_momentum():
               """
-              Scrape rateMomentum = current_rate - rate_12_months_ago for all currencies.
-
-              Strategy 1 (preferred):
-                TE country-list/interest-rate page has columns:
-                Country | Last | Previous | Reference | Unit | 1Y ago | ...
-                The "1Y ago" column gives us the rate 12 months ago directly.
-
-              Strategy 2 (fallback per-currency):
-                Individual country interest-rate pages sometimes show a table with
-                historical values. We look for a row dated ~12 months ago.
-
-              Strategy 3 (fallback):
-                GitHub Pages rates/<CURR>.json already stores the current rate.
-                If we can identify the rate 1Y ago from an API, use that.
+              Calcula rateMomentum = tasa_actual - tasa_hace_12_meses.
+              Usa FRED CSV público (sin API key) que devuelve historial completo.
+              Fallback: leer extended-data/{CURR}.json anterior si existe.
               """
-              print(f"\n{'='*50}\nRATE MOMENTUM (v7 — current minus 12M ago)\n{'='*50}")
+              print(f"\n{'='*50}\nRATE MOMENTUM (v8 — FRED CSV sin API key)\n{'='*50}")
               momentum = {}
               momentum_dates = {}
 
-              # ── Strategy 1: country-list page with "1Y ago" column ───────────────
-              try:
-                  r = requests.get(RATE_LIST_URL, headers=HEADERS, timeout=20)
-                  if r.status_code == 429:
-                      print("  ⚠️ Rate limited on rate-list, waiting 30s...")
-                      time.sleep(30)
-                      r = requests.get(RATE_LIST_URL, headers=HEADERS, timeout=20)
-                  r.raise_for_status()
-                  soup = BeautifulSoup(r.content, 'lxml')
+              # Series FRED para tasa de política monetaria
+              FRED_SERIES = {
+                  'USD': 'FEDFUNDS',            # Federal Funds Rate (mensual efectivo)
+                  'EUR': 'ECBDFR',              # ECB Deposit Facility Rate
+                  'GBP': 'BOERUKM',             # Bank of England Base Rate
+                  'JPY': 'IRSTCB01JPM156N',     # Japan Overnight Call Rate
+                  'CAD': 'BOCPMM',              # Bank of Canada Overnight Rate
+                  'AUD': 'RBAAOR',              # RBA Cash Rate Target
+                  'CHF': 'SNPOLFIR',            # SNB Policy Rate
+                  'NZD': 'RBNZOCR',             # RBNZ Official Cash Rate
+              }
 
-                  table = soup.find('table', {'class': 'table'})
-                  if table:
-                      headers_row = [h.get_text(strip=True).lower() for h in table.find_all('th')]
-                      print(f"  Table headers: {headers_row}")
+              FRED_BASE = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id='
 
-                      # Find "last" / "actual" column (current rate)
-                      last_idx = None
-                      for label in ['actual', 'last']:
-                          if label in headers_row:
-                              last_idx = headers_row.index(label)
-                              break
+              for code, series_id in FRED_SERIES.items():
+                  try:
+                      url = f'{FRED_BASE}{series_id}'
+                      r = requests.get(url, timeout=15, headers={
+                          'User-Agent': 'Mozilla/5.0 (compatible; economic-data-scraper/1.0)'
+                      })
 
-                      # Find "1Y ago" column — TE labels it variously
-                      year_ago_idx = None
-                      for label in ['1y ago', '1 y ago', '1 year ago', '12m ago', 'year ago', '1y']:
-                          if label in headers_row:
-                              year_ago_idx = headers_row.index(label)
-                              break
+                      if r.status_code != 200:
+                          print(f"  ⚠️ {code}: FRED {r.status_code} para serie {series_id}")
+                          continue
 
-                      # Also check for "change 1y" which is (current - 1y_ago)
-                      change_1y_idx = None
-                      for label in ['change 1y', '1y change', 'chg 1y', 'annual change']:
-                          if label in headers_row:
-                              change_1y_idx = headers_row.index(label)
-                              break
+                      # Parsear CSV: DATE,VALUE
+                      reader = csv.reader(StringIO(r.text))
+                      rows = []
+                      for row in reader:
+                          if len(row) == 2 and row[0] != 'DATE' and row[1] not in ('.', ''):
+                              try:
+                                  dt = datetime.strptime(row[0], '%Y-%m-%d')
+                                  val = float(row[1])
+                                  rows.append((dt, val))
+                              except:
+                                  continue
 
-                      if last_idx is None:
-                          print("  ⚠️ Could not find 'last/actual' column in rate list")
+                      if len(rows) < 2:
+                          print(f"  ⚠️ {code}: Datos insuficientes en FRED {series_id} ({len(rows)} filas)")
+                          continue
+
+                      # Observación más reciente
+                      latest_dt, current_rate = rows[-1]
+
+                      # Buscar observación más cercana a 12 meses atrás
+                      target_dt = latest_dt.replace(year=latest_dt.year - 1)
+                      closest_val = None
+                      closest_diff = float('inf')
+
+                      for obs_dt, obs_val in rows[:-1]:
+                          diff = abs((obs_dt - target_dt).days)
+                          if diff < closest_diff:
+                              closest_diff = diff
+                              closest_val = obs_val
+
+                      # Aceptar si la observación está dentro de ±45 días del objetivo
+                      if closest_val is not None and closest_diff <= 45:
+                          m_val = round(current_rate - closest_val, 4)
+                          momentum[code] = m_val
+                          momentum_dates[code] = latest_dt.strftime('%Y-%m-%d')
+                          direction = '↑' if m_val > 0 else ('↓' if m_val < 0 else '→')
+                          print(f"  ✓ {code} [{series_id}]: {current_rate}% - {closest_val}% = {m_val:+.3f}% {direction} ({closest_diff}d off 12M target)")
                       else:
-                          print(f"  Column indices — last: {last_idx}, 1y_ago: {year_ago_idx}, change_1y: {change_1y_idx}")
+                          print(f"  ⚠️ {code}: Observación 12M demasiado lejana ({closest_diff}d) → momentum=null")
 
-                          for row in table.find_all('tr')[1:]:
-                              cols = row.find_all('td')
-                              if len(cols) < 2: continue
-                              ctry = cols[0].get_text(strip=True)
+                      time.sleep(0.5)  # Respetar rate limit de FRED
 
-                              for code, names in COUNTRY_NAMES.items():
-                                  if code in momentum: continue
-                                  if any(n.lower() in ctry.lower() for n in names):
-                                      current_rate = clean_num(cols[last_idx].get_text(strip=True)) if last_idx and len(cols) > last_idx else None
+                  except Exception as e:
+                      print(f"  ❌ {code} FRED error: {e}")
 
-                                      if current_rate is None: break
-
-                                      # Path A: direct 1Y ago column
-                                      if year_ago_idx and len(cols) > year_ago_idx:
-                                          rate_1y = clean_num(cols[year_ago_idx].get_text(strip=True))
-                                          if rate_1y is not None:
-                                              m_val = round(current_rate - rate_1y, 4)
-                                              momentum[code] = m_val
-                                              momentum_dates[code] = str(date.today())
-                                              print(f"  ✓ {code}: current={current_rate}% | 1y_ago={rate_1y}% | momentum={m_val:+.3f}% [col]")
-                                              break
-
-                                      # Path B: 1Y change column → momentum = change directly
-                                      if change_1y_idx and len(cols) > change_1y_idx:
-                                          change = clean_num(cols[change_1y_idx].get_text(strip=True))
-                                          if change is not None:
-                                              momentum[code] = round(change, 4)
-                                              momentum_dates[code] = str(date.today())
-                                              print(f"  ✓ {code}: current={current_rate}% | 1y_change={change:+.3f}% [delta col]")
-                                              break
-
-                                      print(f"  ⚠️ {code}: current={current_rate}% but no 1Y data in table")
-                                      break
-
-              except Exception as e:
-                  print(f"  ❌ Rate list page error: {e}")
-
-              # ── Strategy 2: Individual country pages for missing currencies ────────
-              missing = [c for c in CURRENCIES if c not in momentum]
-              if missing:
-                  print(f"\n  Individual page fallback for: {', '.join(missing)}")
-                  for code in missing:
-                      url = RATE_HISTORY_URLS[code]
-                      try:
-                          r = requests.get(url, headers=HEADERS, timeout=15)
-                          r.raise_for_status()
-                          soup = BeautifulSoup(r.content, 'lxml')
-
-                          # Look for "Previous Rate" or history table
-                          # TE individual pages often have a small stats box:
-                          # Current | Previous | Highest | Lowest | Unit | Reference
-                          # We scan for any table with historical rate data
-
-                          # Method A: stats box (div with class 'te-stats-box' or similar)
-                          found = False
-
-                          # Method B: any table containing rate-like values
-                          for table in soup.find_all('table'):
-                              headers_row = [h.get_text(strip=True).lower() for h in table.find_all('th')]
-                              # Look for "1 year ago" or similar
-                              for label in ['1 year ago', '1y ago', 'year ago', '12m ago']:
-                                  if label in headers_row:
-                                      idx = headers_row.index(label)
-                                      for row in table.find_all('tr')[1:]:
-                                          cols = row.find_all('td')
-                                          if len(cols) > max(1, idx):
-                                              current = clean_num(cols[1].get_text(strip=True)) if len(cols) > 1 else None
-                                              old_val = clean_num(cols[idx].get_text(strip=True)) if len(cols) > idx else None
-                                              if current is not None and old_val is not None and 0 <= current <= 25 and 0 <= old_val <= 25:
-                                                  m_val = round(current - old_val, 4)
-                                                  momentum[code] = m_val
-                                                  momentum_dates[code] = str(date.today())
-                                                  print(f"  ✓ {code}: {current}% - {old_val}% = {m_val:+.3f}% [country page]")
-                                                  found = True
-                                                  break
-                                          if found: break
-                                      if found: break
-                                  if found: break
-
-                          if not found:
-                              # Method C: scrape the JSON-LD or meta data for current vs previous
-                              # TE pages include <script type="application/ld+json"> with rate data
-                              for script in soup.find_all('script', type='application/ld+json'):
-                                  try:
-                                      ld = json.loads(script.string or '{}')
-                                      # Sometimes has currentValue and previousValue
-                                      current = None
-                                      previous = None
-                                      if isinstance(ld, dict):
-                                          current  = ld.get('currentValue') or ld.get('value')
-                                          previous = ld.get('previousValue')
-                                          if current and previous:
-                                              c = clean_num(str(current))
-                                              p = clean_num(str(previous))
-                                              # "Previous" on TE is usually previous meeting, not 1Y ago
-                                              # We can't reliably use this for 12M momentum → skip
-                                  except: pass
-
-                              print(f"  ⚠️ {code}: No 1Y rate found on country page → momentum=null")
-
-                      except Exception as e:
-                          print(f"  ❌ {code} country page: {e}")
-                      time.sleep(1)
-
-              # ── Strategy 3: GitHub Pages historical rates JSON ────────────────────
-              # Our rates/<CURR>.json stores observations array with date+value.
-              # If it has enough history (12+ months), compute from oldest entry.
+              # ── Fallback: leer archivo anterior si existe ─────────────────────────
               still_missing = [c for c in CURRENCIES if c not in momentum]
               if still_missing:
-                  print(f"\n  GitHub rates fallback for: {', '.join(still_missing)}")
+                  print(f"\n  Fallback (archivo anterior) para: {', '.join(still_missing)}")
                   for code in still_missing:
                       try:
-                          url = f'https://globalinvesting.github.io/rates/{code}.json'
-                          r = requests.get(url, timeout=10)
-                          if r.ok:
-                              data = r.json()
-                              obs = data.get('observations', [])
-                              if len(obs) >= 2:
-                                  # obs[0] = most recent, find one ~12 months ago
-                                  current_val = clean_num(str(obs[0].get('value', '')))
-                                  current_date = obs[0].get('date', '')
-
-                                  target_dt = None
-                                  if current_date:
-                                      try:
-                                          cd = datetime.strptime(current_date, '%Y-%m-%d')
-                                          target_dt = cd.replace(year=cd.year - 1)
-                                      except: pass
-
-                                  closest_val = None
-                                  closest_diff = float('inf')
-                                  for ob in obs[1:]:
-                                      ob_dt_str = ob.get('date', '')
-                                      ob_val = clean_num(str(ob.get('value', '')))
-                                      if ob_val is None or ob_val == '.': continue
-                                      if target_dt and ob_dt_str:
-                                          try:
-                                              od = datetime.strptime(ob_dt_str, '%Y-%m-%d')
-                                              diff = abs((od - target_dt).days)
-                                              if diff < closest_diff:
-                                                  closest_diff = diff
-                                                  closest_val = ob_val
-                                          except: pass
-
-                                  if current_val is not None and closest_val is not None and closest_diff < 90:
-                                      m_val = round(current_val - closest_val, 4)
-                                      momentum[code] = m_val
-                                      momentum_dates[code] = str(date.today())
-                                      print(f"  ✓ {code}: {current_val}% - {closest_val}% = {m_val:+.3f}% [GH rates, {closest_diff}d off target]")
-                                  else:
-                                      print(f"  ⚠️ {code}: GitHub rates insufficient history (obs={len(obs)}, closest_diff={closest_diff}d)")
+                          path = f'extended-data/{code}.json'
+                          if os.path.exists(path):
+                              with open(path) as f:
+                                  prev = json.load(f)
+                              prev_momentum = prev.get('data', {}).get('rateMomentum')
+                              if prev_momentum is not None:
+                                  momentum[code] = prev_momentum
+                                  momentum_dates[code] = prev.get('dates', {}).get('rateMomentum', str(date.today()))
+                                  print(f"  ✓ {code}: Usando valor anterior ({prev_momentum:+.3f}%) [{momentum_dates[code]}]")
+                              else:
+                                  print(f"  ✗ {code}: Sin valor anterior disponible")
+                          else:
+                              print(f"  ✗ {code}: No existe archivo anterior")
                       except Exception as e:
-                          print(f"  ⚠️ {code} GitHub rates fallback: {e}")
+                          print(f"  ✗ {code} fallback error: {e}")
 
               final_missing = [c for c in CURRENCIES if c not in momentum]
               if final_missing:
-                  print(f"\n  ❌ rateMomentum unavailable for: {', '.join(final_missing)} (will be null)")
+                  print(f"\n  ❌ rateMomentum no disponible para: {', '.join(final_missing)} (será null)")
               else:
-                  print(f"\n  ✅ rateMomentum complete for all currencies")
+                  print(f"\n  ✅ rateMomentum completo para todas las divisas")
 
               return momentum, momentum_dates
 
@@ -368,7 +237,7 @@ jobs:
               elif 'MILLION' in unit_upper:
                   scale = 1.0
               else:
-                  print(f"    ⚠️ Unknown scale in unit '{unit_str}' — treating as millions")
+                  print(f"    ⚠️ Escala desconocida '{unit_str}' — tratando como millones")
                   scale = 1.0
               m = re.match(r'^([A-Z]{3})\b', unit_upper)
               src_currency = m.group(1) if m else 'USD'
@@ -380,7 +249,7 @@ jobs:
                   if fx and fx > 0:
                       val_usd_millions = val_native_millions / fx
                   else:
-                      print(f"    ⚠️ No FX rate for {src_currency} — skipping")
+                      print(f"    ⚠️ Sin tipo de cambio para {src_currency} — omitiendo")
                       return None
               return round(val_usd_millions, 2)
 
@@ -411,7 +280,7 @@ jobs:
               try:
                   r = requests.get(url, headers=HEADERS, timeout=20)
                   if r.status_code == 429:
-                      print(f"  ⚠️ Rate limited, waiting 30s...")
+                      print(f"  ⚠️ Rate limited, esperando 30s...")
                       time.sleep(30)
                       r = requests.get(url, headers=HEADERS, timeout=20)
                   r.raise_for_status()
@@ -419,7 +288,7 @@ jobs:
                   soup = BeautifulSoup(r.content, 'lxml')
                   table = soup.find('table', {'class': 'table'})
                   if not table:
-                      print("  ❌ No table found"); return data, dates
+                      print("  ❌ No se encontró tabla"); return data, dates
 
                   headers_row = [h.get_text(strip=True).lower() for h in table.find_all('th')]
                   if 'actual' in headers_row:
@@ -500,11 +369,11 @@ jobs:
           }
 
           def _fetch_eur_bond_from_market_page():
-              print(f"\n  → Fetching EUR bond from TE /bonds market page...")
+              print(f"\n  → Fetching EUR bond desde TE /bonds...")
               try:
                   r = requests.get(BONDS_MARKET_PAGE, headers=HEADERS, timeout=20)
                   if r.status_code == 429:
-                      print("  ⚠️ Rate limited on /bonds, waiting 30s...")
+                      print("  ⚠️ Rate limited en /bonds, esperando 30s...")
                       time.sleep(30)
                       r = requests.get(BONDS_MARKET_PAGE, headers=HEADERS, timeout=20)
                   r.raise_for_status()
@@ -520,7 +389,7 @@ jobs:
                           if date_td:
                               dt = parse_te_date(date_td.get_text(strip=True))
                           if val is not None and 2.0 <= val <= 4.5:
-                              print(f"  ✓ EUR [/bonds EA GEUGB10Y]: {val}% ({dt})")
+                              print(f"  ✓ EUR [/bonds GEUGB10Y]: {val}% ({dt})")
                               return round(val, 3), dt
 
                   for row in soup.find_all('tr'):
@@ -536,7 +405,7 @@ jobs:
                               break
 
               except Exception as e:
-                  print(f"  ✗ EUR /bonds market page: {e}")
+                  print(f"  ✗ EUR /bonds: {e}")
               return None, None
 
           def _extract_bonds_from_all_tables(soup):
@@ -581,7 +450,7 @@ jobs:
               return None, None
 
           def scrape_bonds():
-              print(f"\n{'='*50}\nBOND YIELDS (v6 — EUR via /bonds market page)\n{'='*50}")
+              print(f"\n{'='*50}\nBOND YIELDS (EUR via /bonds market page)\n{'='*50}")
               data, dates = {}, {}
 
               eur_val, eur_dt = _fetch_eur_bond_from_market_page()
@@ -593,7 +462,7 @@ jobs:
               try:
                   r = requests.get(TE_URLS['bond10y'], headers=HEADERS, timeout=20)
                   if r.status_code == 429:
-                      print("  ⚠️ Rate limited, waiting 30s...")
+                      print("  ⚠️ Rate limited, esperando 30s...")
                       time.sleep(30)
                       r = requests.get(TE_URLS['bond10y'], headers=HEADERS, timeout=20)
                   r.raise_for_status()
@@ -633,14 +502,14 @@ jobs:
                                   data[code]  = w_data[code]
                                   dates[code] = w_dates[code]
                               else:
-                                  print(f"  ⚠️ {code}: {w_data[code]}% out of range → discarded")
+                                  print(f"  ⚠️ {code}: {w_data[code]}% fuera de rango → descartado")
 
               except Exception as e:
-                  print(f"  ❌ TE bond country-list page error: {e}")
+                  print(f"  ❌ TE bond country-list error: {e}")
 
               still_missing = [c for c in CURRENCIES if c not in data]
               if still_missing:
-                  print(f"\n  Country-page fallback for: {', '.join(still_missing)}")
+                  print(f"\n  Country-page fallback para: {', '.join(still_missing)}")
                   for code in still_missing:
                       val, dt = _bond_country_page_fallback(code)
                       if val is not None:
@@ -659,12 +528,14 @@ jobs:
           all_data  = {c: {} for c in CURRENCIES}
           all_dates = {c: {} for c in CURRENCIES}
 
+          # 1. Bond yields
           bond_data, bond_dates = scrape_bonds()
           for c in CURRENCIES:
               all_data[c]['bond10y']  = bond_data.get(c)
               all_dates[c]['bond10y'] = bond_dates.get(c, str(date.today()))
           time.sleep(2)
 
+          # 2. Trading Economics indicators
           for key, url in {k: v for k, v in TE_URLS.items() if k != 'bond10y'}.items():
               d, dt = scrape_te_table(url, key)
               for c in CURRENCIES:
@@ -672,18 +543,18 @@ jobs:
                   all_dates[c][key] = dt.get(c, str(date.today()))
               time.sleep(2)
 
-          # ── v7 NEW: rateMomentum ──────────────────────────────────────────────
+          # 3. rateMomentum via FRED (v8 fix)
           rate_momentum, rate_momentum_dates = scrape_rate_momentum()
           for c in CURRENCIES:
-              all_data[c]['rateMomentum']  = rate_momentum.get(c)  # null if unavailable
+              all_data[c]['rateMomentum']  = rate_momentum.get(c)
               all_dates[c]['rateMomentum'] = rate_momentum_dates.get(c, str(date.today()))
-          time.sleep(1)
 
+          # ── GUARDAR RESULTADOS ────────────────────────────────────────────────────
           print(f"\n{'='*50}\nSAVING RESULTS\n{'='*50}")
           for curr in CURRENCIES:
               pkg = {
                   'lastUpdate': str(date.today()),
-                  'source': 'TradingEconomics — v7: +rateMomentum (current_rate - rate_12M_ago); EUR bond10y via /bonds GEUGB10Y:GOV',
+                  'source': 'TradingEconomics + FRED — v8: rateMomentum via FRED CSV (sin API key)',
                   'data':   all_data[curr],
                   'dates':  all_dates[curr]
               }
@@ -700,13 +571,14 @@ jobs:
                   extras.append(f"bond10y={all_data['EUR'].get('bond10y','N/A')}% EA agg")
               rm = all_data[curr].get('rateMomentum')
               if rm is not None:
-                  extras.append(f"rateMomentum={rm:+.3f}%")
+                  direction = '↑' if rm > 0 else ('↓' if rm < 0 else '→')
+                  extras.append(f"rateMomentum={rm:+.3f}% {direction}")
               extra_str = f" [{', '.join(extras)}]" if extras else ''
               print(f"{status} {curr}: {', '.join(available) or 'NO DATA'}{extra_str}")
               if missing:
                   print(f"   Missing: {', '.join(missing)}")
 
-          print("\n✅ COMPLETE — v7")
+          print("\n✅ COMPLETE — v8")
           EOFPYTHON
 
       - name: Commit and push
@@ -715,9 +587,9 @@ jobs:
           git config user.email github-actions@github.com
           git add extended-data/
           if git diff --quiet && git diff --staged --quiet; then
-            echo "No changes"
+            echo "No changes to commit"
           else
-            git commit -m "📊 Extended data $(date +'%Y-%m-%d') — v7 +rateMomentum"
+            git commit -m "📊 Extended data $(date +'%Y-%m-%d') — v8 rateMomentum via FRED"
             git pull --rebase origin main || true
             git push
           fi
