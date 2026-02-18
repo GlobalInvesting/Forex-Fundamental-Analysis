@@ -1,4 +1,4 @@
-name: Update Economic Data - v9 (TE + ONS + TE ratio EUR + WorldBank)
+name: Update Economic Data - v10 (TE + ONS + TE ratio EUR + WorldBank)
 on:
   schedule:
     - cron: '0 6 * * *'
@@ -137,52 +137,94 @@ jobs:
               """
               Scrape a TE country indicator page (e.g. export-prices, import-prices).
               Returns (value, date_str) of the most recent data point.
-              Tries multiple table structures that TE uses.
+
+              TE renders indicator pages in 3 different structures depending on the
+              indicator. We try all of them:
+
+              Strategy 1 — Direct indicator table (columns: Last/Actual + Reference).
+                           Works for import-prices. First row is the target value.
+
+              Strategy 2 — Related-indicators table (columns: Last + Reference).
+                           Works for export-prices. Rows are related indicators; we
+                           match the row whose first cell contains a keyword from the
+                           URL slug (e.g. 'export' for export-prices).
+
+              Strategy 3 — Fallback: scan all table rows for any price-like number
+                           (50–300 range) paired with a plausible date.
+
+              Strategy 4 — Last resort: look for standalone number in elements with
+                           class names suggesting a current value display.
               """
+              # Derive keyword from URL slug for Strategy 2 row matching
+              slug_keyword = url.rstrip('/').split('/')[-1].split('-')[0].lower()  # 'export' or 'import'
+
               try:
                   r = te_get(url)
                   soup = BeautifulSoup(r.content, 'lxml')
 
-                  # Strategy 1: table with 'actual' or 'last' column header
                   for table in soup.find_all('table'):
                       headers = [h.get_text(strip=True).lower() for h in table.find_all('th')]
-                      val_col = None
-                      date_col = None
+                      rows = table.find_all('tr')[1:]
+                      if not rows:
+                          continue
 
+                      # Determine column indices
+                      val_col  = None
+                      date_col = None
                       if 'actual' in headers:
                           val_col = headers.index('actual')
                       elif 'last' in headers:
                           val_col = headers.index('last')
-
                       if 'reference' in headers:
                           date_col = headers.index('reference')
 
                       if val_col is None:
                           continue
 
-                      rows = table.find_all('tr')[1:]
-                      if not rows:
-                          continue
-
+                      # ── Strategy 1: first data row (direct indicator table) ──
                       cells = rows[0].find_all('td')
-                      if len(cells) <= val_col:
-                          continue
+                      if len(cells) > val_col:
+                          val = clean_num(cells[val_col].get_text(strip=True))
+                          d   = str(date.today())
+                          if date_col and len(cells) > date_col:
+                              d = parse_te_date(cells[date_col].get_text(strip=True))
+                          if val is not None and 50 < val < 300:
+                              print(f"    ✓ {label} [S1-direct]: {val} ({d})")
+                              return val, d
 
-                      val = clean_num(cells[val_col].get_text(strip=True))
-                      d = str(date.today())
-                      if date_col and len(cells) > date_col:
-                          d = parse_te_date(cells[date_col].get_text(strip=True))
+                      # ── Strategy 2: scan rows for keyword match (related table) ──
+                      for row in rows:
+                          cells = row.find_all('td')
+                          if not cells:
+                              continue
+                          row_text = cells[0].get_text(strip=True).lower()
+                          if slug_keyword in row_text and len(cells) > val_col:
+                              val = clean_num(cells[val_col].get_text(strip=True))
+                              d   = str(date.today())
+                              if date_col and len(cells) > date_col:
+                                  d = parse_te_date(cells[date_col].get_text(strip=True))
+                              if val is not None and 50 < val < 300:
+                                  print(f"    ✓ {label} [S2-keyword]: {val} ({d})")
+                                  return val, d
 
-                      if val is not None and val > 0:
-                          print(f"    ✓ {label} [table]: {val} ({d})")
-                          return val, d
+                      # ── Strategy 3: any row with a price-like number ──
+                      for row in rows:
+                          cells = row.find_all('td')
+                          if len(cells) > val_col:
+                              val = clean_num(cells[val_col].get_text(strip=True))
+                              if val is not None and 50 < val < 300:
+                                  d = str(date.today())
+                                  if date_col and len(cells) > date_col:
+                                      d = parse_te_date(cells[date_col].get_text(strip=True))
+                                  print(f"    ✓ {label} [S3-any]: {val} ({d})")
+                                  return val, d
 
-                  # Strategy 2: look for a prominent number in a div/span with class
-                  # TE sometimes renders current value in a <span id="..."> or similar
-                  for tag in soup.find_all(['td', 'span', 'div'], class_=re.compile(r'(actual|last|value|current)', re.I)):
+                  # ── Strategy 4: standalone number in known TE value elements ──
+                  for tag in soup.find_all(['td', 'span', 'div'],
+                                           class_=re.compile(r'(actual|last|value|current)', re.I)):
                       val = clean_num(tag.get_text(strip=True))
                       if val is not None and 50 < val < 300:
-                          print(f"    ✓ {label} [element]: {val}")
+                          print(f"    ✓ {label} [S4-element]: {val}")
                           return val, str(date.today())
 
               except Exception as e:
@@ -521,7 +563,7 @@ jobs:
           # MAIN
           # ═══════════════════════════════════════════════════════════════════
           print("="*60)
-          print("ECONOMIC DATA SCRAPER v9")
+          print("ECONOMIC DATA SCRAPER v10")
           print("ToT EUR: TE export/import price ratio (Eurostat base, monthly)")
           print("ToT GBP: ONS CTSL → World Bank")
           print("ToT NZD: World Bank (base 2002Q2=1000 in TE, not comparable)")
@@ -569,7 +611,7 @@ jobs:
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Economic data $(date +'%Y-%m-%d') - ToT v9"
+            git commit -m "Economic data $(date +'%Y-%m-%d') - ToT v10"
             git pull --rebase origin main || true
             git push
           fi
