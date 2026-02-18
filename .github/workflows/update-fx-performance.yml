@@ -34,41 +34,38 @@ jobs:
 
           CURRENCIES = ['EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD']
 
-today = date.today()
-          # Usar ayer como "hoy confiable" — ECB reference rates se publican a las 16:00 CET
-          # Si el workflow corre antes de esa hora, today no tiene dato y Frankfurter
-          # devuelve el dato del día anterior de todas formas, pero de forma inconsistente.
-          # Usando yesterday explícitamente garantizamos coherencia temporal entre todas las divisas.
+          today = date.today()
+
+          # CORRECCIÓN: Usar ayer como "hoy confiable".
+          # Frankfurter usa ECB reference rates publicados a las 16:00 CET.
+          # Si el workflow corre antes de esa hora, 'today' puede no tener dato
+          # confirmado y Frankfurter devuelve el día anterior de forma inconsistente.
+          # Usando yesterday explícitamente garantizamos coherencia temporal entre
+          # todas las divisas en cada ejecución.
           yesterday = today - timedelta(days=1)
           date_30d  = yesterday - timedelta(days=30)
           date_7d   = yesterday - timedelta(days=7)
 
-          today_str  = yesterday.isoformat()   # "hoy confiable"
-          d30_str    = date_30d.isoformat()
-          d7_str     = date_7d.isoformat()
+          today_str = yesterday.isoformat()   # "hoy confiable"
+          d30_str   = date_30d.isoformat()
+          d7_str    = date_7d.isoformat()
 
-          print(f"Fetching FX performance: {d30_str} → {today_str} (using yesterday as confirmed date)")
+          print(f"Fetching FX performance: {d30_str} → {today_str} (using yesterday as confirmed ECB date)")
 
-def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
+          def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
               """
               Fetch USD/{currency} rate on a specific date via Frankfurter.
               Returns units of currency per 1 USD (i.e. how many JPY/EUR/etc per dollar).
 
               Frankfurter usa ECB reference rates publicados a las 16:00 CET.
-              Si pedimos 'latest' o la fecha de hoy antes de esa hora, puede devolver
-              el dato del día anterior. Para evitar desajustes temporales entre divisas,
-              siempre usamos la fecha de ayer como "hoy confiable" (latest confirmed).
-              """
-              # Normalizar: si es la fecha de hoy, usar ayer para garantizar dato disponible
-              from datetime import date as _date, timedelta
-              try:
-                  requested = _date.fromisoformat(date_str)
-                  if requested >= _date.today():
-                      date_str = (_date.today() - timedelta(days=1)).isoformat()
-                      print(f"  Note: using {date_str} (yesterday) for {currency} — ECB rates published at 16:00 CET")
-              except:
-                  pass
+              Si pedimos la fecha de hoy antes de esa hora, puede devolver
+              el dato del día anterior de forma inconsistente entre divisas.
+              Para evitar este desajuste, las fechas se normalizan en el bloque
+              superior (usando yesterday). Esta función acepta la fecha ya normalizada.
 
+              En caso de día no hábil (fin de semana, festivo), Frankfurter
+              devuelve automáticamente el último dato disponible — lo aceptamos.
+              """
               url = f"https://api.frankfurter.app/{date_str}?from=USD&to={currency}"
               for attempt in range(1, retries + 1):
                   try:
@@ -77,9 +74,12 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
                           data = r.json()
                           rate = data.get('rates', {}).get(currency)
                           if rate:
+                              # Loguear la fecha real devuelta por Frankfurter (puede diferir
+                              # de date_str si ese día no era hábil)
+                              actual_date = data.get('date', date_str)
+                              if actual_date != date_str:
+                                  print(f"  Note: {currency} on {date_str} → Frankfurter returned {actual_date} (non-trading day adjusted)")
                               return float(rate)
-                          # Si Frankfurter devuelve fecha diferente a la pedida (día no hábil),
-                          # igual aceptamos el dato — es el más cercano disponible
                           print(f"  Warning: {currency} on {date_str}: rate not in response (keys: {list(data.get('rates',{}).keys())})")
                       else:
                           print(f"  Warning: {currency} on {date_str}: HTTP {r.status_code} (attempt {attempt}/{retries})")
@@ -87,7 +87,7 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
                       print(f"  Warning: {currency} on {date_str}: {e} (attempt {attempt}/{retries})")
 
                   if attempt < retries:
-                      sleep_s = backoff ** (attempt - 1)
+                      sleep_s = backoff ** (attempt - 1)  # 1s, 2s
                       print(f"  Retrying in {sleep_s}s...")
                       time.sleep(sleep_s)
 
@@ -98,41 +98,35 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
               """
               Calculate % change in currency value (appreciation = positive).
 
-              If USD/CCY rate goes DOWN → currency APPRECIATED vs USD → positive return.
-              If USD/CCY rate goes UP   → currency DEPRECIATED vs USD → negative return.
+              Si USD/CCY rate baja → moneda se APRECIÓ vs USD → resultado positivo.
+              Si USD/CCY rate sube → moneda se DEPRECIÓ vs USD → resultado negativo.
 
-              Formula: (rate_before / rate_now - 1) * 100
-              Example: USD/JPY was 158, now 145 → yen appreciated 8.3% → positive.
-              Example: USD/EUR was 0.95, now 0.92 → EUR appreciated 3.3% → positive.
+              Fórmula: (rate_before / rate_now - 1) * 100
+              Ejemplo: USD/JPY era 158, ahora 145 → yen apreció 8.3% → positivo.
+              Ejemplo: USD/EUR era 0.95, ahora 0.92 → EUR apreció 3.3% → positivo.
               """
               if rate_now is None or rate_before is None:
                   return None
               if rate_before == 0 or rate_now == 0:
                   return None
-              # "How much has CCY gained vs USD?"
               perf = (rate_before / rate_now - 1.0) * 100.0
               return round(perf, 4)
 
           results = {}
 
-          # USD performance vs basket (inverse of DXY logic)
-          # USD perf = weighted inverse of other currencies (DXY weights)
-          usd_perfs_1m = []
-
           for currency in CURRENCIES:
               print(f"\nProcessing {currency}...")
 
-              rate_now  = fetch_rate_on_date(currency, today_str)
-              rate_30d  = fetch_rate_on_date(currency, d30_str)
-              rate_7d   = fetch_rate_on_date(currency, d7_str)
+              rate_now = fetch_rate_on_date(currency, today_str)
+              rate_30d = fetch_rate_on_date(currency, d30_str)
+              rate_7d  = fetch_rate_on_date(currency, d7_str)
 
-              print(f"  Now: {rate_now}, 30d ago: {rate_30d}, 7d ago: {rate_7d}")
+              print(f"  Now ({today_str}): {rate_now}")
+              print(f"  30d ago ({d30_str}): {rate_30d}")
+              print(f"  7d ago ({d7_str}): {rate_7d}")
 
               perf_1m = calc_performance(currency, rate_now, rate_30d)
               perf_1w = calc_performance(currency, rate_now, rate_7d)
-
-              if perf_1m is not None:
-                  usd_perfs_1m.append(-perf_1m)
 
               results[currency] = {
                   'fxPerformance1M': perf_1m,
@@ -141,38 +135,35 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
                   'rate30dAgo': rate_30d,
                   'rate7dAgo':  rate_7d,
                   'date': today_str,
-                  'source': 'Frankfurter API (ECB reference rates)'
+                  'source': 'Frankfurter API (ECB reference rates) — date normalized to yesterday'
               }
 
               print(f"  1M perf: {perf_1m}%  |  1W perf: {perf_1w}%")
 
-          # USD: P-2 v4.9.6 — Pesos DXY reales en lugar de peso igual
+          # USD: calculado como inverso ponderado DXY
           # Pesos oficiales del índice DXY (ICE):
-          #   EUR 57.6% | JPY 13.6% | GBP 11.9% | CAD 9.1% | CHF 3.6% | AUD+NZD 2.1% c/u
+          #   EUR 57.6% | JPY 13.6% | GBP 11.9% | CAD 9.1% | CHF 3.6% | AUD 2.1% | NZD 2.1%
           # El peso igual previo (14.3% por divisa) sobreestimaba JPY/AUD/CAD
-          # y subestimaba EUR, causando un error de ~1.04pp en Feb 2026.
-          if usd_perfs_1m:
-              DXY_WEIGHTS = {
-                  'EUR': 0.576, 'JPY': 0.136, 'GBP': 0.119,
-                  'CAD': 0.091, 'CHF': 0.036, 'AUD': 0.021, 'NZD': 0.021
-              }
-              available = [
-                  c for c in ['EUR', 'JPY', 'GBP', 'CAD', 'CHF', 'AUD', 'NZD']
-                  if results.get(c, {}).get('fxPerformance1M') is not None
-              ]
-              total_w = sum(DXY_WEIGHTS.get(c, 0) for c in available)
-              if total_w > 0:
-                  usd_perf = 0.0
-                  for c in available:
-                      perf = results[c]['fxPerformance1M']
-                      w = DXY_WEIGHTS.get(c, 0) / total_w  # renormalizar si falta alguna divisa
-                      usd_perf -= perf * w  # USD se mueve inverso al resto
-                  usd_perf = round(usd_perf, 4)
-                  print(f"\nUSD 1M perf (DXY-weighted, {len(available)}/{len(CURRENCIES)} currencies): {usd_perf}%")
-              else:
-                  # fallback: peso igual si DXY_WEIGHTS no cubre ninguna divisa disponible
-                  usd_perf = round(sum(usd_perfs_1m) / len(usd_perfs_1m), 4)
-                  print(f"\nUSD 1M perf (fallback equal-weight): {usd_perf}%")
+          # y subestimaba EUR. Pesos DXY reales reducen error en ~1pp.
+          DXY_WEIGHTS = {
+              'EUR': 0.576, 'JPY': 0.136, 'GBP': 0.119,
+              'CAD': 0.091, 'CHF': 0.036, 'AUD': 0.021, 'NZD': 0.021
+          }
+
+          available_for_usd = [
+              c for c in ['EUR', 'JPY', 'GBP', 'CAD', 'CHF', 'AUD', 'NZD']
+              if results.get(c, {}).get('fxPerformance1M') is not None
+          ]
+          total_w = sum(DXY_WEIGHTS.get(c, 0) for c in available_for_usd)
+
+          if total_w > 0:
+              usd_perf = 0.0
+              for c in available_for_usd:
+                  perf = results[c]['fxPerformance1M']
+                  w = DXY_WEIGHTS.get(c, 0) / total_w  # renormalizar si falta alguna divisa
+                  usd_perf -= perf * w                  # USD se mueve inverso al resto
+              usd_perf = round(usd_perf, 4)
+              print(f"\nUSD 1M perf (DXY-weighted, {len(available_for_usd)}/{len(CURRENCIES)} currencies): {usd_perf}%")
           else:
               usd_perf = None
               print("\nUSD 1M perf: None (no currency data available)")
@@ -184,10 +175,10 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
               'rate30dAgo': 1.0,
               'rate7dAgo':  1.0,
               'date': today_str,
-              'source': 'Computed as DXY-weighted inverse of currency basket (P-2 v4.9.6)'
+              'source': 'Computed as DXY-weighted inverse of currency basket (pesos ICE oficiales)'
           }
 
-          # Save individual files
+          # Guardar archivos individuales
           import os
           os.makedirs('fx-performance', exist_ok=True)
 
@@ -199,24 +190,27 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
                   status = '✓' if results[curr]['fxPerformance1M'] is not None else '✗ NULL'
                   print(f"Saved fx-performance/{curr}.json: 1M={results[curr]['fxPerformance1M']}% [{status}]")
 
-          # Summary
+          # Resumen
           print("\n" + "="*60)
           print("FX PERFORMANCE SUMMARY (1M, currency appreciation vs USD)")
+          print(f"Reference date: {today_str} (yesterday = confirmed ECB rate)")
           print("="*60)
           sorted_results = sorted(
               [(c, d['fxPerformance1M']) for c, d in results.items() if d['fxPerformance1M'] is not None],
               key=lambda x: x[1], reverse=True
           )
           for curr, perf in sorted_results:
-              bar = '█' * int(abs(perf))
+              bar = '█' * min(int(abs(perf)), 20)
               sign = '+' if perf >= 0 else ''
               print(f"  {curr}: {sign}{perf:+.2f}%  {bar}")
 
-          # Warn about any nulls
+          # Alertar sobre nulls
           nulls = [c for c, d in results.items() if d['fxPerformance1M'] is None]
           if nulls:
               print(f"\n⚠️  NULL results (API failures): {', '.join(nulls)}")
-              print("   These currencies will not contribute to their fxPerformance1M score.")
+              print("   Estas divisas no contribuirán a su fxPerformance1M score.")
+          else:
+              print(f"\n✅ Todas las divisas procesadas correctamente.")
           EOFPYTHON
 
       - name: Commit and push
@@ -227,7 +221,7 @@ def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "📈 FX performance update $(date +'%Y-%m-%d') — 1M momentum DXY-weighted"
+            git commit -m "📈 FX performance update $(date +'%Y-%m-%d') — ECB date normalized, DXY-weighted"
             git pull --rebase origin main || true
             git push
           fi
