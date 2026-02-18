@@ -34,15 +34,20 @@ jobs:
 
           CURRENCIES = ['EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD']
 
-          today = date.today()
-          date_30d = today - timedelta(days=30)
-          date_7d  = today - timedelta(days=7)
+today = date.today()
+          # Usar ayer como "hoy confiable" — ECB reference rates se publican a las 16:00 CET
+          # Si el workflow corre antes de esa hora, today no tiene dato y Frankfurter
+          # devuelve el dato del día anterior de todas formas, pero de forma inconsistente.
+          # Usando yesterday explícitamente garantizamos coherencia temporal entre todas las divisas.
+          yesterday = today - timedelta(days=1)
+          date_30d  = yesterday - timedelta(days=30)
+          date_7d   = yesterday - timedelta(days=7)
 
-          today_str  = today.isoformat()
+          today_str  = yesterday.isoformat()   # "hoy confiable"
           d30_str    = date_30d.isoformat()
           d7_str     = date_7d.isoformat()
 
-          print(f"Fetching FX performance: {d30_str} → {today_str}")
+          print(f"Fetching FX performance: {d30_str} → {today_str} (using yesterday as confirmed date)")
 
 def fetch_rate_on_date(currency, date_str, retries=3, backoff=2):
               """
