@@ -115,7 +115,23 @@ jobs:
 
           # USD: calculated as inverse of basket average
           if usd_perfs_1m:
-              usd_perf = round(sum(usd_perfs_1m) / len(usd_perfs_1m), 4)
+              # P-2 v4.9.6 — Pesos DXY reales para USD fxPerformance1M
+DXY_WEIGHTS = {
+    'EUR': 0.576, 'JPY': 0.136, 'GBP': 0.119,
+    'CAD': 0.091, 'CHF': 0.036, 'AUD': 0.021, 'NZD': 0.021
+}
+available = [c for c in ['EUR', 'JPY', 'GBP', 'CAD', 'CHF', 'AUD', 'NZD']
+             if results.get(c, {}).get('fxPerformance1M') is not None]
+total_w = sum(DXY_WEIGHTS.get(c, 0) for c in available)
+if total_w > 0:
+    usd_perf = 0
+    for currency in available:
+        perf = results[currency]['fxPerformance1M']
+        w = DXY_WEIGHTS.get(currency, 0) / total_w
+        usd_perf -= perf * w  # USD se mueve inverso al resto
+    usd_perf = round(usd_perf, 4)
+else:
+    usd_perf = round(sum(usd_perfs_1m) / len(usd_perfs_1m), 4)  # fallback
           else:
               usd_perf = None
 
