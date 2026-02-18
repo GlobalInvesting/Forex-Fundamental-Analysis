@@ -1,4 +1,4 @@
-name: Update Economic Data - v7 (TE + ONS + ECB calc + WorldBank)
+name: Update Economic Data - v8 (TE + ONS + ECB TRD + Eurostat + IMF + WorldBank)
 on:
   schedule:
     - cron: '0 6 * * *'
@@ -134,17 +134,14 @@ jobs:
               return r
 
           # ═══════════════════════════════════════════════════════════════════
-          # TERMS OF TRADE — source chain
+          # TERMS OF TRADE — EUR source chain (4 sources)
           # ═══════════════════════════════════════════════════════════════════
 
           def scrape_tot_ons_gbp():
               """
               ONS API: Series CTSL (Trade in Goods Total Terms of Trade, SA)
               Dataset MRET. Returns quarterly data.
-              Correct API path: api.ons.gov.uk/v1/datasets/MRET/timeseries/CTSL/data
-              (Note: path order is /datasets/{dataset}/timeseries/{series}/data)
               """
-              # Try both path orderings — ONS changed their API structure
               urls = [
                   "https://api.ons.gov.uk/v1/datasets/MRET/timeseries/CTSL/data",
                   "https://api.ons.gov.uk/v1/timeseries/CTSL/dataset/MRET/data",
@@ -160,7 +157,6 @@ jobs:
                       data = r.json()
                       quarters = data.get('quarters', [])
                       if not quarters:
-                          # Try 'years' or other keys if quarters not present
                           print(f"    ✗ ONS: no quarters in response. Keys: {list(data.keys())[:5]}")
                           continue
 
@@ -184,130 +180,183 @@ jobs:
                       print(f"    ✗ ONS {url}: {e}")
               return None, None
 
-          def calc_tot_eur_ecb():
+          # ── EUR Source 1: ECB TRD dataset (unit value indices, monthly) ──────
+
+          def fetch_tot_eur_ecb_trd():
               """
-              Calculate EUR ToT = (Export price deflator / Import price deflator) × 100
-              using the ECB Data Portal API (data-api.ecb.europa.eu).
+              ECB TRD dataset: unit value indices for extra-euro area trade.
+              ToT = (Export UVI / Import UVI) normalised to 2020 average = 100.
 
-              ECB dataflow MNA (Quarterly National Accounts) contains:
-              - Export deflator: Q.Y.I8.W2.S1.S1.B.P6.D.L40.VZ.E.AV
-              - Import deflator: Q.Y.I8.W2.S1.S1.B.P7.D.L40.VZ.E.AV
-              Where:
-                Q      = quarterly
-                Y      = neither seasonally nor calendar adjusted
-                I8     = Euro Area (20)
-                W2     = rest of the world (partner)
-                S1.S1  = total economy
-                B      = net / balance
-                P6/P7  = exports / imports of goods and services
-                D      = deflator
-                L40    = price index, period average
-                VZ     = not applicable
-                E      = euro
-                AV     = average of period
-
-              We try multiple candidate series keys since the exact dimensions
-              may differ slightly across ECB API versions.
+              Dimension structure for TRD:
+                FREQ.REF_AREA.COUNTERPART_AREA.FLOW.PRODUCT.TRANSFORMATION.UNIT_MEASURE
+              Series keys tried:
+                M.I8.W2.X.S1.0.VALUE  (EA20, world, exports, all products, index)
+                M.I9.W2.X.S1.0.VALUE  (EA19 fallback)
               """
-              # Base URL for ECB API
-              ecb_base = "https://data-api.ecb.europa.eu/service/data/MNA/"
+              ecb_base = "https://data-api.ecb.europa.eu/service/data/TRD/"
 
-              # Candidate export/import deflator series keys for Euro Area
-              # Format: (export_key, import_key)
+              # (export_key, import_key) pairs to try
               candidates = [
-                  # Primary candidate
-                  ("Q.Y.I8.W2.S1.S1.B.P6.D.L40.VZ.E.AV",
-                   "Q.Y.I8.W2.S1.S1.B.P7.D.L40.VZ.E.AV"),
-                  # Seasonally adjusted variant
-                  ("Q.Y.I8.W2.S1.S1.B.P6.D.L40.VZ.E.CA",
-                   "Q.Y.I8.W2.S1.S1.B.P7.D.L40.VZ.E.CA"),
-                  # Try with EA instead of I8
-                  ("Q.Y.U2.W2.S1.S1.B.P6.D.L40.VZ.E.AV",
-                   "Q.Y.U2.W2.S1.S1.B.P7.D.L40.VZ.E.AV"),
+                  ("M.I8.W2.X.S1.0.VALUE", "M.I8.W2.M.S1.0.VALUE"),
+                  ("M.I8.W2.X.S1.4.UVX",   "M.I8.W2.M.S1.4.UVX"),
+                  ("M.I8.W2.X.TTT.4.UVX",  "M.I8.W2.M.TTT.4.UVX"),
+                  ("M.I9.W2.X.S1.4.UVX",   "M.I9.W2.M.S1.4.UVX"),
               ]
 
-              def fetch_ecb_series(key):
-                  """Fetch a single ECB series, return list of (period, value) sorted ascending."""
-                  url = f"{ecb_base}{key}?format=csvdata&startPeriod=2020-Q1"
+              def fetch_trd_series(key):
+                  url = f"{ecb_base}{key}?format=csvdata&startPeriod=2019-01&lastNObservations=36"
                   try:
                       r = requests.get(url, headers=JSON_HEADERS, timeout=20)
+                      print(f"      ECB TRD {key[:30]}: HTTP {r.status_code}")
                       if not r.ok:
                           return None
                       lines = r.text.strip().splitlines()
                       if len(lines) < 2:
                           return None
-                      header = [h.strip().strip('"') for h in lines[0].split(',')]
-                      # Find TIME_PERIOD and OBS_VALUE columns
-                      header_lower = [h.lower() for h in header]
-                      ti = next((i for i, h in enumerate(header_lower) if 'time_period' in h), None)
-                      vi = next((i for i, h in enumerate(header_lower) if 'obs_value' in h), None)
+                      header = [h.strip().strip('"').lower() for h in lines[0].split(',')]
+                      ti = next((i for i, h in enumerate(header) if 'time_period' in h), None)
+                      vi = next((i for i, h in enumerate(header) if 'obs_value' in h), None)
                       if ti is None or vi is None:
                           return None
-                      results = []
+                      results = {}
                       for line in lines[1:]:
                           cols = [c.strip().strip('"') for c in line.split(',')]
                           if len(cols) <= max(ti, vi):
                               continue
                           val = clean_num(cols[vi])
-                          period = cols[ti]
-                          if val is not None and period:
-                              results.append((period, val))
-                      return sorted(results, key=lambda x: x[0]) if results else None
+                          period = cols[ti]  # e.g. "2024-11"
+                          if val and period:
+                              results[period] = val
+                      print(f"      → {len(results)} observations")
+                      return results if results else None
                   except Exception as e:
-                      print(f"    ECB series error ({key[:30]}...): {e}")
+                      print(f"      ECB TRD error ({key[:25]}): {e}")
                       return None
 
-              print("    → ECB API: calculating EUR ToT from export/import deflators")
+              print("    → ECB TRD: unit value indices extra-EA trade")
               for exp_key, imp_key in candidates:
-                  exp_data = fetch_ecb_series(exp_key)
-                  imp_data = fetch_ecb_series(imp_key)
-
-                  if not exp_data or not imp_data:
-                      print(f"    ✗ ECB: no data for {exp_key[:25]}...")
+                  exp = fetch_trd_series(exp_key)
+                  imp = fetch_trd_series(imp_key)
+                  if not exp or not imp:
                       continue
 
-                  # Match periods and compute ratio
-                  exp_dict = dict(exp_data)
-                  imp_dict = dict(imp_data)
-                  common_periods = sorted(set(exp_dict.keys()) & set(imp_dict.keys()), reverse=True)
-
-                  if not common_periods:
+                  common = sorted(set(exp.keys()) & set(imp.keys()), reverse=True)
+                  if not common:
                       continue
 
-                  # Find base year (2020) values to normalize to 100
-                  # Use the first available period in 2020 as base
-                  base_exp = next((exp_dict[p] for p in sorted(exp_dict.keys()) if '2020' in p), None)
-                  base_imp = next((imp_dict[p] for p in sorted(imp_dict.keys()) if '2020' in p), None)
+                  # 2020 average as base
+                  exp_2020 = [v for p, v in exp.items() if p.startswith('2020')]
+                  imp_2020 = [v for p, v in imp.items() if p.startswith('2020')]
+                  if not exp_2020 or not imp_2020:
+                      continue
+                  base_exp = sum(exp_2020) / len(exp_2020)
+                  base_imp = sum(imp_2020) / len(imp_2020)
+                  if base_exp == 0 or base_imp == 0:
+                      continue
 
-                  if base_exp is None or base_imp is None or base_exp == 0 or base_imp == 0:
-                      # Can't normalize — use raw ratio, multiply by 100 if needed
-                      base_exp = base_imp = 1.0
-                      scale = 100.0
-                  else:
-                      scale = 1.0
+                  for period in common:
+                      tot = (exp[period] / imp[period]) / (base_exp / base_imp) * 100.0
+                      if TOT_MIN <= tot <= TOT_MAX:
+                          d = f"{period}-15" if re.match(r'^\d{4}-\d{2}$', period) else str(date.today())
+                          print(f"    ✓ EUR [ECB TRD ratio]: {round(tot,2)} ({period})")
+                          return round(tot, 2), d
 
-                  for period in common_periods:
-                      exp_v = exp_dict[period]
-                      imp_v = imp_dict[period]
-                      if imp_v == 0:
-                          continue
-                      # ToT normalized to 2020=100
-                      base_ratio = base_exp / base_imp if base_imp != 0 else 1.0
-                      current_ratio = exp_v / imp_v
-                      tot_val = (current_ratio / base_ratio) * 100.0 * scale
-
-                      if TOT_MIN <= tot_val <= TOT_MAX:
-                          m = re.match(r'^(\d{4})-Q(\d)$', period)
-                          if m:
-                              yr, qn = int(m.group(1)), int(m.group(2))
-                              d = f"{yr}-{(qn-1)*3+2:02d}-15"
-                          else:
-                              d = str(date.today())
-                          print(f"    ✓ EUR [ECB deflator ratio]: {round(tot_val,2)} ({period})")
-                          return round(tot_val, 2), d
-
-              print("    ✗ ECB MNA: all candidates failed")
+              print("    ✗ ECB TRD: all candidates failed")
               return None, None
+
+          # ── EUR Source 2: Eurostat ext_lt_intercc (correct ToT dataset) ──────
+
+          def fetch_tot_eur_eurostat():
+              """
+              Eurostat EXT_LT_INTERCC: Terms of Trade for extra-EU/EA merchandise trade.
+              This is the correct dataset — TIPSNA30 was wrong (it's a CPI dataset).
+              Unit I10 = index base 2010=100. TTI = terms of trade index.
+              """
+              url = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+                     "/ext_lt_intercc?format=JSON&lang=EN&geo=EA20&lastTimePeriod=8")
+              try:
+                  r = requests.get(url, headers=JSON_HEADERS, timeout=25)
+                  print(f"    → Eurostat ext_lt_intercc: HTTP {r.status_code}")
+                  if not r.ok:
+                      return None, None
+                  js = r.json()
+
+                  unit_labels = js.get('dimension', {}).get('unit', {}).get('category', {}).get('label', {})
+                  unit_index  = js.get('dimension', {}).get('unit', {}).get('category', {}).get('index', {})
+                  time_index  = js.get('dimension', {}).get('time', {}).get('category', {}).get('index', {})
+                  values      = js.get('value', {})
+
+                  print(f"      Units available: {list(unit_labels.values())}")
+
+                  n_times = len(time_index)
+
+                  # Priority: TTI > I10 > I15 > any unit with valid value in range
+                  priority_units = ['TTI', 'I10', 'I15', 'TOT']
+
+                  def try_unit(unit_code):
+                      pos = unit_index.get(unit_code)
+                      if pos is None:
+                          return None, None
+                      for time_str, time_pos in sorted(time_index.items(), key=lambda x: x[0], reverse=True):
+                          idx = str(pos * n_times + time_pos)
+                          val = values.get(idx)
+                          if val is not None:
+                              fval = float(val)
+                              if TOT_MIN <= fval <= TOT_MAX:
+                                  d = parse_te_date(time_str)
+                                  print(f"    ✓ EUR [Eurostat {unit_code}]: {fval} ({time_str})")
+                                  return round(fval, 2), d
+                      return None, None
+
+                  # Try priority units first
+                  for unit_code in priority_units:
+                      val, d = try_unit(unit_code)
+                      if val is not None:
+                          return val, d
+
+                  # Fallback: scan all available units
+                  for unit_code in unit_index.keys():
+                      val, d = try_unit(unit_code)
+                      if val is not None:
+                          return val, d
+
+              except Exception as e:
+                  print(f"    ✗ Eurostat ext_lt_intercc: {e}")
+              return None, None
+
+          # ── EUR Source 3: IMF DataMapper API ─────────────────────────────────
+
+          def fetch_tot_eur_imf():
+              """
+              IMF DataMapper API: Terms of Trade for Euro Area.
+              Endpoint: /api/v1/TT/{country_code}
+              EUQ = Euro Area (IMF code). TT = Terms of Trade.
+              Data is annual, base 2012=100.
+              """
+              # Try multiple IMF country codes for Euro Area
+              imf_codes = ['EUQ', 'U2', 'EUR']
+              for code in imf_codes:
+                  url = f"https://www.imf.org/external/datamapper/api/v1/TT/{code}"
+                  try:
+                      r = requests.get(url, headers=JSON_HEADERS, timeout=20)
+                      print(f"    → IMF TT/{code}: HTTP {r.status_code}")
+                      if not r.ok:
+                          continue
+                      js = r.json()
+                      data = js.get('values', {}).get('TT', {}).get(code, {})
+                      if not data:
+                          continue
+                      # data is dict of year→value, e.g. {"2020": 100.0, "2023": 97.4}
+                      for yr in sorted(data.keys(), reverse=True):
+                          val = data[yr]
+                          if val is not None and TOT_MIN <= float(val) <= TOT_MAX:
+                              print(f"    ✓ EUR [IMF TT {code}]: {val} ({yr})")
+                              return round(float(val), 2), f"{yr}-06-15"
+                  except Exception as e:
+                      print(f"    ✗ IMF TT/{code}: {e}")
+              return None, None
+
+          # ── EUR Source 4: World Bank (last resort, ~2yr lag) ─────────────────
 
           def scrape_tot_wb(currency_code, timeout=30):
               """World Bank fallback: TT.PRI.MRCH.XD.WD (net barter ToT, base 2015=100)."""
@@ -339,13 +388,17 @@ jobs:
                   print(f"    ✗ World Bank ToT {currency_code}: {e}")
               return None, None
 
+          # ── Master ToT resolver ───────────────────────────────────────────────
+
           def fetch_all_tot(te_list_data, te_list_dates):
               """
               ToT resolution chain:
-                1. TE list values within valid range
-                2. GBP → ONS API (CTSL quarterly, most current)
-                3. EUR → ECB deflator calculation (export/import price ratio)
-                4. Others → World Bank annual (last resort)
+                1. TE list values (all currencies, reject out-of-range)
+                2. GBP  → ONS API (CTSL quarterly, most current)
+                3. EUR  → ECB TRD (unit value indices, monthly)
+                         → Eurostat ext_lt_intercc (correct ToT dataset)
+                         → IMF DataMapper (annual, 1-yr lag)
+                4. Rest → World Bank (annual, ~2yr lag)
               """
               data  = {}
               dates = {}
@@ -372,15 +425,32 @@ jobs:
                       dates['GBP'] = d
                       missing.remove('GBP')
 
-              # Step 3: EUR via ECB calculated ratio
+              # Step 3: EUR — cascade through 3 specialist sources
               if 'EUR' in missing:
-                  val, d = calc_tot_eur_ecb()
+                  val, d = None, None
+
+                  # 3a. ECB TRD (monthly, most current)
+                  print("  → EUR ToT source 3a: ECB TRD")
+                  val, d = fetch_tot_eur_ecb_trd()
+
+                  # 3b. Eurostat ext_lt_intercc (correct dataset, quarterly)
+                  if val is None:
+                      print("  → EUR ToT source 3b: Eurostat ext_lt_intercc")
+                      val, d = fetch_tot_eur_eurostat()
+
+                  # 3c. IMF DataMapper (annual)
+                  if val is None:
+                      print("  → EUR ToT source 3c: IMF DataMapper")
+                      val, d = fetch_tot_eur_imf()
+
                   if val is not None:
                       data['EUR']  = val
                       dates['EUR'] = d
                       missing.remove('EUR')
+                  else:
+                      print("  ✗ EUR: all 3 specialist sources failed")
 
-              # Step 4: World Bank for anything still missing (including EUR/GBP if above failed)
+              # Step 4: World Bank for anything still missing
               still_missing = [c for c in CURRENCIES if c not in data]
               if still_missing:
                   print(f"\n  → World Bank ToT fallback for: {', '.join(still_missing)}")
@@ -527,8 +597,9 @@ jobs:
           # MAIN
           # ═══════════════════════════════════════════════════════════════════
           print("="*60)
-          print("ECONOMIC DATA SCRAPER v7")
-          print("ToT: TE list → ONS (GBP) → ECB calc (EUR) → World Bank")
+          print("ECONOMIC DATA SCRAPER v8")
+          print("ToT EUR: ECB TRD → Eurostat ext_lt_intercc → IMF → World Bank")
+          print("ToT GBP: ONS CTSL → World Bank")
           print("="*60)
 
           fetch_fx()
@@ -550,7 +621,7 @@ jobs:
           for curr in CURRENCIES:
               pkg = {
                   'lastUpdate': today,
-                  'source': 'TradingEconomics + ONS (GBP ToT) + ECB calc (EUR ToT) + WorldBank + COT',
+                  'source': 'TradingEconomics + ONS (GBP) + ECB TRD / Eurostat / IMF (EUR) + WorldBank + COT',
                   'data':   all_data[curr],
                   'dates':  all_dates[curr],
               }
@@ -573,7 +644,7 @@ jobs:
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Economic data $(date +'%Y-%m-%d') - ToT v7"
+            git commit -m "Economic data $(date +'%Y-%m-%d') - ToT v8"
             git pull --rebase origin main || true
             git push
           fi
