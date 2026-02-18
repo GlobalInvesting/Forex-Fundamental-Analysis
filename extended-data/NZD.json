@@ -1,6 +1,6 @@
 {
   "lastUpdate": "2026-02-18",
-  "source": "TradingEconomics \u2014 v9: rateMomentum via TE p\u00e1ginas hist\u00f3ricas de tasas",
+  "source": "TradingEconomics \u2014 v10: rateMomentum via TE API guest + FRED + bootstrap",
   "data": {
     "bond10y": 4.38,
     "consumerConfidence": 96.5,
@@ -8,7 +8,7 @@
     "capitalFlows": 2804.19,
     "fdi": 620.0,
     "inflationExpectations": 2.37,
-    "rateMomentum": null
+    "rateMomentum": -1.5
   },
   "dates": {
     "bond10y": "2026-02-18",
