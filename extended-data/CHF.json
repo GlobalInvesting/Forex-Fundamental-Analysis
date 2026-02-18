@@ -1,6 +1,7 @@
 {
   "lastUpdate": "2026-02-18",
   "source": "TradingEconomics \u2014 v10: rateMomentum via TE API guest + FRED + bootstrap",
+  "rateMomentumStrategy": "bootstrap-feb2025",
   "data": {
     "bond10y": 0.238,
     "consumerConfidence": 100.0,
