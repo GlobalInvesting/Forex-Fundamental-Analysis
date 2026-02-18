@@ -4,7 +4,7 @@
   "rateMomentumStrategy": "bootstrap-feb2025",
   "data": {
     "bond10y": 3.237,
-    "consumerConfidence": null,
+    "consumerConfidence": 49.3,
     "businessConfidence": 50.9,
     "capitalFlows": -9998.53,
     "fdi": 18153.0,
