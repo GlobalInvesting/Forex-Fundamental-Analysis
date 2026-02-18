@@ -2200,7 +2200,7 @@ const TRADING_WEIGHTS = {
 };
 
 // ========== SCORING FUNCTIONS v4.9.5 ==========
-const scoreIndicator = (value, indicator, currencyCtx, allEconomicData, scoringDataExplicit) => {
+const scoreIndicator = (value, indicator, currencyCtx, allEconomicData, scoringDataExplicit, safeHavenThreshold = 2.0) => {
     // currencyCtx: código de divisa (e.g. 'JPY', 'CHF') para overrides data-driven
     const config = TRADING_WEIGHTS[indicator];
     if (!config) return 0;
@@ -2544,7 +2544,7 @@ if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData
             return;
         }
         const config = TRADING_WEIGHTS[indicator];
-        const rawScore = scoreIndicator(value, indicator, currency, allEconomicData, scoringData); 
+        const rawScore = scoreIndicator(value, indicator, currency, allEconomicData, scoringData, safeHavenThreshold);
         const weighted    = rawScore * config.weight;
         contributions[indicator] = weighted;
         weightedScoreSum += weighted;
@@ -3547,7 +3547,7 @@ const calculateMomentumScore = (currency, data = null, forexRates = {}, allEcono
         const value = scoringData[indicator];
         if (value === null || value === undefined || isNaN(value)) return;
         const config = MOMENTUM_WEIGHTS[indicator];
-        const raw = scoreIndicator(value, indicator, currency, allEconomicData, scoringData);
+        const raw = scoreIndicator(value, indicator, currency, allEconomicData, scoringData, safeHavenThreshold);
         weightedSum += raw * config.weight;
         totalWeight += config.weight;
     });
