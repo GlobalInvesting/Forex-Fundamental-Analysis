@@ -1,6 +1,6 @@
 {
-  "lastUpdate": "2026-02-17",
-  "source": "TradingEconomics + COT",
+  "lastUpdate": "2026-02-18",
+  "source": "TradingEconomics + OECD API (ToT) + Eurostat (EUR ToT) + COT",
   "data": {
     "gdp": 3644.0,
     "gdpGrowth": 0.1,
@@ -13,7 +13,6 @@
     "retailSales": 0.4,
     "wageGrowth": 4.2,
     "manufacturingPMI": 51.8,
-    "termsOfTrade": 101.8,
     "cotPositioning": -25800
   },
   "dates": {
@@ -27,7 +26,6 @@
     "tradeBalance": "2025-12-15",
     "retailSales": "2025-12-15",
     "wageGrowth": "2025-12-15",
-    "manufacturingPMI": "2026-01-15",
-    "termsOfTrade": "2026-02-17"
+    "manufacturingPMI": "2026-01-15"
   }
 }
