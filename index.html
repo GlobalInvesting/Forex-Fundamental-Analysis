@@ -2241,11 +2241,22 @@ if (isSafeHavenFunder) {
 
         case 'target':
             // inflation & inflationExpectations: objetivo 1.8-2.5%
-            if (value >= 1.8 && value <= 2.5) {
+            // Para inflationExpectations >3.5%: en lugar de penalizar solo,
+            // considerar que expectativas altas = BC mantendrá tasas altas = hawkish implícito.
+            // La penalización se suaviza para reflejar que el mercado ya lo descuenta en la divisa.
+            if (indicator === 'inflationExpectations' && value > 3.5) {
+                // Expectativas altas: señal mixta. Penaliza menos que inflación real alta.
+                // >3.5%: score 45-55 (neutral-leve negativo, no catastrófico)
+                // >5.0%: score 35 (preocupante pero ya priceado en tasas altas)
+                if (value > 5.0)       score = Math.max(30, 45 - ((value - 5.0) / 2.0) * 15);
+                else if (value > 4.0)  score = 45 - ((value - 4.0) / 1.0) * 10;  // 35-45
+                else                   score = 55 - ((value - 3.5) / 0.5) * 10;  // 45-55
+            } else if (value >= 1.8 && value <= 2.5) {
                 score = 100;
             } else if (value > 2.5 && value <= 3.5) {
                 score = 70 - ((value - 2.5) / 1.0) * 20;
             } else if (value > 3.5) {
+                // Inflación real >3.5%: sí penaliza fuerte (diferente a expectativas)
                 score = Math.max(0, 50 - ((value - 3.5) / 2.0) * 50);
             } else if (value >= 1.0) {
                 score = 70 + ((value - 1.0) / 0.8) * 30;
@@ -2449,14 +2460,30 @@ if (effectiveOutlook) {
         scoringData.businessConfidence = Math.max(0, Math.min(100, (scoringData.businessConfidence / 100) * 50 + 50));
     }
 
-    // JPY consumerConfidence: Japan index ronda 33-40, no base 100
+// JPY consumerConfidence: Japan index ronda 33-40, no base 100
 // Normalizar: rango histórico 25-50 → mapeado a 75-115 (equivalente base 100)
 if (currency === 'JPY' && scoringData.consumerConfidence !== null && scoringData.consumerConfidence !== undefined) {
     if (scoringData.consumerConfidence < 60) {
-        // Es la escala japonesa (25-55) → mapear a base 100
         scoringData.consumerConfidence = ((scoringData.consumerConfidence - 25) / 30) * 40 + 85;
     }
-    // Si ya es >60, asumir que vino normalizado y dejarlo
+}
+
+// USD consumerConfidence: Michigan Consumer Sentiment, escala histórica ~50-100
+// Rango normal: 50 (pesimismo extremo) a 100 (optimismo alto)
+// Mapear a base 100 equivalente: 50→75, 70→95, 90→110
+if (currency === 'USD' && scoringData.consumerConfidence !== null && scoringData.consumerConfidence !== undefined) {
+    if (scoringData.consumerConfidence < 80) {
+        scoringData.consumerConfidence = ((scoringData.consumerConfidence - 50) / 50) * 40 + 80;
+    }
+}
+
+// CAD consumerConfidence: Conference Board Canada, escala histórica ~60-130
+// Rango normal: 70 (bajo) a 120 (alto). Neutral histórico ≈ 100
+// Si el valor es <80, normalizar para no penalizar injustamente
+if (currency === 'CAD' && scoringData.consumerConfidence !== null && scoringData.consumerConfidence !== undefined) {
+    if (scoringData.consumerConfidence < 80) {
+        scoringData.consumerConfidence = ((scoringData.consumerConfidence - 60) / 60) * 35 + 82;
+    }
 }
 
     Object.keys(TRADING_WEIGHTS).forEach(indicator => {
