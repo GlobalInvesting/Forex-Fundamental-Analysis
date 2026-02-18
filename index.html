@@ -1820,7 +1820,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '5.0.2-2026-02-18';
+            const DASHBOARD_VERSION = '5.0.3-2026-02-18';
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2375,7 +2375,7 @@ if (isSafeHavenFunder) {
             else if (value > -0.25) score = 42;
             else if (value > -0.75) score = 30;
             else if (value > -1.5) score = 18;
-            else                   score = 5;  // Recortes agresivos
+            else                   score = 12;  // Recortes agresivos
             break;
 
         case 'fx_momentum':
@@ -2741,22 +2741,38 @@ if (currency === 'CAD' && scoringData.consumerConfidence !== null && scoringData
     const yieldCurveAdj       = calculateYieldCurveAdj(data);
     const cotContrarianAdj    = calculateCotContrarianAdj(data, countryObj);
 
-    contributions['safe_haven_score']    = safeHavenAdj;
-    contributions['low_rate_safe_haven'] = lowRateSafeHavenAdj;
-    contributions['commodity_exposure']  = commodityAdj;
-    contributions['carry_premium']       = carryAdj;
-    contributions['recession_impact']    = recessionAdj;
-    contributions['structural_deficit']  = deficitAdj;
-    contributions['debt_sustainability'] = debtAdj;
-    contributions['inflation_stability'] = inflationStabAdj;
-    contributions['yield_curve_proxy']   = yieldCurveAdj;
-    contributions['cot_contrarian']      = cotContrarianAdj;
+    // ── COT Contrarian Override para momentum divergente ──────────────────
+    // COT extremadamente bajista + fxPerf fuerte = squeeze potencial
+    const cotMomentumDivergence = (() => {
+        const cot = scoringData.cotPositioning;
+        const fxPerf = scoringData.fxPerformance1M;
+        if (cot === null || cot === undefined || fxPerf === null || fxPerf === undefined) return 0;
+        if (cot < -25000 && fxPerf > 2.5) {
+            const cotExtremeness = Math.min(Math.abs(cot + 25000) / 50000, 1.0);
+            const momentumStrength = Math.min((fxPerf - 2.5) / 3.0, 1.0);
+            return Math.round((cotExtremeness * momentumStrength) * 5 * 10) / 10;
+        }
+        return 0;
+    })();
+
+    contributions['safe_haven_score']       = safeHavenAdj;
+    contributions['low_rate_safe_haven']    = lowRateSafeHavenAdj;
+    contributions['commodity_exposure']     = commodityAdj;
+    contributions['carry_premium']          = carryAdj;
+    contributions['recession_impact']       = recessionAdj;
+    contributions['structural_deficit']     = deficitAdj;
+    contributions['debt_sustainability']    = debtAdj;
+    contributions['inflation_stability']    = inflationStabAdj;
+    contributions['yield_curve_proxy']      = yieldCurveAdj;
+    contributions['cot_contrarian']         = cotContrarianAdj;
+    contributions['cot_momentum_divergence'] = cotMomentumDivergence;
 
     // All adjustments are in "score point" units (same scale as 0-100)
     // Cap total adjustment so it can shift the score ±15 points max
     const totalAdj = safeHavenAdj + commodityAdj + carryAdj +
-                     recessionAdj + deficitAdj + debtAdj + inflationStabAdj +
-                     lowRateSafeHavenAdj + yieldCurveAdj + cotContrarianAdj;
+                 recessionAdj + deficitAdj + debtAdj + inflationStabAdj +
+                 lowRateSafeHavenAdj + yieldCurveAdj + cotContrarianAdj +
+                 cotMomentumDivergence;
     const cappedAdj = Math.max(-15, Math.min(15, totalAdj));
 
 // P-1 v4.9.6 — Compresión de base para crear headroom en escala 20-82
