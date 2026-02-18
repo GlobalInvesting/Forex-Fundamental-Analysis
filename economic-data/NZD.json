@@ -1,6 +1,6 @@
 {
   "lastUpdate": "2026-02-18",
-  "source": "TradingEconomics + ONS (GBP ToT) + WorldBank fallback + COT",
+  "source": "TradingEconomics + ONS (GBP ToT) + ECB calc (EUR ToT) + WorldBank + COT",
   "data": {
     "gdp": 260.0,
     "gdpGrowth": 1.1,
