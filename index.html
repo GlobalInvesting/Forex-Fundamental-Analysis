@@ -2684,6 +2684,7 @@ const indicatorTooltips = {
     wageGrowth: "Crecimiento salarial anual. >3.5% presiona inflación al alza.",
     manufacturingPMI: "Índice de actividad manufacturera. >50 = expansión, <50 = contracción.",
     cotPositioning: "Posicionamiento neto de traders especulativos según reporte CFTC. Valores positivos indican contratos largos netos (bullish), valores negativos indican cortos netos (bearish). >20K o <-20K pueden indicar extremos de mercado.",
+    consumerConfidence: "Índice de confianza del consumidor. Base 100. >100 = optimismo sobre la economía personal y disposición al gasto. <95 = pesimismo y contracción del consumo privado esperada. Indicador adelantado del ciclo económico.",
     bond10y: "Rendimiento del bono soberano a 10 años. Para EUR se usa el yield oficial de la Zona Euro (GEUGB10Y — agregado publicado directamente por Trading Economics), que refleja el costo de financiamiento soberano del conjunto de la eurozona. Refleja expectativas de tasas futuras e inflación. El diferencial de yields entre países es el 'yield spread' que mueve grandes flujos de capital.",
     businessConfidence: "Índice de confianza empresarial. Base 100. >100 = expansión esperada, <100 = contracción. Predice inversión, contrataciones y actividad futura.",
     capitalFlows: "Flujos netos de capital (cuenta financiera de la balanza de pagos). Positivo = entrada neta de inversión extranjera → demanda estructural de la divisa. Millones USD.",
@@ -2836,34 +2837,27 @@ const HeatmapCell = ({ value, type, currency, indicator, lastUpdate }) => {
     const [showTooltip, setShowTooltip] = React.useState(false);
     const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
 
+const updateCellTooltipPos = (e) => {
+        const tooltipWidth = 220;
+        const tooltipHeight = 55;
+        const offset = 14;
+        const margin = 10;
+        let x = e.clientX;
+        let y = e.clientY + offset;
+        if (x + tooltipWidth > window.innerWidth - margin) x = window.innerWidth - tooltipWidth - margin;
+        if (x < margin) x = margin;
+        if (y + tooltipHeight > window.innerHeight - margin) y = e.clientY - tooltipHeight - offset;
+        setTooltipPosition({ x, y });
+    };
+
     const handleMouseEnter = (e) => {
         if (!lastUpdate) return;
-        
-        const rect = e.currentTarget.getBoundingClientRect();
-        
-        const tooltipWidth = 200;
-        const tooltipHeight = 60;
-        
-        let left = rect.left + rect.width / 2;
-        let top = rect.top - tooltipHeight - 10;
-        
-        // Ajustar si se sale del viewport
-        const viewportWidth = window.innerWidth;
-        
-        if (left + tooltipWidth / 2 > viewportWidth - 20) {
-            left = viewportWidth - tooltipWidth / 2 - 20;
-        }
-        if (left - tooltipWidth / 2 < 20) {
-            left = tooltipWidth / 2 + 20;
-        }
-        
-        // Si no hay espacio arriba, mostrar abajo
-        if (top < 20) {
-            top = rect.bottom + 10;
-        }
-        
-        setTooltipPosition({ x: left, y: top });
+        updateCellTooltipPos(e);
         setShowTooltip(true);
+    };
+
+    const handleMouseMove = (e) => {
+        if (showTooltip) updateCellTooltipPos(e);
     };
 
     const handleMouseLeave = () => {
@@ -2927,7 +2921,7 @@ const HeatmapCell = ({ value, type, currency, indicator, lastUpdate }) => {
             `;
             tooltip.style.left = `${tooltipPosition.x}px`;
             tooltip.style.top = `${tooltipPosition.y}px`;
-            tooltip.style.transform = 'translate(-50%, 0)';
+            tooltip.style.transform = 'none';
             tooltip.classList.add('visible');
         } else {
             const tooltip = document.getElementById('global-heatmap-tooltip');
@@ -2950,6 +2944,7 @@ const HeatmapCell = ({ value, type, currency, indicator, lastUpdate }) => {
             style={{ background: getHeatmapColor(value, type) }}
             data-has-date={lastUpdate ? "true" : "false"}
             onMouseEnter={handleMouseEnter}
+            onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
         >
             {type === 'gdp' ? (
