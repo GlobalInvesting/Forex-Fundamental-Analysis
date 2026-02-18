@@ -1,8 +1,8 @@
 {
-  "lastUpdate": "2026-02-17",
-  "source": "TradingEconomics \u2014 v5 capitalFlows FX fix + NZD businessConf pass-through",
+  "lastUpdate": "2026-02-18",
+  "source": "TradingEconomics \u2014 v6: EUR bond10y via /bonds GEUGB10Y:GOV (EA aggregate)",
   "data": {
-    "bond10y": 4.381,
+    "bond10y": 4.383,
     "consumerConfidence": 84.0,
     "businessConfidence": 81.0,
     "capitalFlows": 21028.9,
@@ -10,7 +10,7 @@
     "inflationExpectations": 3.8
   },
   "dates": {
-    "bond10y": "2026-02-17",
+    "bond10y": "2026-02-18",
     "consumerConfidence": "2026-01-15",
     "businessConfidence": "2026-03-15",
     "capitalFlows": "2025-09-15",
