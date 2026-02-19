@@ -3,7 +3,7 @@
   "source": "TradingEconomics \u2014 v10: rateMomentum via TE API guest + FRED + bootstrap",
   "rateMomentumStrategy": "bootstrap-feb2025",
   "data": {
-    "bond10y": 0.238,
+    "bond10y": 0.242,
     "consumerConfidence": 100.0,
     "businessConfidence": 102.0,
     "capitalFlows": 6032.87,
