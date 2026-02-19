@@ -42,8 +42,8 @@
         th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
         th { background: var(--bg-secondary); font-weight: 600; color: var(--text-primary); }
         td { color: var(--text-secondary); }
-        code { background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 0.9em; color: var(--green); }
-        pre { background: var(--bg-secondary); padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.85rem; color: var(--green); overflow-x: auto; margin: 1rem 0; line-height: 1.6; }
+        code { background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 0.9em; color: var(--text-secondary); border: 1px solid var(--border); }
+        pre { background: var(--bg-secondary); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); font-family: 'Courier New', monospace; font-size: 0.85rem; color: var(--text-secondary); overflow-x: auto; margin: 1rem 0; line-height: 1.8; }
     </style>
 </head>
 <body>
@@ -90,16 +90,16 @@
                 <li><strong>Mapa de Calor de Indicadores:</strong> 21 métricas económicas ponderadas con codificación por color, más columna de PIB como referencia estructural</li>
                 <li><strong>Score de Fortaleza Cuantitativo:</strong> Índice 20–82 basado en ponderación de 21 factores distribuidos en 6 tiers temáticos</li>
                 <li><strong>FX Momentum &amp; Smart Money (Tier 6 — 23%):</strong> El tier de mayor peso del modelo junto con Tasas &amp; Ciclo Monetario. Incluye <code>fxPerformance1M</code> (rendimiento real de la divisa en los últimos 30 días, peso 18%), bono soberano 10Y (peso 5%) y COT Positioning (peso 7%). Este bloque captura directamente dónde está posicionado el dinero institucional.</li>
-                <li><strong>FX Performance 1M (<code>fxPerformance1M</code>):</strong> Rendimiento real de la divisa frente al USD en los últimos 30 días, calculado con tasas de referencia ECB (Frankfurter API) normalizadas a la fecha de ayer. Es el único indicador 100% forward-looking del modelo: libre de lag de publicación, captura posicionamiento especulativo, flujos institucionales y carry unwind en tiempo casi real. Peso 18% en v5.1.</li>
-                <li><strong>Posicionamiento COT (peso 7% en v5.1):</strong> Huella directa del smart money desde reportes CFTC e Investing.com. El peso aumentó de 4% a 7% en v5.1 porque el COT es la señal más directa de dónde está el dinero institucional. Incluye lógica contrarian automática para posiciones extremas y penalización directa sobre la prima safe haven cuando el propio COT de una divisa contradice su perfil estructural.</li>
-                <li><strong>Safe Haven Threshold Dinámico:</strong> El umbral que activa la prima safe haven para CHF y JPY se calcula automáticamente como <code>max(1.0, avgRate − 1.5)</code>. En v5.1 el cap máximo de la prima se redujo a +5 pts (desde +8 en v5.0) y se añade una penalización adicional proporcional al COT propio de la divisa: si los institucionales están vendiendo agresivamente una divisa que tiene perfil de safe haven, el modelo reduce su prima, alineándose con el mercado.</li>
+                <li><strong>FX Performance 1M (<code>fxPerformance1M</code>):</strong> Rendimiento real de la divisa frente al USD en los últimos 30 días, calculado con tasas de referencia ECB (Frankfurter API) normalizadas a la fecha de ayer. Es el único indicador 100% forward-looking del modelo: libre de lag de publicación, captura posicionamiento especulativo, flujos institucionales y carry unwind en tiempo casi real.</li>
+                <li><strong>Posicionamiento COT (peso 7%):</strong> Huella directa del smart money desde reportes CFTC e Investing.com. El COT es la señal más directa de dónde está el dinero institucional. Incluye lógica contrarian automática para posiciones extremas y penalización directa sobre la prima safe haven cuando el propio COT de una divisa contradice su perfil estructural.</li>
+                <li><strong>Safe Haven Threshold Dinámico:</strong> El umbral que activa la prima safe haven para CHF y JPY se calcula automáticamente como <code>max(1.0, avgRate − 1.5)</code>. El cap máximo de la prima es +5 pts y se aplica una penalización adicional proporcional al COT propio de la divisa: si los institucionales están vendiendo agresivamente una divisa con perfil de safe haven, el modelo reduce su prima, alineándose con el mercado.</li>
                 <li><strong>Régimen de Mercado via COT:</strong> La prima safe haven se amplifica o comprime según el régimen de riesgo detectado a partir del posicionamiento COT promedio de las 8 divisas, reflejando si el mercado está en modo risk-off, neutral o risk-on.</li>
-                <li><strong>Perspectiva del BC (Outlook Score):</strong> El outlook Hawkish/Neutral/Dovish se incorpora como indicador de scoring con peso 7% (v5.1), capturando la dirección de política monetaria además del nivel de tasa. Incluye corrección automática por rate momentum.</li>
-                <li><strong>Rate Momentum (peso 6% en v5.1):</strong> Variación de la tasa de interés respecto a hace 12 meses. Peso aumentado de 4% a 6% en v5.1: el cambio de ciclo monetario es una señal más relevante para el precio que el nivel absoluto de tasa. Se obtiene vía TE API guest, FRED o bootstrap dinámico.</li>
+                <li><strong>Perspectiva del BC (Outlook Score):</strong> El outlook Hawkish/Neutral/Dovish se incorpora como indicador de scoring con peso 7%, capturando la dirección de política monetaria además del nivel de tasa. Incluye corrección automática por rate momentum.</li>
+                <li><strong>Rate Momentum (peso 6%):</strong> Variación de la tasa de interés respecto a hace 12 meses. El cambio de ciclo monetario es una señal más relevante para el precio que el nivel absoluto de tasa. Se obtiene vía TE API guest, FRED o bootstrap dinámico.</li>
                 <li><strong>Calendario Económico Real:</strong> Eventos scrapeados de Trading Economics tres veces por día (00:00, 08:00 y 16:00 UTC), con datos reales de publicación (actual, estimado, previo), horarios precisos, impacto oficial y filtro por nivel de impacto.</li>
                 <li><strong>Términos de Intercambio:</strong> Ratio precio exportaciones/importaciones actualizado diariamente. Especialmente relevante para AUD, CAD y NZD.</li>
                 <li><strong>Próximas Reuniones Reales:</strong> Fechas oficiales de reuniones de bancos centrales obtenidas de cbrates.com, actualizadas cada lunes.</li>
-                <li><strong>Bonos Soberanos 10Y (peso 5% en v5.1):</strong> Yield del bono a 10 años como indicador de carry y expectativas de tasas futuras. Peso aumentado de 4% a 5% en v5.1: el carry yield directo es más relevante para el precio que los fundamentales estructurales de deuda. Para EUR se usa el yield oficial del agregado de la Zona Euro (<code>GEUGB10Y:GOV</code>).</li>
+                <li><strong>Bonos Soberanos 10Y (peso 5%):</strong> Yield del bono a 10 años como indicador de carry y expectativas de tasas futuras. El carry yield directo es relevante para el precio porque el diferencial de yield entre países mueve grandes flujos institucionales. Para EUR se usa el yield oficial del agregado de la Zona Euro (<code>GEUGB10Y:GOV</code>).</li>
                 <li><strong>Confianza del Consumidor y Empresarial, Flujos de Capital, Expectativas de Inflación, PMI Manufacturero:</strong> Indicadores adelantados normalizados por divisa.</li>
                 <li><strong>Recomendaciones de Pares:</strong> Sugerencias LONG/SHORT basadas en diferenciales de fortaleza fundamental, con factores positivos y negativos detallados por par.</li>
                 <li><strong>Verificación de Calidad de Datos:</strong> Sistema activo que detecta datos desactualizados, indicadores críticos faltantes y completitud por divisa, con alertas diferenciadas por severidad.</li>
@@ -110,12 +110,12 @@
         <div class="section">
             <h2>Metodología Cuantitativa</h2>
 
-            <h3>Filosofía del Modelo — v5.1</h3>
+            <h3>Filosofía del Modelo</h3>
             <p>El modelo está diseñado con una premisa central: <strong>los pesos deben reflejar qué mueve el precio ahora, no qué describe mejor la economía a largo plazo</strong>. En forex, el orden de prioridad es: carry &gt; momentum &gt; ciclo monetario &gt; fundamentales estructurales.</p>
-            <p>Los fundamentales estructurales como la deuda pública baja o el superávit de cuenta corriente son señales permanentes que el mercado ya tiene en precio. Lo que mueve el precio en un horizonte de trading son los diferenciales de tasa, el posicionamiento institucional (COT) y el momentum real (fxPerformance1M). El modelo v5.1 recalibra los pesos para alinearse con esta realidad.</p>
+            <p>Los fundamentales estructurales como la deuda pública baja o el superávit de cuenta corriente son señales permanentes que el mercado ya tiene en precio. Lo que mueve el precio en un horizonte de trading son los diferenciales de tasa, el posicionamiento institucional (COT) y el momentum real (<code>fxPerformance1M</code>).</p>
             <p>El PIB total aparece en el mapa de calor como columna de referencia estructural, pero no forma parte del modelo de scoring: al ser un stock acumulado no captura momentum. En su lugar se utiliza el crecimiento del PIB (Tier 3, peso 9%), que sí es un indicador de flujo relevante para el trading.</p>
 
-            <h3>Sistema de Ponderación — 21 Indicadores en 6 Tiers (v5.1)</h3>
+            <h3>Sistema de Ponderación — 21 Indicadores en 6 Tiers</h3>
             <p>Cada indicador contribuye al score final según su relevancia para el trading de divisas. El motor normaliza automáticamente dividiendo por el peso total de los indicadores con datos disponibles. La suma bruta de pesos es aproximadamente 1.03 y queda normalizada en cada evaluación.</p>
 
             <table>
@@ -125,18 +125,18 @@
                 <tbody>
                     <tr>
                         <td rowspan="4"><strong>Tier 1 — ~25%</strong><br/>Tasas &amp; Ciclo Monetario</td>
-                        <td>Tasa de Interés</td><td>12%</td><td>Nivel actual de tasa y diferencial de carry trade. Aumentado de 10% a 12%: el carry es el motor principal del forex</td>
+                        <td>Tasa de Interés</td><td>12%</td><td>Nivel actual de tasa y diferencial de carry trade. El carry es el motor principal del forex.</td>
                     </tr>
                     <tr><td>Inflación</td><td>7%</td><td>Expectativas de política monetaria; objetivo del modelo 1.8–2.5%</td></tr>
                     <tr><td>Perspectiva del BC (Outlook Score)</td><td>7%</td><td>Dirección de política monetaria: Hawkish=90, Neutral=50, Dovish=10. Corregido automáticamente por rate momentum</td></tr>
-                    <tr><td>Rate Momentum</td><td>6%</td><td>Variación de la tasa respecto a hace 12 meses. Aumentado de 4% a 6%: el cambio de ciclo es más informativo que el nivel para predecir movimientos de precio</td></tr>
+                    <tr><td>Rate Momentum</td><td>6%</td><td>Variación de la tasa respecto a hace 12 meses. El cambio de ciclo es más informativo que el nivel absoluto para predecir movimientos de precio.</td></tr>
 
                     <tr>
-                        <td rowspan="4"><strong>Tier 2 — ~10%</strong><br/>Balance Externo<br/><em>(reducido en v5.1)</em></td>
-                        <td>Cuenta Corriente</td><td>3%</td><td>Demanda estructural de divisa. Reducido de 5% a 3%: señal permanente ya en precio para divisas como CHF</td>
+                        <td rowspan="4"><strong>Tier 2 — ~10%</strong><br/>Balance Externo</td>
+                        <td>Cuenta Corriente</td><td>3%</td><td>Demanda estructural de divisa por flujos reales de bienes y servicios. Señal de largo plazo ya incorporada en precio.</td>
                     </tr>
                     <tr><td>Balanza Comercial</td><td>5%</td><td>Flujos comerciales mensuales en millones USD</td></tr>
-                    <tr><td>Deuda Pública</td><td>2%</td><td>Sostenibilidad fiscal. Reducido de 4% a 2%: Japón con 237% de deuda sigue siendo safe haven — el mercado ya descuenta este dato</td></tr>
+                    <tr><td>Deuda Pública</td><td>2%</td><td>Sostenibilidad fiscal. El mercado descuenta datos estructurales estables — la deuda extrema de Japón convive con su status de safe haven.</td></tr>
                     <tr><td>Términos de Intercambio</td><td>2%</td><td>Ratio precio exportaciones/importaciones (base 100). Especialmente relevante para AUD, CAD, NZD</td></tr>
 
                     <tr>
@@ -155,7 +155,7 @@
 
                     <tr>
                         <td rowspan="5"><strong>Tier 5 — ~16%</strong><br/>Sentimiento de Mercado</td>
-                        <td>COT Positioning</td><td><strong>7%</strong></td><td>Huella directa del smart money. Aumentado de 4% a 7% en v5.1: es la señal más directa de dónde está el dinero institucional. Lógica contrarian para posiciones extremas y penalización directa sobre prima safe haven</td>
+                        <td>COT Positioning</td><td><strong>7%</strong></td><td>Huella directa del smart money. El COT es la señal más directa de dónde está el dinero institucional. Lógica contrarian para posiciones extremas y penalización directa sobre prima safe haven cuando contradice el perfil estructural.</td>
                     </tr>
                     <tr><td>Flujos de Capital</td><td>3%</td><td>Cuenta financiera de la balanza de pagos (millones USD)</td></tr>
                     <tr><td>Confianza del Consumidor</td><td>3%</td><td>Índice adelantado del gasto privado, normalizado a base 100 por divisa</td></tr>
@@ -166,12 +166,12 @@
                         <td rowspan="2"><strong>Tier 6 — ~23%</strong><br/>FX Momentum &amp; Smart Money</td>
                         <td>FX Performance 1M (<code>fxPerformance1M</code>)</td>
                         <td><strong>18%</strong></td>
-                        <td>Rendimiento real de la divisa vs USD en los últimos 30 días (Frankfurter/ECB). Único indicador 100% forward-looking. Aumentado de 16% a 18% en v5.1. Función de scoring asimétrica: penaliza depreciaciones más que premia apreciaciones equivalentes.</td>
+                        <td>Rendimiento real de la divisa vs USD en los últimos 30 días (Frankfurter/ECB). Único indicador 100% forward-looking, sin lag de publicación. Función de scoring asimétrica: penaliza depreciaciones más que premia apreciaciones equivalentes.</td>
                     </tr>
                     <tr style="background: rgba(38,166,154,0.07);">
                         <td>Bono Soberano 10Y</td>
                         <td><strong>5%</strong></td>
-                        <td>Carry yield directo y expectativas de tasas futuras. Aumentado de 4% a 5% en v5.1: el diferencial de yield entre países mueve grandes flujos institucionales.</td>
+                        <td>Carry yield directo y expectativas de tasas futuras. El diferencial de yield entre países mueve grandes flujos institucionales.</td>
                     </tr>
 
                     <tr style="background: rgba(38,166,154,0.12);">
@@ -187,7 +187,7 @@
             <p>Además de los 21 indicadores ponderados, el modelo aplica modificadores contextuales con un impacto máximo de ±8 puntos sobre el score final, basados en condiciones macroeconómicas específicas que los indicadores individuales no capturan por separado:</p>
             <ul>
                 <li><strong>Activo Refugio (Safe Haven):</strong> Evalúa la combinación de deuda baja, superávit externo y estabilidad de precios. Se amplifica en entornos de aversión al riesgo (COT promedio negativo entre las 8 divisas).</li>
-                <li><strong>Prima Safe Haven Tasa Baja (v5.1 — cap reducido a +5 pts):</strong> Corrección para divisas con tasa significativamente por debajo del promedio global. En v5.1 el cap máximo se redujo de +8 a +5 pts. Adicionalmente, se aplica una penalización proporcional al COT propio de la divisa: <code>ownCOTPenalty = max(0.3, 1.0 + (ownCOT + 25.000) / 100.000)</code> cuando el posicionamiento propio es &lt; −25.000 contratos. Esto crea coherencia directa entre la prima safe haven y lo que el smart money está haciendo realmente.</li>
+                <li><strong>Prima Safe Haven Tasa Baja (cap +5 pts):</strong> Corrección para divisas con tasa significativamente por debajo del promedio global. El cap máximo es +5 pts. Adicionalmente, se aplica una penalización proporcional al COT propio de la divisa: <code>ownCOTPenalty = max(0.3, 1.0 + (ownCOT + 25.000) / 100.000)</code> cuando el posicionamiento propio es &lt; −25.000 contratos. Esto crea coherencia directa entre la prima safe haven y lo que el smart money está haciendo realmente.</li>
                 <li><strong>Exposición a Materias Primas:</strong> Aplicable exclusivamente a AUD, CAD y NZD. Positivo en ciclos de expansión global, negativo en contracción.</li>
                 <li><strong>Prima de Carry Trade:</strong> Bonificación para divisas con tasas significativamente superiores al promedio de las 8 divisas.</li>
                 <li><strong>Impacto Recesivo:</strong> Penalización proporcional cuando el PIB es negativo, amplificada si el desempleo es elevado.</li>
@@ -210,21 +210,6 @@ normalizedScore = clamp(rawFinal, 20, 82)</pre>
                 <li><strong>Bajista (≤ 45):</strong> Bottom ~30%. Indicadores bajo presión o deterioro estructural.</li>
             </ul>
 
-            <h3>Cambios v5.1 vs v5.0 — Resumen</h3>
-            <p>La recalibración v5.1 responde a la observación de que el modelo previo sobrevaloraba fundamentales estructurales permanentes (deuda baja, superávit CA) ya descontados por el mercado, generando rankings que contradecían el posicionamiento real del smart money:</p>
-            <table>
-                <thead><tr><th>Indicador</th><th>Peso v5.0</th><th>Peso v5.1</th><th>Razón del cambio</th></tr></thead>
-                <tbody>
-                    <tr><td>fxPerformance1M</td><td>16%</td><td><strong>18%</strong></td><td>Único indicador sin lag — mayor peso al mercado real</td></tr>
-                    <tr><td>COT Positioning</td><td>4%</td><td><strong>7%</strong></td><td>Huella directa del smart money — subestimado anteriormente</td></tr>
-                    <tr><td>Tasa de Interés</td><td>10%</td><td><strong>12%</strong></td><td>Carry es el motor principal del forex</td></tr>
-                    <tr><td>Rate Momentum</td><td>4%</td><td><strong>6%</strong></td><td>Cambio de ciclo más informativo que el nivel</td></tr>
-                    <tr><td>Bono 10Y</td><td>4%</td><td><strong>5%</strong></td><td>Carry yield directo más relevante que deuda estructural</td></tr>
-                    <tr><td>Cuenta Corriente</td><td>5%</td><td><strong>3%</strong></td><td>Señal permanente ya en precio (CHF siempre tiene superávit)</td></tr>
-                    <tr><td>Deuda Pública</td><td>4%</td><td><strong>2%</strong></td><td>El mercado ya descuenta datos estructurales estables</td></tr>
-                    <tr><td>Safe Haven cap</td><td>+8 pts</td><td><strong>+5 pts + COT penalty</strong></td><td>COT propio contradice prima → reducción proporcional</td></tr>
-                </tbody>
-            </table>
         </div>
 
         <!-- RECOMENDACIONES DE PARES -->
@@ -309,20 +294,20 @@ normalizedScore = clamp(rawFinal, 20, 82)</pre>
                 </tbody>
             </table>
 
-            <h3>Nota sobre FX Performance 1M y COT — El Core del Smart Money (v5.1)</h3>
-            <p>En v5.1, <code>fxPerformance1M</code> (18%) y COT Positioning (7%) forman juntos el bloque de señales de smart money más pesado del modelo (25% combinado). La razón es que estos dos indicadores capturan directamente dónde está posicionado el dinero institucional:</p>
+            <h3>Nota sobre FX Performance 1M y COT — El Core del Smart Money</h3>
+            <p><code>fxPerformance1M</code> (18%) y COT Positioning (7%) forman juntos el bloque de señales de smart money más pesado del modelo (25% combinado). La razón es que estos dos indicadores capturan directamente dónde está posicionado el dinero institucional:</p>
             <ul>
                 <li><strong>fxPerformance1M</strong> refleja el resultado neto de todos los flujos del mercado en los últimos 30 días — carry, posicionamiento, noticias, flujos institucionales. Es el indicador de mayor peso individual porque es el único sin lag de publicación.</li>
                 <li><strong>COT</strong> muestra el posicionamiento declarado de los grandes especuladores ante el regulador. Un COT extremadamente bajista en una divisa con buenos fundamentales estructurales es una señal contrarian alcista. Un COT bajista en una divisa con prima safe haven es una señal de que el mercado no está tratando esa divisa como refugio ahora mismo.</li>
             </ul>
             <p>La interacción entre ambos es coherente: <code>ownCOTPenalty</code> en <code>calculateLowRateSafeHavenAdj</code> asegura que cuando el COT propio de una divisa es muy bajista (&lt; −25.000), su prima safe haven se reduce proporcionalmente, alineando el modelo con el comportamiento real del mercado.</p>
 
-            <h3>Nota sobre Safe Haven Threshold Dinámico y COT Penalty (v5.1)</h3>
-            <p>El umbral safe haven sigue siendo dinámico: <code>safeHavenThreshold = max(1.0, avgRate − 1.5)</code>. En v5.1 se añaden dos capas adicionales de control:</p>
+            <h3>Nota sobre Safe Haven Threshold Dinámico y COT Penalty</h3>
+            <p>El umbral safe haven es dinámico: <code>safeHavenThreshold = max(1.0, avgRate − 1.5)</code>. El sistema aplica dos capas de control sobre la prima:</p>
             <ul>
-                <li><strong>Cap reducido:</strong> +5 pts máximo (desde +8 en v5.0 y +15 en v4.9.7)</li>
-                <li><strong>COT Penalty:</strong> Si el posicionamiento neto propio de la divisa es &lt; −25.000 contratos, el resultado del ajuste se multiplica por <code>max(0.3, 1.0 + (ownCOT + 25.000) / 100.000)</code>. Con CHF a −42.300 contratos: penalty ≈ 0.83, con lo que el ajuste máximo cae adicionalmente.</li>
-                <li><strong>Régimen COT:</strong> El multiplicador de régimen (0.5 en risk-on fuerte, 0.7 risk-on leve, 1.0 neutral, 1.3 risk-off) se aplica sobre el cap ya reducido y penalizado.</li>
+                <li><strong>Cap máximo:</strong> +5 pts</li>
+                <li><strong>COT Penalty:</strong> Si el posicionamiento neto propio de la divisa es &lt; −25.000 contratos, el resultado del ajuste se multiplica por <code>max(0.3, 1.0 + (ownCOT + 25.000) / 100.000)</code>. Esto reduce la prima proporcionalmente cuando el smart money está vendiendo la divisa.</li>
+                <li><strong>Régimen COT:</strong> El multiplicador de régimen (0.5 en risk-on fuerte, 0.7 risk-on leve, 1.0 neutral, 1.3 risk-off) se aplica sobre el cap ya penalizado.</li>
             </ul>
 
             <h3>Nota sobre el Régimen de Mercado via COT</h3>
@@ -335,7 +320,7 @@ normalizedScore = clamp(rawFinal, 20, 82)</pre>
             </ul>
 
             <h3>Nota sobre Perspectiva de Bancos Centrales y Outlook Score</h3>
-            <p>El Outlook (Hawkish/Neutral/Dovish) se calcula mediante un algoritmo de 4 reglas que pondera inflación, crecimiento del PIB, desempleo y tasa de interés actual. En v5.1 tiene peso 7% (reducido desde 8% para dar más espacio al rate momentum).</p>
+            <p>El Outlook (Hawkish/Neutral/Dovish) se calcula mediante un algoritmo de 4 reglas que pondera inflación, crecimiento del PIB, desempleo y tasa de interés actual. Tiene peso 7% en el modelo.</p>
             <p>El modelo aplica corrección automática por rate momentum: si el rate momentum supera +0.3% (BC normalizando), un outlookScore Dovish se actualiza a Neutral. Si el rate momentum es inferior a −1.5% (recortes agresivos), un outlookScore Hawkish se actualiza a Neutral.</p>
 
             <h3>Nota sobre Rate Momentum — Estrategias de Obtención</h3>
@@ -345,7 +330,7 @@ normalizedScore = clamp(rawFinal, 20, 82)</pre>
             <p>Se usa el yield oficial del agregado de la Zona Euro (<code>GEUGB10Y:GOV</code>), distinto del Bund alemán (<code>GDBR10</code>). El sistema incluye validación cruzada: si el yield capturado para EUR es inferior a 2.3% o superior a 3.5%, se emite advertencia en los logs.</p>
 
             <h3>Nota sobre Datos COT y Lógica Contrarian</h3>
-            <p>Los datos COT provienen del CFTC para USD e Investing.com para las 7 divisas restantes. Todos tienen retraso natural de ~3 días. Cuando el posicionamiento neto supera ±100.000 contratos, la señal se invierte parcialmente (contrarian). Adicionalmente, en v5.1 el COT de cada divisa modula directamente su prima safe haven a través de <code>ownCOTPenalty</code>.</p>
+            <p>Los datos COT provienen del CFTC para USD e Investing.com para las 7 divisas restantes. Todos tienen retraso natural de ~3 días. Cuando el posicionamiento neto supera ±100.000 contratos, la señal se invierte parcialmente (contrarian). El COT de cada divisa modula también directamente su prima safe haven a través de <code>ownCOTPenalty</code>.</p>
 
             <h3>Nota sobre Normalización CAD — Confianza del Consumidor</h3>
             <p>El índice de confianza del consumidor de Canadá (Conference Board of Canada) tiene rango histórico 40–130 con punto neutro ~100. La normalización preserva este punto neutro:</p>
@@ -367,7 +352,7 @@ normalizedScore = clamp(rawFinal, 20, 82)</pre>
             <p>Nuestro sistema es transparente en cuanto a:</p>
             <ul>
                 <li><strong>Pesos Explícitos:</strong> Cada uno de los 21 factores tiene un peso documentado y su contribución al score es trazable</li>
-                <li><strong>Filosofía de Calibración Documentada:</strong> Los cambios entre versiones se explican con razonamiento económico explícito — no son ajustes ad hoc sino respuestas a observaciones de alineamiento con el mercado real</li>
+                <li><strong>Filosofía de Calibración Documentada:</strong> Los pesos tienen justificación económica explícita — priorizan señales de mercado (carry, momentum, posicionamiento institucional) sobre fundamentales estructurales permanentes ya descontados por el precio.</li>
                 <li><strong>Cálculos Visibles:</strong> La lógica de scoring está disponible en el código fuente del dashboard</li>
                 <li><strong>Datos Verificables:</strong> Todas las métricas pueden ser confirmadas en sus fuentes oficiales</li>
                 <li><strong>Mecanismos Dinámicos Documentados:</strong> El safe haven threshold, el régimen COT, la COT penalty y la corrección por rate momentum están explicados con fórmulas y ejemplos numéricos</li>
@@ -420,7 +405,7 @@ normalizedScore = clamp(rawFinal, 20, 82)</pre>
                 <a href="contact.html">Contacto</a>
             </p>
             <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
-                Dashboard v5.1.0 · Modelo: 21 indicadores · 6 tiers · 11 ajustes contextuales (cap ±8pts) · FX Momentum &amp; Smart Money (23%) · Calendario real TE (3×/día)
+                Dashboard · Modelo: 21 indicadores · 6 tiers · 11 ajustes contextuales (cap ±8pts) · FX Momentum &amp; Smart Money (23%) · Calendario real TE (3&times;/día)
             </p>
         </div>
     </div>
