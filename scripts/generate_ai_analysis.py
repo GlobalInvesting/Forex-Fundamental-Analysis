@@ -210,8 +210,11 @@ def call_gemini_api(api_key: str, prompt: str) -> str:
     response.raise_for_status()
     data = response.json()
     try:
-        return data['candidates'][0]['content']['parts'][0]['text'].strip()
+        text = data['candidates'][0]['content']['parts'][0]['text'].strip()
+        print(f"  🔍 Respuesta cruda: {repr(text[:300])}")
+        return text
     except (KeyError, IndexError) as e:
+        print(f"  🔍 JSON completo: {json.dumps(data)[:500]}")
         raise RuntimeError(f"Respuesta inesperada: {data}") from e
 
 
