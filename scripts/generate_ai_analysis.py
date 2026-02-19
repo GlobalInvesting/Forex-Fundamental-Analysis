@@ -142,6 +142,7 @@ REGLAS:
 - El campo "PIB Total" es el tamaño de la economía en trillones USD — NO es la tasa de crecimiento
 - La tasa de crecimiento del PIB es el campo "Crecimiento PIB (%)"
 - Si un indicador no tiene dato, no lo menciones
+- El campo "Rendimiento FX 1M" indica cuánto se apreció o depreció la divisa frente al USD en 30 días. Para USD específicamente, este dato refleja el rendimiento del índice dólar (DXY) — redáctalo como "el índice dólar cayó/subió X% en el último mes", nunca como "vs USD"
 - Tono profesional y directo, como research de banco de inversión
 - Sin saludos ni meta-comentarios"""
 
