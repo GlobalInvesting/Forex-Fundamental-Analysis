@@ -4412,37 +4412,12 @@ const DataHealthCheck = ({ economicData }) => {
         alignItems: 'center',
         marginBottom: '0.75rem'
     }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div className="analysis-title" style={{ marginBottom: 0 }}>
-                Análisis Fundamental
-            </div>
-            {aiAnalysisReady && aiAnalyses && aiAnalyses[country.code] ? (
-                <span style={{
-                    fontSize: '0.6rem',
-                    color: 'var(--green-strong)',
-                    background: 'rgba(38,166,154,0.12)',
-                    border: '1px solid rgba(38,166,154,0.35)',
-                    borderRadius: '4px',
-                    padding: '0.15rem 0.45rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                }}>
-                    Groq AI
-                </span>
-            ) : (
-                <span style={{
-                    fontSize: '0.6rem',
-                    color: 'var(--text-tertiary)',
-                    background: 'rgba(96,125,139,0.1)',
-                    borderRadius: '4px',
-                    padding: '0.15rem 0.45rem',
-                }}>
-                    Algorítmico
-                </span>
-            )}
-        </div>
-        <div className={`sentiment-badge sentiment-${sentiment}`}>
+<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div className="analysis-title" style={{ marginBottom: 0 }}>
+        Análisis Fundamental
+    </div>
+</div>
+<div className={`sentiment-badge sentiment-${sentiment}`}>
             <div className="sentiment-indicator" style={{
                 background: sentiment === 'alcista' ? 'var(--green-strong)'
                           : sentiment === 'bajista' ? 'var(--red-strong)'
