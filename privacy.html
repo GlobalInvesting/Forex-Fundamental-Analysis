@@ -4,135 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Política de Privacidad - Dashboard de Análisis Fundamental Forex</title>
-    <meta name="description" content="Política de Privacidad del Dashboard de Análisis Fundamental Forex - Cómo recopilamos, usamos y protegemos su información.">
+    <meta name="description" content="Política de Privacidad del Dashboard de Análisis Fundamental Forex.">
     <meta name="robots" content="index, follow">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg-primary: #0b0e14;
-            --bg-secondary: #13171f;
-            --bg-card: #1a1f2e;
-            --text-primary: #e1e4e8;
-            --text-secondary: #8b949e;
-            --border: #30363d;
+            --bg-primary: #0b0e14; --bg-secondary: #13171f; --bg-card: #1a1f2e;
+            --text-primary: #e1e4e8; --text-secondary: #8b949e; --border: #30363d;
             --blue: #1e88e5;
         }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.8; font-size: 15px; }
+        .container { max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+        .header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 1.5rem 2rem; margin-bottom: 3rem; }
+        .header-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .brand-title { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .brand-title:hover { color: var(--blue); }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--text-primary); }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-primary); }
+        .last-updated { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2rem; }
+        h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; color: var(--text-primary); }
+        p { margin-bottom: 1.25rem; color: var(--text-secondary); }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.25rem; }
+        li { margin-bottom: 0.5rem; color: var(--text-secondary); }
+        strong { color: var(--text-primary); }
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .section { background: var(--bg-card); padding: 2rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.8;
-            font-size: 15px;
+        @media (max-width: 768px) {
+            .header { padding: 1rem; }
+            .header-content { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .brand-title { font-size: 1rem; }
+            .nav-links { flex-wrap: wrap; gap: 0.75rem 1.25rem; }
+            .nav-links a { font-size: 0.85rem; }
+            .container { padding: 2rem 1rem; }
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.25rem; }
+            .section { padding: 1.25rem; }
         }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-        }
-
-        .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 1.5rem 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .header-content {
-            max-width: 900px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .brand-title {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            text-decoration: none;
-        }
-
-        .brand-title:hover {
-            color: var(--blue);
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover {
-            color: var(--text-primary);
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        .last-updated {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 2rem;
-        }
-
-        h2 {
-            font-size: 1.5rem;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        p {
-            margin-bottom: 1.25rem;
-            color: var(--text-secondary);
-        }
-
-        ul, ol {
-            margin-left: 2rem;
-            margin-bottom: 1.25rem;
-        }
-
-        li {
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
-        }
-
-        strong {
-            color: var(--text-primary);
-        }
-
-        a {
-            color: var(--blue);
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .section {
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 2rem;
+        @media (max-width: 400px) {
+            h1 { font-size: 1.5rem; }
+            .nav-links { gap: 0.5rem 1rem; }
         }
     </style>
 </head>
@@ -156,118 +71,88 @@
 
         <div class="section">
             <h2>1. Introducción</h2>
-            <p>Bienvenido al Dashboard de Análisis Fundamental Forex ("nosotros", "nuestro" o "nos"). Estamos comprometidos a proteger su privacidad y asegurar la seguridad de su información personal. Esta Política de Privacidad explica cómo recopilamos, usamos, divulgamos y protegemos su información cuando visita nuestro sitio web.</p>
-            <p>Al acceder o usar nuestro sitio web, usted acepta esta Política de Privacidad. Si no está de acuerdo con los términos de esta Política de Privacidad, por favor no acceda al sitio.</p>
+            <p>Bienvenido al Dashboard de Análisis Fundamental Forex. Estamos comprometidos a proteger su privacidad y asegurar la seguridad de su información personal. Esta Política de Privacidad explica cómo recopilamos, usamos, divulgamos y protegemos su información cuando visita nuestro sitio web.</p>
+            <p>Al acceder o usar nuestro sitio web, usted acepta esta Política de Privacidad.</p>
         </div>
 
         <div class="section">
             <h2>2. Información que Recopilamos</h2>
-            
             <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">2.1 Información Recopilada Automáticamente</h3>
             <p>Cuando visita nuestro sitio web, podemos recopilar automáticamente cierta información sobre su dispositivo, incluyendo:</p>
             <ul>
                 <li><strong>Datos de Registro:</strong> Dirección IP, tipo de navegador, sistema operativo, URLs de referencia, páginas vistas y tiempos de acceso</li>
-                <li><strong>Cookies y Tecnologías de Seguimiento:</strong> Usamos cookies, web beacons y tecnologías de seguimiento similares para mejorar su experiencia</li>
-                <li><strong>Datos de Uso:</strong> Información sobre cómo interactúa con nuestro dashboard y características</li>
+                <li><strong>Cookies y Tecnologías de Seguimiento:</strong> Usamos cookies para mejorar su experiencia</li>
+                <li><strong>Datos de Uso:</strong> Información sobre cómo interactúa con nuestro dashboard</li>
             </ul>
 
             <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">2.2 Información que Usted Proporciona</h3>
-            <p>Podemos recopilar información que usted proporciona voluntariamente cuando:</p>
             <ul>
-                <li>Nos contacta por correo electrónico o formulario de contacto</li>
-                <li>Se suscribe a boletines o actualizaciones</li>
-                <li>Participa en encuestas o formularios de comentarios</li>
-                <li>Crea una cuenta (si aplica)</li>
+                <li>Cuando nos contacta por correo electrónico</li>
+                <li>Cuando se suscribe a boletines o actualizaciones</li>
+                <li>Cuando participa en encuestas o formularios de comentarios</li>
             </ul>
         </div>
 
         <div class="section">
             <h2>3. Cómo Usamos su Información</h2>
-            <p>Usamos la información recopilada para varios propósitos, incluyendo:</p>
             <ul>
-                <li><strong>Provisión del Servicio:</strong> Para proporcionar, mantener y mejorar nuestro dashboard y servicios</li>
-                <li><strong>Análisis:</strong> Para entender el comportamiento del usuario y optimizar el rendimiento del sitio web</li>
-                <li><strong>Comunicación:</strong> Para responder a sus consultas y enviar información administrativa</li>
-                <li><strong>Marketing:</strong> Para enviar boletines, actualizaciones y materiales promocionales (con su consentimiento)</li>
-                <li><strong>Cumplimiento Legal:</strong> Para cumplir con obligaciones legales y proteger nuestros derechos</li>
+                <li><strong>Provisión del Servicio:</strong> Para proporcionar, mantener y mejorar nuestro dashboard</li>
+                <li><strong>Análisis:</strong> Para entender el comportamiento del usuario y optimizar el rendimiento</li>
+                <li><strong>Comunicación:</strong> Para responder a sus consultas</li>
                 <li><strong>Publicidad:</strong> Para mostrar anuncios relevantes a través de servicios de terceros como Google AdSense</li>
             </ul>
         </div>
 
         <div class="section">
             <h2>4. Cookies y Tecnologías de Seguimiento</h2>
-            <p>Usamos cookies y tecnologías de seguimiento similares para rastrear la actividad en nuestro sitio web y almacenar cierta información. Los tipos de cookies que usamos incluyen:</p>
             <ul>
                 <li><strong>Cookies Esenciales:</strong> Necesarias para que el sitio web funcione correctamente</li>
-                <li><strong>Cookies de Análisis:</strong> Nos ayudan a entender cómo los visitantes interactúan con nuestro sitio web</li>
-                <li><strong>Cookies de Publicidad:</strong> Usadas para entregar anuncios relevantes para usted</li>
+                <li><strong>Cookies de Análisis:</strong> Nos ayudan a entender cómo los visitantes interactúan con nuestro sitio</li>
+                <li><strong>Cookies de Publicidad:</strong> Usadas para entregar anuncios relevantes</li>
             </ul>
-            <p>Puede instruir a su navegador para que rechace todas las cookies o para que le indique cuando se envía una cookie. Sin embargo, si no acepta cookies, es posible que no pueda usar algunas partes de nuestro sitio web.</p>
         </div>
 
         <div class="section">
             <h2>5. Servicios de Terceros</h2>
-            <p>Podemos usar servicios de terceros que recopilan, monitorean y analizan datos. Estos incluyen:</p>
-            
             <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">5.1 Google AdSense</h3>
-            <p>Usamos Google AdSense para mostrar anuncios. Google usa cookies para servir anuncios basados en sus visitas previas a nuestro sitio web u otros sitios web. Puede optar por no recibir publicidad personalizada visitando <a href="https://www.google.com/settings/ads" target="_blank">Configuración de Anuncios de Google</a>.</p>
+            <p>Usamos Google AdSense para mostrar anuncios. Puede optar por no recibir publicidad personalizada visitando <a href="https://www.google.com/settings/ads" target="_blank">Configuración de Anuncios de Google</a>.</p>
 
-            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">5.2 Servicios de Análisis</h3>
-            <p>Podemos usar servicios de análisis para monitorear y analizar el tráfico web. Estos servicios pueden usar cookies y tecnologías similares.</p>
-
-            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">5.3 Fuentes de Datos Externas</h3>
-            <p>Nuestro dashboard usa APIs externas (como ExchangeRate-API) para obtener datos de forex en tiempo real. Estos servicios tienen sus propias políticas de privacidad.</p>
+            <h3 style="font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">5.2 Fuentes de Datos Externas</h3>
+            <p>Nuestro dashboard usa APIs externas para obtener datos de forex en tiempo real. Estos servicios tienen sus propias políticas de privacidad.</p>
         </div>
 
         <div class="section">
             <h2>6. Compartir y Divulgación de Datos</h2>
-            <p>No vendemos, comercializamos ni alquilamos su información personal a terceros. Podemos compartir su información en las siguientes circunstancias:</p>
-            <ul>
-                <li><strong>Proveedores de Servicios:</strong> Con proveedores de servicios de terceros de confianza que nos ayudan a operar nuestro sitio web</li>
-                <li><strong>Requisitos Legales:</strong> Cuando lo requiera la ley o para proteger nuestros derechos y seguridad</li>
-                <li><strong>Transferencias de Negocio:</strong> En conexión con una fusión, adquisición o venta de activos</li>
-                <li><strong>Con su Consentimiento:</strong> Cuando haya dado consentimiento explícito para compartir su información</li>
-            </ul>
+            <p>No vendemos, comercializamos ni alquilamos su información personal a terceros. Podemos compartir su información solo cuando lo requiera la ley o con proveedores de servicios de confianza.</p>
         </div>
 
         <div class="section">
             <h2>7. Seguridad de Datos</h2>
-            <p>Implementamos medidas de seguridad técnicas y organizativas apropiadas para proteger su información personal del acceso, alteración, divulgación o destrucción no autorizados. Sin embargo, ningún método de transmisión por Internet o almacenamiento electrónico es 100% seguro, y no podemos garantizar la seguridad absoluta.</p>
+            <p>Implementamos medidas de seguridad técnicas y organizativas apropiadas para proteger su información personal. Sin embargo, ningún método de transmisión por Internet es 100% seguro.</p>
         </div>
 
         <div class="section">
             <h2>8. Sus Derechos</h2>
-            <p>Dependiendo de su ubicación, puede tener los siguientes derechos con respecto a su información personal:</p>
             <ul>
-                <li><strong>Acceso:</strong> Solicitar acceso a su información personal que poseemos</li>
-                <li><strong>Corrección:</strong> Solicitar corrección de información inexacta o incompleta</li>
+                <li><strong>Acceso:</strong> Solicitar acceso a su información personal</li>
+                <li><strong>Corrección:</strong> Solicitar corrección de información inexacta</li>
                 <li><strong>Eliminación:</strong> Solicitar la eliminación de su información personal</li>
-                <li><strong>Restricción:</strong> Solicitar la restricción del procesamiento de su información personal</li>
-                <li><strong>Portabilidad:</strong> Solicitar la transferencia de sus datos a otra organización</li>
                 <li><strong>Objeción:</strong> Objetar a nuestro procesamiento de su información personal</li>
-                <li><strong>Retirar Consentimiento:</strong> Retirar el consentimiento en cualquier momento donde confiamos en el consentimiento</li>
             </ul>
-            <p>Para ejercer estos derechos, por favor contáctenos usando la información de contacto proporcionada a continuación.</p>
         </div>
 
         <div class="section">
             <h2>9. Privacidad de Menores</h2>
-            <p>Nuestro sitio web no está destinado a personas menores de 18 años. No recopilamos intencionadamente información personal de menores. Si usted es padre o tutor y cree que su hijo nos ha proporcionado información personal, por favor contáctenos inmediatamente.</p>
+            <p>Nuestro sitio web no está destinado a personas menores de 18 años. No recopilamos intencionadamente información personal de menores.</p>
         </div>
 
         <div class="section">
-            <h2>10. Transferencias Internacionales de Datos</h2>
-            <p>Su información puede ser transferida y mantenida en computadoras ubicadas fuera de su estado, provincia, país u otra jurisdicción gubernamental donde las leyes de protección de datos pueden diferir. Al usar nuestro sitio web, usted consiente dichas transferencias.</p>
+            <h2>10. Cambios a esta Política</h2>
+            <p>Podemos actualizar nuestra Política de Privacidad de vez en cuando. Le notificaremos cualquier cambio publicando la nueva Política en esta página.</p>
         </div>
 
         <div class="section">
-            <h2>11. Cambios a esta Política de Privacidad</h2>
-            <p>Podemos actualizar nuestra Política de Privacidad de vez en cuando. Le notificaremos cualquier cambio publicando la nueva Política de Privacidad en esta página y actualizando la fecha de "Última Actualización". Se le aconseja revisar esta Política de Privacidad periódicamente para cualquier cambio.</p>
-        </div>
-
-        <div class="section">
-            <h2>12. Contáctenos</h2>
-            <p>Si tiene alguna pregunta sobre esta Política de Privacidad o nuestras prácticas de privacidad, por favor contáctenos:</p>
+            <h2>11. Contáctenos</h2>
             <ul>
                 <li><strong>Email:</strong> globalinvestingmarkets@gmail.com</li>
                 <li><strong>Sitio Web:</strong> <a href="contact.html">Formulario de Contacto</a></li>
