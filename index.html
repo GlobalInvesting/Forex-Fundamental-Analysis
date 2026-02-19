@@ -1820,7 +1820,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '5.0.4-2026-02-18';
+            const DASHBOARD_VERSION = '5.0.5-2026-02-18';
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2122,13 +2122,14 @@ const TRADING_WEIGHTS = {
     businessConfidence:    { weight: 0.02, direction: 'sentiment_index'  },
     capitalFlows:          { weight: 0.03, direction: 'flows'            },
 
-    // Tier 6: FX Market Momentum (0.14) — DUPLICADO vs v4.9.7
+    // Tier 6: FX Market Momentum (0.16) — DUPLICADO vs v4.9.7 (0.07 → 0.16)
     // fxPerformance1M: rendimiento real de la divisa en los últimos 30 días
     // Fuente: Frankfurter API (ECB reference rates) actualizado diariamente
     // El único indicador 100% forward-looking y libre de lag de publicación.
     // Captura: positioning especulativo, flows institucionales, carry, risk-off.
-    // Con peso 0.14 tiene impacto real en el ranking sin dominar (anti-overfitting).
-    fxPerformance1M:       { weight: 0.16, direction: 'fx_momentum' },
+    // Con peso 0.16 tiene impacto real en el ranking sin dominar (anti-overfitting).
+    fxPerformance1M:       { weight: 0.14, direction: 'fx_momentum' },
+    bond10y:               { weight: 0.04, direction: 'carry_yield' },
 };
     
 // ========== SCORING FUNCTIONS v4.9.5 ==========
@@ -4853,8 +4854,8 @@ const sentiment = getSentiment(strength);
         DASHBOARD DE ANÁLISIS FUNDAMENTAL FOREX — DATA-DRIVEN
     </div>
     <div style={{ marginBottom: '1rem' }}>
-        Metodología: Modelo cuantitativo basado en datos económicos reales • 20 indicadores ponderados en 6 tiers<br/>
-        Balance Externo &amp; Safe Haven (27%) • Tasas &amp; Carry (26%) • Crecimiento &amp; Empleo (20%) • Consumo &amp; Salarios (9%) • Sentimiento de Mercado (15%) • FX Momentum (14%)<br/>
+        Metodología: Modelo cuantitativo basado en datos económicos reales • 21 indicadores ponderados en 6 tiers<br/>
+        Tasas &amp; Ciclo Monetario (22%) • Crecimiento &amp; Empleo (20%) • FX Momentum (16%) • Sentimiento de Mercado (15%) • Balance Externo (18%) • Consumo &amp; Salarios (9%)<br/>
         Datos actualizados diariamente desde Trading Economics, Frankfurter/ECB y CFTC
     </div>
 
