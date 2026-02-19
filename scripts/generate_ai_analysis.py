@@ -129,8 +129,8 @@ TAREA: Generar un análisis económico riguroso y conciso sobre la divisa indica
 FORMATO:
 - Texto corrido en español, sin bullets, sin títulos, sin markdown
 - Exactamente 3 párrafos separados por línea en blanco
-- Total: entre 180 y 250 palabras
-- Cada párrafo debe tener entre 3 y 5 oraciones como máximo
+- Total: entre 120 y 160 palabras
+- Cada párrafo debe tener máximo 3 oraciones
 
 ESTRUCTURA:
 1. Política monetaria: banco central (nombre completo), tasa actual, postura hawkish/dovish/neutral, inflación
@@ -180,7 +180,7 @@ def generate_analysis(api_key, currency, data):
             paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
             text = '\n\n'.join(paragraphs)
             word_count = len(text.split())
-            if word_count < 80:
+            if word_count < 60:
                 raise ValueError(f"Respuesta corta: {word_count} palabras")
             print(f"  ✅ {word_count} palabras generadas")
             return text
