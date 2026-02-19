@@ -32,7 +32,14 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          python scripts/generate_ai_analysis.py
+          echo "=== Working directory ==="
+          pwd
+          echo "=== Script exists? ==="
+          ls -la scripts/generate_ai_analysis.py
+          echo "=== Python version ==="
+          python --version
+          echo "=== Starting script ==="
+          python -u scripts/generate_ai_analysis.py
 
       - name: Commit and push analysis files
         run: |
