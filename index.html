@@ -1820,7 +1820,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '5.0.5-2026-02-18';
+            const DASHBOARD_VERSION = '5.0.6-2026-02-18';
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2666,15 +2666,25 @@ if (currency === 'CAD' && scoringData.consumerConfidence !== null && scoringData
 
     // 8c. COT Contrarian Hawkish — posición bajista extrema en divisa con outlook hawkish.
     // Indica desalineamiento: el mercado está corto pero el BC sube tasas → contrarian bullish.
-    const calculateCotContrarianAdj = (data, countryObj) => {
-        if (data.cotPositioning === null || data.cotPositioning === undefined) return 0;
-        if (!countryObj || countryObj.outlook !== 'Hawkish') return 0;
-        if (data.cotPositioning < -25000) {
-            const extremeness = Math.min(Math.abs(data.cotPositioning) - 25000, 50000);
-            return Math.min(6, (extremeness / 50000) * 6);
-        }
-        return 0;
-    };
+const calculateCotContrarianAdj = (data, countryObj) => {
+    if (data.cotPositioning === null || data.cotPositioning === undefined) return 0;
+    
+    // Contrarian bullish: COT bajista extremo + outlook hawkish
+    if (countryObj && countryObj.outlook === 'Hawkish' && data.cotPositioning < -25000) {
+        const extremeness = Math.min(Math.abs(data.cotPositioning) - 25000, 50000);
+        return Math.min(6, (extremeness / 50000) * 6);
+    }
+    
+    // Penalización bearish: COT bajista extremo + BC recortando activamente
+    if (data.cotPositioning < -30000 && 
+        data.rateMomentum !== null && data.rateMomentum !== undefined && 
+        data.rateMomentum < -0.3) {
+        const extremeness = Math.min(Math.abs(data.cotPositioning) - 30000, 50000);
+        return -Math.min(5, (extremeness / 50000) * 5);
+    }
+    
+    return 0;
+};
 
 // 8. Low-Rate Safe Haven Premium v2 — 100% data-driven, sin hardcoding de divisas
     // Detecta dinámicamente si una divisa es "safe haven funder" por sus datos:
@@ -2732,11 +2742,25 @@ if (currency === 'CAD' && scoringData.consumerConfidence !== null && scoringData
         // Con cap +8: CHF/JPY siguen premiados en risk-off y contexto neutral,
         // pero cuando el mercado favorece divisas de mayor rendimiento (risk-on),
         // el fxPerformance1M (peso 0.14) puede compensar y reflejar la realidad.
-        const adj = combinedFactor * 8;
+const adj = combinedFactor * 8;
 
-        console.log(`SafeHavenAdj ${currency}: rateGap=${rateGap.toFixed(2)}, factors=(${rateGapFactor.toFixed(2)}, ${caFactor.toFixed(2)}, ${debtFactor.toFixed(2)}) → +${adj.toFixed(1)}pts`);
+        // Régimen COT — DENTRO de la función (antes del return)
+        const cotValues = Object.values(allEconomicData)
+            .map(d => d.cotPositioning)
+            .filter(v => v !== null && v !== undefined && !isNaN(v));
+        const avgCOT = cotValues.length >= 3
+            ? cotValues.reduce((a, b) => a + b, 0) / cotValues.length : 0;
 
-        return Math.max(0, Math.min(8, adj));
+        // En risk-on (COT promedio positivo), reducir el cap de safe haven
+        const regimeCapMultiplier = avgCOT > 10000 ? 0.5   // risk-on fuerte
+                                  : avgCOT > 0     ? 0.7   // risk-on leve  
+                                  : avgCOT > -5000 ? 1.0   // neutral
+                                  : 1.3;                   // risk-off
+
+        const result = Math.max(0, Math.min(8 * regimeCapMultiplier, adj));
+        console.log(`SafeHavenAdj ${currency}: rateGap=${rateGap.toFixed(2)}, regime=${avgCOT > 0 ? 'risk-on' : 'risk-off'} (avgCOT=${avgCOT.toFixed(0)}) → +${result.toFixed(1)}pts`);
+        return result;
+
     };
 
     // Apply contextual adjustments
@@ -4887,7 +4911,7 @@ const sentiment = getSentiment(strength);
             © {new Date().getFullYear()} Santiago Plá · Global Investing. Todos los derechos reservados.
         </div>
         <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-            Dashboard v5.0.4
+            Dashboard v5.0.6
         </div>
     </div>
 </div>
