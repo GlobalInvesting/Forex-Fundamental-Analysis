@@ -1820,7 +1820,7 @@ const loadAllEconomicData = async (setEconomicData, setDataLoadingStatus) => {
                         const cacheKey = 'all_economic_data';
             // ⚠️ IMPORTANTE: Actualizar DASHBOARD_VERSION cada vez que modifiques el código
             // El formato es 'vX.Y.Z-YYYY-MM-DD' — la fecha garantiza invalidación automática del caché
-            const DASHBOARD_VERSION = '5.0.6-2026-02-18';
+            const DASHBOARD_VERSION = '5.1.0-2026-02-18';
             
             // ✅ Verificar versión del caché
             const cachedVersion = localStorage.getItem('forex_dashboard_version');
@@ -2080,56 +2080,45 @@ const calculateStrength = (currency, data = null, forexRates = {}, allEconomicDa
         dataQuality: 0 
     };
     
-// ========== TRADING-ORIENTED WEIGHTS v5.0 ==========
-// Cambios vs v4.9.7:
-//  - fxPerformance1M: 0.07 → 0.14 (duplicado — captura momentum real de mercado)
-//  - currentAccount:  0.12 → 0.07 (era dominante y generaba overfitting hacia CHF)
-//  - tradeBalance:    0.09 → 0.07 (reducción proporcional)
-//  - outlookScore:    0.06 → 0.08 (ciclo monetario más relevante)
-//  - rateMomentum:    0.02 → 0.04 (normalización BoJ es señal clave)
-//  - interestRate:    0.09 → 0.10 (ajuste menor)
-//  - safe_haven_cap:  +15  → +8   (CHF/JPY siguen beneficiados en risk-off pero no dominan siempre)
-// Filosofía: Balance entre fundamentos estructurales (LP), ciclo monetario (MP) y momentum real (CP)
-// Validado en 3 escenarios: risk-on Feb 2026, risk-off, neutral — todos coherentes con mercado
-// Suma total pesos: ~1.08 (normalizado automáticamente por totalWeight en el scoring loop)
+// ========== TRADING-ORIENTED WEIGHTS ==========
 const TRADING_WEIGHTS = {
-    // Tier 1: Rate Differentials & Monetary Cycle (0.30)
-    interestRate:          { weight: 0.10, direction: 'higher' },
-    inflation:             { weight: 0.08, direction: 'target' },
-    outlookScore:          { weight: 0.08, direction: 'outlook_direction' },
-    rateMomentum:          { weight: 0.04, direction: 'rate_momentum' },
+    // Tier 1: Rate Differentials & Monetary Cycle — lo que mueve el precio (0.43)
+    // Filosofía v5.1: pesos reflejan qué mueve el precio ahora, no qué describe la economía a LP.
+    // En forex: carry > momentum > ciclo monetario > fundamentales estructurales.
+    interestRate:          { weight: 0.12, direction: 'higher' },
+    inflation:             { weight: 0.07, direction: 'target' },
+    outlookScore:          { weight: 0.07, direction: 'outlook_direction' },
+    rateMomentum:          { weight: 0.06, direction: 'rate_momentum' },
 
-// Tier 2: External Balance (0.18 — currentAccount reducido para evitar overfitting CHF)
-    currentAccount:        { weight: 0.05, direction: 'higher' },
-    tradeBalance:          { weight: 0.07, direction: 'higher' },
-    debt:                  { weight: 0.04, direction: 'lower'  },
+    // Tier 2: External Balance (ya en precio — reducido para evitar overfitting CHF)
+    currentAccount:        { weight: 0.03, direction: 'higher' },
+    tradeBalance:          { weight: 0.05, direction: 'higher' },
+    debt:                  { weight: 0.02, direction: 'lower'  },
     termsOfTrade:          { weight: 0.02, direction: 'terms_of_trade' },
 
-    // Tier 3: Growth & Employment (0.20)
-    gdpGrowth:             { weight: 0.10, direction: 'higher' },
-    unemployment:          { weight: 0.06, direction: 'lower'  },
-    production:            { weight: 0.04, direction: 'stable' },
+    // Tier 3: Growth & Employment (ciclo que el mercado tradea activamente)
+    gdpGrowth:             { weight: 0.09, direction: 'higher' },
+    unemployment:          { weight: 0.05, direction: 'lower'  },
+    production:            { weight: 0.03, direction: 'stable' },
 
-    // Tier 4: Consumption & Wages (0.09)
-    retailSales:           { weight: 0.04, direction: 'stable' },
+    // Tier 4: Consumption & Wages
+    retailSales:           { weight: 0.03, direction: 'stable' },
     wageGrowth:            { weight: 0.03, direction: 'stable' },
     inflationExpectations: { weight: 0.02, direction: 'target' },
 
-    // Tier 5: Market Sentiment (0.15)
-    manufacturingPMI:      { weight: 0.03, direction: 'expansion'       },
-    cotPositioning:        { weight: 0.04, direction: 'moderate_bullish' },
+    // Tier 5: Market Sentiment — huella directa del smart money
+    // cotPositioning subido de 0.04 → 0.07: es la señal más directa de dónde está el dinero institucional
+    manufacturingPMI:      { weight: 0.04, direction: 'expansion'       },
+    cotPositioning:        { weight: 0.07, direction: 'moderate_bullish' },
     consumerConfidence:    { weight: 0.03, direction: 'sentiment_index'  },
     businessConfidence:    { weight: 0.02, direction: 'sentiment_index'  },
     capitalFlows:          { weight: 0.03, direction: 'flows'            },
 
-    // Tier 6: FX Market Momentum (0.16) — DUPLICADO vs v4.9.7 (0.07 → 0.16)
-    // fxPerformance1M: rendimiento real de la divisa en los últimos 30 días
-    // Fuente: Frankfurter API (ECB reference rates) actualizado diariamente
-    // El único indicador 100% forward-looking y libre de lag de publicación.
-    // Captura: positioning especulativo, flows institucionales, carry, risk-off.
-    // Con peso 0.16 tiene impacto real en el ranking sin dominar (anti-overfitting).
-    fxPerformance1M:       { weight: 0.16, direction: 'fx_momentum' },
-    bond10y:               { weight: 0.04, direction: 'carry_yield' },
+    // Tier 6: FX Market Momentum (0.23) — más peso que v5.0
+    // fxPerformance1M: 0.16 → 0.18 (único indicador 100% forward-looking, libre de lag)
+    // bond10y: 0.04 → 0.05 (carry yield directo — más relevante que la deuda estructural)
+    fxPerformance1M:       { weight: 0.18, direction: 'fx_momentum' },
+    bond10y:               { weight: 0.05, direction: 'carry_yield' },
 };
     
 // ========== SCORING FUNCTIONS v4.9.5 ==========
@@ -2757,8 +2746,18 @@ const adj = combinedFactor * 8;
                                   : avgCOT > -5000 ? 1.0   // neutral
                                   : 1.3;                   // risk-off
 
-        const result = Math.max(0, Math.min(8 * regimeCapMultiplier, adj));
-        console.log(`SafeHavenAdj ${currency}: rateGap=${rateGap.toFixed(2)}, regime=${avgCOT > 0 ? 'risk-on' : 'risk-off'} (avgCOT=${avgCOT.toFixed(0)}) → +${result.toFixed(1)}pts`);
+// Si el propio COT de la divisa es muy bajista, el mercado contradice
+        // el safe haven premium → reducirlo proporcionalmente.
+        // Lógica: si los institucionales están vendiendo esta divisa agresivamente
+        // (-42K CHF), el modelo no puede darle un premio de safe haven máximo.
+        // El smart money tiene información que los fundamentales estructurales no capturan.
+        const ownCOT = data.cotPositioning ?? 0;
+        const ownCOTPenalty = ownCOT < -25000
+            ? Math.max(0.3, 1.0 + (ownCOT + 25000) / 100000)  // 0.3x a 1.0x según extremo
+            : 1.0;
+
+        const result = Math.max(0, Math.min(5 * regimeCapMultiplier * ownCOTPenalty, adj));
+        console.log(`SafeHavenAdj ${currency}: rateGap=${rateGap.toFixed(2)}, regime=${avgCOT > 0 ? 'risk-on' : 'risk-off'} (avgCOT=${avgCOT.toFixed(0)}), cotPenalty=${ownCOTPenalty.toFixed(2)} → +${result.toFixed(1)}pts`);
         return result;
 
     };
@@ -4879,7 +4878,7 @@ const sentiment = getSentiment(strength);
     </div>
     <div style={{ marginBottom: '1rem' }}>
         Metodología: Modelo cuantitativo basado en datos económicos reales • 21 indicadores ponderados en 6 tiers<br/>
-        Tasas &amp; Ciclo Monetario (22%) • Crecimiento &amp; Empleo (20%) • FX Momentum (16%) • Sentimiento de Mercado (15%) • Balance Externo (18%) • Consumo &amp; Salarios (9%)<br/>
+        Tasas &amp; Ciclo Monetario (25%) • FX Momentum &amp; Smart Money (23%) • Crecimiento &amp; Empleo (17%) • Sentimiento de Mercado (16%) • Balance Externo (10%) • Consumo &amp; Salarios (9%)<br/>
         Datos actualizados diariamente desde Trading Economics, Frankfurter/ECB y CFTC
     </div>
 
@@ -4911,7 +4910,7 @@ const sentiment = getSentiment(strength);
             © {new Date().getFullYear()} Santiago Plá · Global Investing. Todos los derechos reservados.
         </div>
         <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-            Dashboard v5.0.6
+            Dashboard v5.1.0
         </div>
     </div>
 </div>
