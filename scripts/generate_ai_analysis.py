@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """
 generate_ai_analysis.py
-Genera análisis fundamentales de divisas forex usando Google Gemini API (gratuita).
-Usa el nuevo SDK google-genai (reemplaza al deprecado google-generativeai).
-
-API gratuita: gemini-2.0-flash — 15 req/min, 1500 req/día
-Obtener key gratis: https://aistudio.google.com
+Genera análisis fundamentales de divisas forex usando Gemini API REST directa.
+Sin SDK — solo requests. Evita problemas de inicialización y cuelgues.
 """
 
 import os
@@ -16,11 +13,7 @@ import requests
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Timeout global de red — evita que el script se cuelgue indefinidamente
-socket.setdefaulttimeout(10)
-
-from google import genai
-from google.genai import types
+socket.setdefaulttimeout(15)
 
 # ── Configuración ──────────────────────────────────────────────────────────────
 
@@ -40,10 +33,11 @@ COUNTRY_META = {
 GITHUB_BASE = 'https://globalinvesting.github.io'
 OUTPUT_DIR  = Path('ai-analysis')
 
+GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+
 # ── Carga de datos desde GitHub Pages ─────────────────────────────────────────
 
-def fetch_json(url: str, timeout: int = 8) -> dict | None:
-    """Descarga un JSON desde GitHub Pages. Devuelve None si falla."""
+def fetch_json(url: str, timeout: int = 8):
     try:
         r = requests.get(url, timeout=timeout)
         r.raise_for_status()
@@ -54,10 +48,8 @@ def fetch_json(url: str, timeout: int = 8) -> dict | None:
 
 
 def load_economic_data(currency: str) -> dict:
-    """Carga todos los datos disponibles para una divisa."""
     data = {}
 
-    # 1. Datos económicos principales
     main = fetch_json(f'{GITHUB_BASE}/economic-data/{currency}.json')
     if main and 'data' in main:
         d = main['data']
@@ -77,7 +69,6 @@ def load_economic_data(currency: str) -> dict:
             'lastUpdate':       main.get('lastUpdate'),
         })
 
-    # 2. Tasa de interés
     rates = fetch_json(f'{GITHUB_BASE}/rates/{currency}.json', timeout=6)
     if rates and rates.get('observations'):
         obs = rates['observations'][0]
@@ -88,7 +79,6 @@ def load_economic_data(currency: str) -> dict:
             except ValueError:
                 pass
 
-    # 3. Datos extendidos
     ext = fetch_json(f'{GITHUB_BASE}/extended-data/{currency}.json', timeout=6)
     if ext and 'data' in ext:
         d = ext['data']
@@ -101,12 +91,10 @@ def load_economic_data(currency: str) -> dict:
             'rateMomentum':          d.get('rateMomentum'),
         })
 
-    # 4. COT positioning
     cot = fetch_json(f'{GITHUB_BASE}/cot-data/{currency}.json', timeout=5)
     if cot and cot.get('netPosition') is not None:
         data['cotPositioning'] = cot['netPosition']
 
-    # 5. FX performance
     fxp = fetch_json(f'{GITHUB_BASE}/fx-performance/{currency}.json', timeout=5)
     if fxp and fxp.get('fxPerformance1M') is not None:
         data['fxPerformance1M'] = fxp['fxPerformance1M']
@@ -116,7 +104,7 @@ def load_economic_data(currency: str) -> dict:
 
 # ── Formateo para el prompt ────────────────────────────────────────────────────
 
-def fmt(value, decimals: int = 1, suffix: str = ''):
+def fmt(value, decimals=1, suffix=''):
     if value is None:
         return None
     try:
@@ -135,27 +123,27 @@ def build_data_summary(currency: str, data: dict) -> str:
     ]
 
     indicators = [
-        ('gdp',                  'PIB Total',                 lambda v: fmt(v, 2, ' T USD')),
-        ('gdpGrowth',            'Crecimiento PIB',           lambda v: fmt(v, 1, '% anual')),
-        ('interestRate',         'Tasa de Interés',           lambda v: fmt(v, 2, '%')),
-        ('inflation',            'Inflación (IPC)',           lambda v: fmt(v, 1, '% anual')),
-        ('unemployment',         'Desempleo',                 lambda v: fmt(v, 1, '%')),
-        ('currentAccount',       'Cuenta Corriente',          lambda v: fmt(v, 1, '% PIB')),
-        ('debt',                 'Deuda Pública',             lambda v: fmt(v, 1, '% PIB')),
-        ('tradeBalance',         'Balanza Comercial',         lambda v: fmt(v / 1000, 1, 'B USD/mes') if v else None),
-        ('production',           'Producción Industrial',     lambda v: fmt(v, 1, '% MoM')),
-        ('retailSales',          'Ventas Minoristas',         lambda v: fmt(v, 1, '% MoM')),
-        ('wageGrowth',           'Crecimiento Salarial',      lambda v: fmt(v, 1, '% anual')),
-        ('manufacturingPMI',     'PMI Manufacturero',         lambda v: fmt(v, 1, ' (>50=expansión)')),
-        ('cotPositioning',       'COT Positioning (CFTC)',    lambda v: fmt(v / 1000, 1, 'K contratos netos') if v else None),
-        ('bond10y',              'Yield Bono 10Y',            lambda v: fmt(v, 2, '%')),
-        ('consumerConfidence',   'Confianza Consumidor',      lambda v: fmt(v, 1, ' (base 100)')),
-        ('businessConfidence',   'Confianza Empresarial',     lambda v: fmt(v, 1, ' (base 100)')),
-        ('capitalFlows',         'Flujos de Capital',         lambda v: fmt(v / 1000, 1, 'B USD') if v else None),
-        ('inflationExpectations','Expect. de Inflación',      lambda v: fmt(v, 1, '%')),
-        ('termsOfTrade',         'Términos de Intercambio',   lambda v: fmt(v, 1, ' (base 100)')),
-        ('fxPerformance1M',      'Rendimiento FX 1M',         lambda v: fmt(v, 2, '% vs USD')),
-        ('rateMomentum',         'Momentum de Tasas',         lambda v: fmt(v, 2, '% (cambio 12M)')),
+        ('gdp',                  'PIB Total',               lambda v: fmt(v, 2, ' T USD')),
+        ('gdpGrowth',            'Crecimiento PIB',         lambda v: fmt(v, 1, '% anual')),
+        ('interestRate',         'Tasa de Interés',         lambda v: fmt(v, 2, '%')),
+        ('inflation',            'Inflación (IPC)',         lambda v: fmt(v, 1, '% anual')),
+        ('unemployment',         'Desempleo',               lambda v: fmt(v, 1, '%')),
+        ('currentAccount',       'Cuenta Corriente',        lambda v: fmt(v, 1, '% PIB')),
+        ('debt',                 'Deuda Pública',           lambda v: fmt(v, 1, '% PIB')),
+        ('tradeBalance',         'Balanza Comercial',       lambda v: fmt(v / 1000, 1, 'B USD/mes') if v else None),
+        ('production',           'Producción Industrial',   lambda v: fmt(v, 1, '% MoM')),
+        ('retailSales',          'Ventas Minoristas',       lambda v: fmt(v, 1, '% MoM')),
+        ('wageGrowth',           'Crecimiento Salarial',    lambda v: fmt(v, 1, '% anual')),
+        ('manufacturingPMI',     'PMI Manufacturero',       lambda v: fmt(v, 1, ' (>50=expansión)')),
+        ('cotPositioning',       'COT Positioning',         lambda v: fmt(v / 1000, 1, 'K contratos netos') if v else None),
+        ('bond10y',              'Yield Bono 10Y',          lambda v: fmt(v, 2, '%')),
+        ('consumerConfidence',   'Confianza Consumidor',    lambda v: fmt(v, 1, ' (base 100)')),
+        ('businessConfidence',   'Confianza Empresarial',   lambda v: fmt(v, 1, ' (base 100)')),
+        ('capitalFlows',         'Flujos de Capital',       lambda v: fmt(v / 1000, 1, 'B USD') if v else None),
+        ('inflationExpectations','Expect. Inflación',       lambda v: fmt(v, 1, '%')),
+        ('termsOfTrade',         'Términos de Intercambio', lambda v: fmt(v, 1, ' (base 100)')),
+        ('fxPerformance1M',      'Rendimiento FX 1M',       lambda v: fmt(v, 2, '% vs USD')),
+        ('rateMomentum',         'Momentum de Tasas',       lambda v: fmt(v, 2, '% (cambio 12M)')),
     ]
 
     available = 0
@@ -175,104 +163,112 @@ def build_data_summary(currency: str, data: dict) -> str:
     return "\n".join(lines)
 
 
-# ── Prompt del sistema ─────────────────────────────────────────────────────────
+# ── Generación con Gemini REST API ─────────────────────────────────────────────
 
-SYSTEM_PROMPT = """Eres el motor de análisis fundamental de un dashboard profesional de forex usado por traders.
+SYSTEM_PROMPT = """Eres el motor de análisis fundamental de un dashboard profesional de forex.
 
 TAREA: Generar un análisis económico riguroso y conciso sobre la divisa indicada.
 
-FORMATO OBLIGATORIO:
+FORMATO:
 - Texto corrido en español, sin bullets, sin títulos, sin markdown
 - Exactamente 3 párrafos separados por línea en blanco
-- Cada párrafo: 2-4 oraciones densas en información
 - Total: entre 180 y 250 palabras
 
-ESTRUCTURA DE LOS PÁRRAFOS:
-1. Política monetaria: banco central, tasa actual, postura (hawkish/dovish/neutral), inflación
-2. Actividad económica: crecimiento, empleo, consumo, sector exterior (balanza, cuenta corriente)
-3. Sentimiento de mercado y perspectivas: COT, rendimiento FX reciente, qué presiona al alza/baja
+ESTRUCTURA:
+1. Política monetaria: banco central (nombre completo), tasa actual, postura hawkish/dovish/neutral, inflación
+2. Actividad económica: crecimiento, empleo, consumo, sector exterior
+3. Sentimiento de mercado: COT, rendimiento FX reciente, perspectivas
 
 REGLAS:
-- Cita siempre los valores numéricos exactos del input
-- Menciona el banco central por su nombre completo en el primer párrafo
-- No uses frases vacías como "es importante destacar" o "cabe señalar"
-- Si un indicador no tiene dato, no lo menciones ni escribas "sin dato"
-- El tono es profesional y directo, como un informe de research de banco de inversión
-- No incluyas saludos, despedidas ni meta-comentarios sobre el análisis"""
+- Cita los valores numéricos exactos del input
+- Si un indicador no tiene dato, no lo menciones
+- Tono profesional y directo, como research de banco de inversión
+- Sin saludos ni meta-comentarios"""
 
 
-# ── Generación con Gemini (nuevo SDK google-genai) ─────────────────────────────
+def call_gemini_api(api_key: str, prompt: str) -> str:
+    """Llama a la API REST de Gemini directamente con requests."""
+    url = f"{GEMINI_URL}?key={api_key}"
+    
+    payload = {
+        "contents": [
+            {"role": "user", "parts": [{"text": prompt}]}
+        ],
+        "generationConfig": {
+            "maxOutputTokens": 500,
+            "temperature": 0.4,
+            "topP": 0.85
+        }
+    }
 
-def generate_analysis(client: genai.Client, currency: str, data: dict) -> str:
-    """Llama a Gemini para generar el análisis de una divisa."""
+    response = requests.post(
+        url,
+        json=payload,
+        headers={"Content-Type": "application/json"},
+        timeout=30
+    )
+
+    if response.status_code == 429:
+        raise RuntimeError("RATE_LIMIT")
+    
+    response.raise_for_status()
+    data = response.json()
+    
+    try:
+        return data['candidates'][0]['content']['parts'][0]['text'].strip()
+    except (KeyError, IndexError) as e:
+        raise RuntimeError(f"Respuesta inesperada de Gemini: {data}") from e
+
+
+def generate_analysis(api_key: str, currency: str, data: dict) -> str:
     data_summary = build_data_summary(currency, data)
-
-    full_prompt = f"""{SYSTEM_PROMPT}
-
----
-
-{data_summary}
-
----
-
-Genera ahora el análisis fundamental para {currency}:"""
+    prompt = f"{SYSTEM_PROMPT}\n\n---\n\n{data_summary}\n\n---\n\nGenera el análisis fundamental para {currency}:"
 
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    max_output_tokens=500,
-                    temperature=0.4,
-                    top_p=0.85,
-                )
-            )
-
-            text = response.text.strip()
+            text = call_gemini_api(api_key, prompt)
             word_count = len(text.split())
-
             if word_count < 80:
-                raise ValueError(f"Respuesta demasiado corta: {word_count} palabras")
-
+                raise ValueError(f"Respuesta corta: {word_count} palabras")
             print(f"  ✅ {word_count} palabras generadas")
             return text
 
-        except Exception as e:
-            error_str = str(e).lower()
-            if '429' in error_str or 'quota' in error_str or 'rate' in error_str:
+        except RuntimeError as e:
+            if "RATE_LIMIT" in str(e):
                 wait = 60 if attempt == 0 else 120
                 print(f"  ⏳ Rate limit, esperando {wait}s...")
                 time.sleep(wait)
             elif attempt < max_retries - 1:
                 wait = 10 * (attempt + 1)
-                print(f"  ⚠️  Error (intento {attempt + 1}/{max_retries}): {e}. Reintentando en {wait}s...")
+                print(f"  ⚠️  Error intento {attempt+1}: {e}. Reintentando en {wait}s...")
                 time.sleep(wait)
             else:
-                raise RuntimeError(f"No se pudo generar análisis para {currency}: {e}")
+                raise
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait = 10 * (attempt + 1)
+                print(f"  ⚠️  Error intento {attempt+1}: {e}. Reintentando en {wait}s...")
+                time.sleep(wait)
+            else:
+                raise RuntimeError(f"Falló para {currency}: {e}")
 
-    raise RuntimeError(f"Agotados los reintentos para {currency}")
+    raise RuntimeError(f"Agotados reintentos para {currency}")
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
-    print("🤖 Generador de Análisis AI — Gemini 2.0 Flash (gratuito)")
+    print("🤖 Generador AI — Gemini 2.0 Flash via REST API")
     print(f"   {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("=" * 60)
 
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
-        raise EnvironmentError(
-            "❌ GEMINI_API_KEY no configurada.\n"
-            "   Obtenla gratis en: https://aistudio.google.com\n"
-            "   Luego: GitHub repo → Settings → Secrets → GEMINI_API_KEY"
-        )
+        raise EnvironmentError("❌ GEMINI_API_KEY no configurada en los secrets del repo")
 
-    client = genai.Client(api_key=api_key)
-    print("✅ Gemini 2.0 Flash configurado (SDK google-genai)\n")
+    print(f"✅ API key configurada ({len(api_key)} caracteres)\n")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -283,21 +279,20 @@ def main():
         print(f"[{i+1}/{len(CURRENCIES)}] {currency}...")
 
         try:
-            print(f"  📥 Cargando datos económicos...")
+            print(f"  📥 Cargando datos...")
             data = load_economic_data(currency)
-
             available = sum(1 for v in data.values() if v is not None)
             print(f"  📊 {available} indicadores disponibles")
 
             if available < 4:
-                msg = f"Datos insuficientes ({available} indicadores)"
+                msg = f"Datos insuficientes ({available})"
                 print(f"  ⚠️  {msg}, saltando...")
                 errors.append(f"{currency}: {msg}")
                 results[currency] = {"success": False, "error": msg}
                 continue
 
-            print(f"  🧠 Generando con Gemini 2.0 Flash...")
-            analysis_text = generate_analysis(client, currency, data)
+            print(f"  🧠 Llamando a Gemini API...")
+            analysis_text = generate_analysis(api_key, currency, data)
 
             output = {
                 "currency":    currency,
@@ -327,8 +322,7 @@ def main():
                 "wordCount":   len(analysis_text.split()),
                 "generatedAt": output["generatedAt"],
             }
-
-            print(f"  💾 Guardado en {output_path}")
+            print(f"  💾 Guardado → {output_path}")
 
             if i < len(CURRENCIES) - 1:
                 print(f"  ⏸  Pausa 5s...")
@@ -349,7 +343,6 @@ def main():
         "errors":         errors,
         "results":        results,
     }
-
     with open(OUTPUT_DIR / 'index.json', 'w', encoding='utf-8') as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
 
@@ -357,14 +350,13 @@ def main():
     print("📋 RESUMEN")
     print(f"   ✅ Exitosos: {len(successful)}/{len(CURRENCIES)} — {', '.join(successful) or 'ninguno'}")
     if errors:
-        print(f"   ❌ Errores ({len(errors)}):")
+        print(f"   ❌ Errores:")
         for err in errors:
             print(f"      • {err}")
-    print(f"   📁 Archivos en: {OUTPUT_DIR}/")
     print("=" * 60)
 
     if len(errors) > len(successful):
-        raise RuntimeError(f"Demasiados errores: {len(errors)} fallos vs {len(successful)} éxitos")
+        raise RuntimeError(f"Demasiados errores: {len(errors)} fallos")
 
 
 if __name__ == '__main__':
