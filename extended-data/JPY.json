@@ -1,18 +1,18 @@
 {
-  "lastUpdate": "2026-02-19",
+  "lastUpdate": "2026-02-20",
   "source": "TradingEconomics \u2014 v10: rateMomentum via TE API guest + FRED + bootstrap",
   "rateMomentumStrategy": "fred",
   "data": {
-    "bond10y": 2.144,
+    "bond10y": 2.111,
     "consumerConfidence": 96.85,
     "businessConfidence": 115.0,
-    "capitalFlows": 4698.65,
+    "capitalFlows": 4660.43,
     "fdi": 11098.0,
     "inflationExpectations": 2.4,
     "rateMomentum": 0.0
   },
   "dates": {
-    "bond10y": "2026-02-19",
+    "bond10y": "2026-02-20",
     "consumerConfidence": "2026-01-15",
     "businessConfidence": "2025-12-15",
     "capitalFlows": "2025-12-15",
