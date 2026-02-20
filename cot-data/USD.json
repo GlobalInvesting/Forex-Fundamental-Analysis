@@ -1,9 +1,9 @@
 {
-  "netPosition": -729,
-  "longPositions": 16131,
-  "shortPositions": 16860,
+  "netPosition": 328,
+  "longPositions": 15416,
+  "shortPositions": 15088,
   "source": "CFTC (US Dollar Index - ICE Futures)",
-  "reportDate": "2026-02-18",
-  "lastUpdate": "2026-02-18",
+  "reportDate": "2026-02-20",
+  "lastUpdate": "2026-02-20",
   "url": "https://www.cftc.gov/dea/futures/deanybtsf.htm"
 }
