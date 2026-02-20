@@ -393,16 +393,19 @@ jobs:
 
           def fetch_all_tot(te_list_data, te_list_dates):
               """
-              ToT resolution chain:
-                1. TE list values (all currencies, reject out-of-range)
-                   Also captures Germany (proxy for EUR) from the same list.
-                2. GBP  → ONS API (quarterly, most current)
-                3. EUR  → OECD legacy API → OECD new API → Germany proxy (from TE list)
-                4. NZD  → World Bank DIRECTLY (TE uses non-standard base 2002Q2=1000,
-                           always out-of-range; skip TE entirely and go straight to WB
-                           with extended timeout=45s and retries=3)
-                5. Rest → World Bank (annual, ~2yr lag)
+              ToT resolution chain — fully parallelised:
+                1. TE list values (all currencies, reject out-of-range).
+                   Germany captured as EUR proxy at zero extra cost.
+                2. All missing currencies fetched IN PARALLEL:
+                   - GBP  → ONS API (with WB fallback inside the task)
+                   - EUR  → OECD legacy → OECD new → Germany proxy (all inside task)
+                   - NZD  → World Bank direct (TE base 2002Q2=1000, incompatible)
+                   - Rest → World Bank
+                   Running concurrently means the worst-case time is max(individual)
+                   not sum(all), cutting wait from ~3–4 min to ~45s.
               """
+              from concurrent.futures import ThreadPoolExecutor, as_completed
+
               data  = {}
               dates = {}
 
@@ -425,59 +428,56 @@ jobs:
               if not missing:
                   return data, dates
 
-              print(f"\n  → Specialist ToT for: {', '.join(missing)}")
+              print(f"\n  → Specialist ToT (parallel) for: {', '.join(missing)}")
 
-              # Step 2: GBP via ONS
-              if 'GBP' in missing:
-                  val, d = scrape_tot_ons_gbp()
-                  if val is not None:
-                      data['GBP']  = val
-                      dates['GBP'] = d
-                      missing.remove('GBP')
+              # Step 2: define per-currency fetch tasks
+              def fetch_task(curr):
+                  """Returns (curr, value, date_str) — all fallback logic self-contained."""
+                  if curr == 'GBP':
+                      val, d = scrape_tot_ons_gbp()
+                      if val is not None:
+                          print(f"  ✓ GBP [ONS]")
+                          return curr, val, d
+                      # ONS failed → fall through to WB
+                      print(f"  ✗ GBP ONS failed → trying World Bank...")
+                      val, d = scrape_tot_wb('GBP', timeout=30, retries=2)
+                      return curr, val, d
 
-              # Step 3: EUR — OECD API chain → Germany proxy
-              if 'EUR' in missing:
-                  print("  → EUR ToT: trying OECD API...")
-                  val, d = fetch_tot_eur_oecd()
-                  if val is not None:
-                      data['EUR']  = val
-                      dates['EUR'] = d
-                      missing.remove('EUR')
-                  else:
-                      print("  ✗ EUR: OECD API failed → trying Germany proxy")
+                  if curr == 'EUR':
+                      print("  → EUR ToT: trying OECD API...")
+                      val, d = fetch_tot_eur_oecd()
+                      if val is not None:
+                          return curr, val, d
+                      # OECD failed → Germany proxy
+                      print("  ✗ EUR OECD failed → trying Germany proxy")
                       if de_proxy_val is not None:
-                          data['EUR']  = de_proxy_val
-                          dates['EUR'] = de_proxy_date
-                          missing.remove('EUR')
-                          print(f"  ✓ EUR [proxy:DE={de_proxy_val}] used as fallback")
-                      else:
-                          print("  ✗ EUR: Germany proxy also unavailable")
+                          print(f"  ✓ EUR [proxy:DE={de_proxy_val}]")
+                          return curr, de_proxy_val, de_proxy_date
+                      # Proxy also unavailable → WB
+                      print("  ✗ EUR Germany proxy unavailable → trying World Bank...")
+                      val, d = scrape_tot_wb('EUR', timeout=30, retries=2)
+                      return curr, val, d
 
-              # ── NZD note: TE uses non-standard base (2002Q2=1000) so its value is always
-              # out-of-range and rejected in Step 1. The country-page scraper returns the
-              # same 1000-base value and would be rejected too, so NZD falls through to
-              # Step 5 (World Bank parallel pool) where it gets timeout=45s / retries=3.
+                  if curr == 'NZD':
+                      # TE uses non-standard base (2002Q2=1000) → always rejected.
+                      # Country-page scraper returns the same value → skip it.
+                      # Go straight to World Bank with more generous params.
+                      print("  → NZD ToT: TE base incompatible, fetching World Bank directly...")
+                      val, d = scrape_tot_wb('NZD', timeout=45, retries=3)
+                      return curr, val, d
 
-              # Step 5: World Bank for anything still missing — PARALLEL execution
-              # NZD gets timeout=45/retries=3; others get timeout=30/retries=2
-              still_missing = [c for c in CURRENCIES if c not in data]
-              if still_missing:
-                  from concurrent.futures import ThreadPoolExecutor, as_completed
-                  print(f"\n  → World Bank ToT fallback (parallel) for: {', '.join(still_missing)}")
+                  # Default: World Bank
+                  val, d = scrape_tot_wb(curr, timeout=30, retries=2)
+                  return curr, val, d
 
-                  def wb_fetch(curr):
-                      if curr == 'NZD':
-                          print(f"  → NZD ToT: TE base incompatible (2002Q2=1000), fetching World Bank directly...")
-                          return curr, scrape_tot_wb(curr, timeout=45, retries=3)
-                      return curr, scrape_tot_wb(curr, timeout=30, retries=2)
-
-                  with ThreadPoolExecutor(max_workers=4) as executor:
-                      futures = {executor.submit(wb_fetch, curr): curr for curr in still_missing}
-                      for future in as_completed(futures):
-                          curr, (val, d) = future.result()
-                          if val is not None:
-                              data[curr]  = val
-                              dates[curr] = d
+              # Step 3: run all tasks in parallel (max 4 threads — WB rate-limit friendly)
+              with ThreadPoolExecutor(max_workers=4) as executor:
+                  futures = {executor.submit(fetch_task, curr): curr for curr in missing}
+                  for future in as_completed(futures):
+                      curr, val, d = future.result()
+                      if val is not None:
+                          data[curr]  = val
+                          dates[curr] = d
 
               final_missing = [c for c in CURRENCIES if c not in data]
               if final_missing:
