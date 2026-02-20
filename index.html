@@ -2024,10 +2024,10 @@ economicData[country.code].cotPositioningDate = cotData.reportDate || cotData.la
             const currentTimestamp = new Date(economicData[country.code].lastUpdate || 0);
             const cotTimestamp = new Date(cotData.lastUpdate);
             
-            if (cotTimestamp < currentTimestamp) {
-                // Si COT es más antiguo, usar ese timestamp como referencia
-                economicData[country.code].lastUpdate = cotData.lastUpdate;
-            }
+if (cotData.lastUpdate) {
+    // No sobreescribir lastUpdate con la fecha del COT
+    // El timestamp del archivo económico diario es la referencia correcta
+}
         }
         
 console.log(`✅ Loaded COT for ${country.code}: ${cotData.positioning}`);
