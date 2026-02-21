@@ -1,6 +1,12 @@
 {
   "observations": [
     {
+      "value": "0.75",
+      "date": "2026-01-15",
+      "rawDate": "Jan/26",
+      "source": "TradingEconomics"
+    },
+    {
       "value": "0.73",
       "date": "2026-01-01",
       "source": "FRED"
@@ -122,6 +128,5 @@
     }
   ],
   "lastUpdate": "2026-02-21",
-  "series": "IRSTCI01JPM156N",
-  "frequency": "monthly"
+  "totalObservations": 25
 }

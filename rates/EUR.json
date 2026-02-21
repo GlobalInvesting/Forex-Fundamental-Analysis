@@ -1,6 +1,12 @@
 {
   "observations": [
     {
+      "value": "2.15",
+      "date": "2026-02-15",
+      "rawDate": "Feb/26",
+      "source": "TradingEconomics"
+    },
+    {
       "value": "2.0",
       "date": "2026-02-01",
       "source": "FRED"
@@ -127,6 +133,5 @@
     }
   ],
   "lastUpdate": "2026-02-21",
-  "series": "ECBDFR",
-  "frequency": "monthly"
+  "totalObservations": 26
 }

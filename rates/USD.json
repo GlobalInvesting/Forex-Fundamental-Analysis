@@ -1,6 +1,12 @@
 {
   "observations": [
     {
+      "value": "3.75",
+      "date": "2026-01-15",
+      "rawDate": "Jan/26",
+      "source": "TradingEconomics"
+    },
+    {
       "value": "3.64",
       "date": "2026-01-01",
       "source": "FRED"
@@ -122,6 +128,5 @@
     }
   ],
   "lastUpdate": "2026-02-21",
-  "series": "FEDFUNDS",
-  "frequency": "monthly"
+  "totalObservations": 25
 }
