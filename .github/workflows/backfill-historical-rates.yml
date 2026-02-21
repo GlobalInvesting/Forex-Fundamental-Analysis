@@ -38,16 +38,18 @@ jobs:
           # ── FRED series IDs para cada divisa ────────────────────────────────────
           # Cada serie contiene el histórico oficial de la tasa de política monetaria.
           # FRED actualiza estas series con cada decisión del banco central.
-          # IDs verificados en FRED (feb 2026) — IRSTCI01XXM156N = overnight interbank OCDE
-          FRED_SERIES = {
-              'USD': 'FEDFUNDS',           # Federal Funds Effective Rate — oficial Fed
-              'EUR': 'ECBDFR',             # ECB Deposit Facility Rate — oficial BCE
-              'GBP': 'IRSTCI01GBM156N',   # BoE overnight interbank (BOERUKM solo llega a 2017)
-              'JPY': 'IRSTCI01JPM156N',   # BoJ overnight interbank (IRSTCB01JPM156N llega a 2023)
-              'CAD': 'IRSTCB01CAM156N',   # Bank of Canada — funciona correctamente
-              'AUD': 'IRSTCI01AUM156N',   # RBA overnight interbank (IRSTCB01AUM156N no existe)
-              'CHF': 'IRSTCI01CHM156N',   # SNB overnight interbank (IRSTCB01CHM156N no existe)
-              'NZD': 'IRSTCI01NZM156N',   # RBNZ overnight interbank (IRSTCB01NZM156N no existe)
+          # IDs verificados contra resultados reales de FRED (feb 2026)
+          # Estrategia: para cada divisa se define una lista de series en orden de preferencia.
+          # El script intenta la primera; si falla o devuelve datos viejos (< 2025), prueba la siguiente.
+          FRED_SERIES_PRIORITY = {
+              'USD': ['FEDFUNDS'],
+              'EUR': ['ECBDFR'],
+              'GBP': ['IRSTCI01GBM156N'],
+              'JPY': ['IRSTCI01JPM156N'],
+              'CAD': ['IRSTCI01CAM156N', 'IRSTCB01CAM156N'],  # CI primero (más reciente)
+              'AUD': ['IRSTCI01AUM156N'],
+              'CHF': ['SNBPOFRATE', 'IRSTCI01CHM156N'],       # SNB Policy Rate primero (0% confirmado 2025)
+              'NZD': ['RBNZOCR', 'IRSTCI01NZM156N'],          # RBNZ OCR primero (más reciente)
           }
 
           FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations'
@@ -67,58 +69,69 @@ jobs:
 
           os.makedirs('rates', exist_ok=True)
 
-          for currency, series_id in FRED_SERIES.items():
-              print(f"── {currency} ({series_id}) ──────────────────────────────")
-              
-              try:
-                  params = {
-                      'series_id': series_id,
-                      'observation_start': start_date,
-                      'observation_end': end_date,
-                      'frequency': 'm',          # mensual
-                      'aggregation_method': 'eop', # end-of-period (último dato del mes)
-                      'file_type': 'json',
-                      'api_key': FRED_API_KEY
-                  }
-                  
-                  r = requests.get(FRED_BASE, params=params, timeout=15)
-                  r.raise_for_status()
-                  data = r.json()
-                  
-                  if 'observations' not in data or not data['observations']:
-                      print(f"  ❌ Sin datos para {currency}")
-                      continue
+          CUTOFF_RECENT = '2025-06-01'  # Serie válida si tiene datos más recientes que esta fecha
 
-                  # Filtrar observaciones válidas (FRED usa '.' para datos faltantes)
-                  valid_obs = [
-                      {
-                          'value': str(round(float(o['value']), 2)),
-                          'date': o['date'],
-                          'source': 'FRED'
+          for currency, series_list in FRED_SERIES_PRIORITY.items():
+              print(f"── {currency} ──────────────────────────────")
+              success = False
+
+              for series_id in series_list:
+                  print(f"   Probando serie: {series_id}")
+                  try:
+                      params = {
+                          'series_id': series_id,
+                          'observation_start': start_date,
+                          'observation_end': end_date,
+                          'frequency': 'm',
+                          'aggregation_method': 'eop',
+                          'file_type': 'json',
+                          'api_key': FRED_API_KEY
                       }
-                      for o in data['observations']
-                      if o['value'] != '.'
-                  ]
+                      r = requests.get(FRED_BASE, params=params, timeout=15)
+                      r.raise_for_status()
+                      data = r.json()
 
-                  # Ordenar más reciente primero (como espera el dashboard)
-                  valid_obs.sort(key=lambda x: x['date'], reverse=True)
+                      if 'observations' not in data or not data['observations']:
+                          print(f"   ⚠️  Sin observaciones, probando siguiente...")
+                          continue
 
-                  output = {
-                      'observations': valid_obs,
-                      'lastUpdate': end_date,
-                      'series': series_id,
-                      'frequency': 'monthly'
-                  }
+                      valid_obs = [
+                          {'value': str(round(float(o['value']), 2)), 'date': o['date'], 'source': 'FRED'}
+                          for o in data['observations'] if o['value'] != '.'
+                      ]
 
-                  with open(f'rates/{currency}.json', 'w') as f:
-                      json.dump(output, f, indent=2)
+                      if not valid_obs:
+                          print(f"   ⚠️  Solo valores vacíos, probando siguiente...")
+                          continue
 
-                  print(f"  ✅ {len(valid_obs)} observaciones guardadas")
-                  print(f"     Más reciente: {valid_obs[0]['date']} = {valid_obs[0]['value']}%")
-                  print(f"     Más antigua:  {valid_obs[-1]['date']} = {valid_obs[-1]['value']}%")
+                      valid_obs.sort(key=lambda x: x['date'], reverse=True)
+                      most_recent = valid_obs[0]['date']
 
-              except Exception as e:
-                  print(f"  ❌ Error: {e}")
+                      if most_recent < CUTOFF_RECENT and len(series_list) > series_list.index(series_id) + 1:
+                          print(f"   ⚠️  Datos solo hasta {most_recent}, probando serie más reciente...")
+                          continue
+
+                      output = {
+                          'observations': valid_obs,
+                          'lastUpdate': end_date,
+                          'series': series_id,
+                          'frequency': 'monthly'
+                      }
+
+                      with open(f'rates/{currency}.json', 'w') as f:
+                          json.dump(output, f, indent=2)
+
+                      print(f"   ✅ {len(valid_obs)} observaciones guardadas (serie: {series_id})")
+                      print(f"      Más reciente: {valid_obs[0]['date']} = {valid_obs[0]['value']}%")
+                      print(f"      Más antigua:  {valid_obs[-1]['date']} = {valid_obs[-1]['value']}%")
+                      success = True
+                      break
+
+                  except Exception as e:
+                      print(f"   ❌ Error con {series_id}: {e}")
+
+              if not success:
+                  print(f"   ❌ Todas las series fallaron para {currency}")
 
           print(f"\n{'='*70}")
           print("BACKFILL COMPLETADO")
