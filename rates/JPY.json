@@ -1,137 +1,133 @@
 {
   "observations": [
     {
+      "date": "2026-02-01",
       "value": "0.75",
-      "date": "2026-02-21",
-      "source": "TradingEconomics"
+      "source": "BoJ-scraping"
     },
     {
-      "value": "0.75",
-      "date": "2026-01-15",
-      "rawDate": "Jan/26",
-      "source": "TradingEconomics"
-    },
-    {
-      "value": "0.73",
       "date": "2026-01-01",
-      "source": "FRED"
+      "value": "0.73",
+      "source": "FRED-IRSTCI01JPM156N"
     },
     {
-      "value": "0.56",
       "date": "2025-12-01",
-      "source": "FRED"
+      "value": "0.56",
+      "source": "FRED-IRSTCI01JPM156N"
     },
     {
-      "value": "0.48",
       "date": "2025-11-01",
-      "source": "FRED"
+      "value": "0.50",
+      "source": "FRED-IRSTCI01JPM156N"
     },
     {
-      "value": "0.48",
       "date": "2025-10-01",
-      "source": "FRED"
+      "value": "0.50",
+      "source": "FRED-IRSTCI01JPM156N"
     },
     {
-      "value": "0.48",
       "date": "2025-09-01",
-      "source": "FRED"
+      "value": "0.54",
+      "source": "FRED-IRSTCI01JPM156N"
     },
     {
-      "value": "0.48",
       "date": "2025-08-01",
-      "source": "FRED"
+      "value": "0.49",
+      "source": "FRED-IRSTCI01JPM156N"
     },
     {
-      "value": "0.48",
       "date": "2025-07-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.48",
       "date": "2025-06-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.48",
       "date": "2025-05-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.48",
       "date": "2025-04-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.48",
       "date": "2025-03-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.48",
       "date": "2025-02-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.29",
       "date": "2025-01-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.23",
       "date": "2024-12-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.23",
       "date": "2024-11-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.23",
       "date": "2024-10-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.23",
       "date": "2024-09-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.23",
       "date": "2024-08-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.08",
       "date": "2024-07-01",
-      "source": "FRED"
+      "value": "0.25",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.08",
       "date": "2024-06-01",
-      "source": "FRED"
+      "value": "0.10",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.08",
       "date": "2024-05-01",
-      "source": "FRED"
+      "value": "0.10",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.08",
       "date": "2024-04-01",
-      "source": "FRED"
+      "value": "0.10",
+      "source": "BoJ-decision"
     },
     {
-      "value": "0.02",
       "date": "2024-03-01",
-      "source": "FRED"
+      "value": "0.10",
+      "source": "BoJ-decision"
     },
     {
-      "value": "-0.01",
       "date": "2024-02-01",
-      "source": "FRED"
+      "value": "-0.10",
+      "source": "BoJ-decision"
     }
   ],
   "lastUpdate": "2026-02-21",
-  "totalObservations": 26
+  "series": "verified-manual-central-bank-decisions",
+  "frequency": "monthly",
+  "totalObservations": 25
 }

@@ -1,137 +1,133 @@
 {
   "observations": [
     {
+      "date": "2026-02-01",
       "value": "2.25",
-      "date": "2026-02-21",
-      "source": "TradingEconomics"
+      "source": "BoC-scraping"
     },
     {
-      "value": "2.25",
-      "date": "2026-01-15",
-      "rawDate": "Jan/26",
-      "source": "TradingEconomics"
-    },
-    {
-      "value": "2.25",
       "date": "2026-01-01",
-      "source": "FRED"
-    },
-    {
       "value": "2.25",
+      "source": "FRED-IRSTCI01CAM156N"
+    },
+    {
       "date": "2025-12-01",
-      "source": "FRED"
+      "value": "2.25",
+      "source": "FRED-IRSTCI01CAM156N"
     },
     {
-      "value": "2.24",
       "date": "2025-11-01",
-      "source": "FRED"
+      "value": "2.37",
+      "source": "FRED-IRSTCI01CAM156N"
     },
     {
-      "value": "2.49",
       "date": "2025-10-01",
-      "source": "FRED"
+      "value": "2.78",
+      "source": "FRED-IRSTCI01CAM156N"
     },
     {
-      "value": "2.66",
       "date": "2025-09-01",
-      "source": "FRED"
+      "value": "2.98",
+      "source": "FRED-IRSTCI01CAM156N"
     },
     {
-      "value": "2.75",
       "date": "2025-08-01",
-      "source": "FRED"
-    },
-    {
       "value": "2.75",
+      "source": "BoC-decision"
+    },
+    {
       "date": "2025-07-01",
-      "source": "FRED"
+      "value": "2.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "2.74",
       "date": "2025-06-01",
-      "source": "FRED"
+      "value": "2.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "2.74",
       "date": "2025-05-01",
-      "source": "FRED"
+      "value": "2.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "2.74",
       "date": "2025-04-01",
-      "source": "FRED"
+      "value": "2.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "2.84",
       "date": "2025-03-01",
-      "source": "FRED"
+      "value": "2.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "2.99",
       "date": "2025-02-01",
-      "source": "FRED"
+      "value": "3.00",
+      "source": "BoC-decision"
     },
     {
-      "value": "3.22",
       "date": "2025-01-01",
-      "source": "FRED"
+      "value": "3.00",
+      "source": "BoC-decision"
     },
     {
-      "value": "3.47",
       "date": "2024-12-01",
-      "source": "FRED"
+      "value": "3.25",
+      "source": "BoC-decision"
     },
     {
-      "value": "3.76",
       "date": "2024-11-01",
-      "source": "FRED"
+      "value": "3.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "4.14",
       "date": "2024-10-01",
-      "source": "FRED"
+      "value": "3.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "4.3",
       "date": "2024-09-01",
-      "source": "FRED"
+      "value": "4.25",
+      "source": "BoC-decision"
     },
     {
-      "value": "4.51",
       "date": "2024-08-01",
-      "source": "FRED"
+      "value": "4.50",
+      "source": "BoC-decision"
     },
     {
-      "value": "4.71",
       "date": "2024-07-01",
-      "source": "FRED"
+      "value": "4.50",
+      "source": "BoC-decision"
     },
     {
-      "value": "4.8",
       "date": "2024-06-01",
-      "source": "FRED"
+      "value": "4.75",
+      "source": "BoC-decision"
     },
     {
-      "value": "5.0",
       "date": "2024-05-01",
-      "source": "FRED"
+      "value": "5.00",
+      "source": "BoC-decision"
     },
     {
-      "value": "5.0",
       "date": "2024-04-01",
-      "source": "FRED"
+      "value": "5.00",
+      "source": "BoC-decision"
     },
     {
-      "value": "5.0",
       "date": "2024-03-01",
-      "source": "FRED"
+      "value": "5.00",
+      "source": "BoC-decision"
     },
     {
-      "value": "5.01",
       "date": "2024-02-01",
-      "source": "FRED"
+      "value": "5.00",
+      "source": "BoC-decision"
     }
   ],
   "lastUpdate": "2026-02-21",
-  "totalObservations": 26
+  "series": "verified-manual-central-bank-decisions",
+  "frequency": "monthly",
+  "totalObservations": 25
 }

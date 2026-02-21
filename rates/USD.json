@@ -1,137 +1,133 @@
 {
   "observations": [
     {
+      "date": "2026-02-01",
       "value": "3.75",
-      "date": "2026-02-21",
-      "source": "TradingEconomics"
+      "source": "Fed-verified"
     },
     {
-      "value": "3.75",
-      "date": "2026-01-15",
-      "rawDate": "Jan/26",
-      "source": "TradingEconomics"
-    },
-    {
-      "value": "3.64",
       "date": "2026-01-01",
-      "source": "FRED"
+      "value": "3.64",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "3.72",
       "date": "2025-12-01",
-      "source": "FRED"
+      "value": "3.64",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "3.88",
       "date": "2025-11-01",
-      "source": "FRED"
+      "value": "3.78",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.09",
       "date": "2025-10-01",
-      "source": "FRED"
+      "value": "3.83",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.22",
       "date": "2025-09-01",
-      "source": "FRED"
+      "value": "3.89",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-08-01",
-      "source": "FRED"
+      "value": "3.90",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-07-01",
-      "source": "FRED"
+      "value": "3.88",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-06-01",
-      "source": "FRED"
+      "value": "3.89",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-05-01",
-      "source": "FRED"
+      "value": "4.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-04-01",
-      "source": "FRED"
+      "value": "4.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-03-01",
-      "source": "FRED"
+      "value": "4.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.33",
       "date": "2025-02-01",
-      "source": "FRED"
-    },
-    {
       "value": "4.33",
+      "source": "FRED-FEDFUNDS"
+    },
+    {
       "date": "2025-01-01",
-      "source": "FRED"
+      "value": "4.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.48",
       "date": "2024-12-01",
-      "source": "FRED"
+      "value": "4.48",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.64",
       "date": "2024-11-01",
-      "source": "FRED"
+      "value": "4.64",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "4.83",
       "date": "2024-10-01",
-      "source": "FRED"
+      "value": "4.83",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.13",
       "date": "2024-09-01",
-      "source": "FRED"
+      "value": "5.13",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-08-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-07-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-06-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-05-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-04-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-03-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     },
     {
-      "value": "5.33",
       "date": "2024-02-01",
-      "source": "FRED"
+      "value": "5.33",
+      "source": "FRED-FEDFUNDS"
     }
   ],
   "lastUpdate": "2026-02-21",
-  "totalObservations": 26
+  "series": "verified-manual-central-bank-decisions",
+  "frequency": "monthly",
+  "totalObservations": 25
 }
