@@ -74,7 +74,7 @@ jobs:
                       'frequency': 'm',          # mensual
                       'aggregation_method': 'eop', # end-of-period (último dato del mes)
                       'file_type': 'json',
-                      'api_key': 'e56a23e536093aa4c08de5d6b8f66cf9'  # clave pública de demo FRED
+                      'api_key': '5e0ae2ba29361b8ddb614fd5f92c0a51'  # clave pública de demo FRED
                   }
                   
                   r = requests.get(FRED_BASE, params=params, timeout=15)
