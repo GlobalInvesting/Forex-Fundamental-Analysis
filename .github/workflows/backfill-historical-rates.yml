@@ -6,7 +6,7 @@ on:
       months_back:
         description: 'Meses de histórico a obtener (recomendado: 24)'
         required: true
-        default: '168'
+        default: '24'
 
 jobs:
   backfill:
@@ -26,6 +26,7 @@ jobs:
       - name: Backfill historical rates from FRED
         env:
           MONTHS_BACK: ${{ github.event.inputs.months_back }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           cat > backfill_rates.py << 'EOFPYTHON'
           import requests
@@ -37,20 +38,23 @@ jobs:
           # ── FRED series IDs para cada divisa ────────────────────────────────────
           # Cada serie contiene el histórico oficial de la tasa de política monetaria.
           # FRED actualiza estas series con cada decisión del banco central.
+          # IDs verificados en FRED (feb 2026) — IRSTCI01XXM156N = overnight interbank OCDE
           FRED_SERIES = {
-              'USD': 'FEDFUNDS',          # Federal Funds Effective Rate (mensual)
-              'EUR': 'ECBDFR',            # ECB Deposit Facility Rate
-              'GBP': 'BOERUKM',          # Bank of England Official Rate
-              'JPY': 'IRSTCB01JPM156N',  # Bank of Japan Policy Rate
-              'CAD': 'IRSTCB01CAM156N',  # Bank of Canada Overnight Rate
-              'AUD': 'IRSTCB01AUM156N',  # RBA Cash Rate
-              'CHF': 'IRSTCB01CHM156N',  # SNB Policy Rate
-              'NZD': 'IRSTCB01NZM156N',  # RBNZ Official Cash Rate
+              'USD': 'FEDFUNDS',           # Federal Funds Effective Rate — oficial Fed
+              'EUR': 'ECBDFR',             # ECB Deposit Facility Rate — oficial BCE
+              'GBP': 'IRSTCI01GBM156N',   # BoE overnight interbank (BOERUKM solo llega a 2017)
+              'JPY': 'IRSTCI01JPM156N',   # BoJ overnight interbank (IRSTCB01JPM156N llega a 2023)
+              'CAD': 'IRSTCB01CAM156N',   # Bank of Canada — funciona correctamente
+              'AUD': 'IRSTCI01AUM156N',   # RBA overnight interbank (IRSTCB01AUM156N no existe)
+              'CHF': 'IRSTCI01CHM156N',   # SNB overnight interbank (IRSTCB01CHM156N no existe)
+              'NZD': 'IRSTCI01NZM156N',   # RBNZ overnight interbank (IRSTCB01NZM156N no existe)
           }
 
           FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations'
-          # FRED no requiere API key para series públicas en formato JSON
-          # (límite generoso: 120 req/min sin key)
+          FRED_API_KEY = os.environ.get('FRED_API_KEY', '')
+          if not FRED_API_KEY:
+              print("❌ ERROR: Falta el secreto FRED_API_KEY. Ve a Settings → Secrets → Actions → New repository secret")
+              exit(1)
 
           months_back = int(os.environ.get('MONTHS_BACK', '24'))
           start_date = (date.today() - timedelta(days=months_back * 31)).strftime('%Y-%m-%d')
@@ -74,7 +78,7 @@ jobs:
                       'frequency': 'm',          # mensual
                       'aggregation_method': 'eop', # end-of-period (último dato del mes)
                       'file_type': 'json',
-                      'api_key': '5e0ae2ba29361b8ddb614fd5f92c0a51'  # clave pública de demo FRED
+                      'api_key': FRED_API_KEY
                   }
                   
                   r = requests.get(FRED_BASE, params=params, timeout=15)
