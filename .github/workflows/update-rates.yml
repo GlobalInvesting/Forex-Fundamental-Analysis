@@ -52,43 +52,7 @@ jobs:
                   except:
                       pass
               return None
-          
-          def parse_reference_date(date_text):
-              if not date_text:
-                  return str(date.today())
-              
-              date_text = date_text.strip()
-              
-              try:
-                  m = re.match(r'^([A-Za-z]{3})/(\d{2})$', date_text)
-                  if m:
-                      month_str = m.group(1)
-                      year_str = '20' + m.group(2)
-                      dt = datetime.strptime(f"{month_str} {year_str}", '%b %Y')
-                      return dt.strftime('%Y-%m-15')
-                  
-                  m = re.match(r'^([A-Za-z]{3})\s+(\d{4})$', date_text)
-                  if m:
-                      dt = datetime.strptime(f"{m.group(1)} {m.group(2)}", '%b %Y')
-                      return dt.strftime('%Y-%m-15')
-                  
-                  if re.match(r'^\d{4}-\d{2}-\d{2}$', date_text):
-                      return date_text
-                  
-                  m = re.match(r'^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$', date_text)
-                  if m:
-                      dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", '%B %d %Y')
-                      return dt.strftime('%Y-%m-%d')
-                      
-              except Exception as e:
-                  print(f"    Date parse error for '{date_text}': {e}")
-              
-              return str(date.today())
 
-          # ── NUEVO: Cargar histórico existente ────────────────────────────────────
-          # En lugar de sobreescribir el JSON, cargamos el archivo actual y
-          # agregamos la nueva observación al principio (más reciente primero).
-          # Esto preserva el histórico acumulado desde el backfill inicial.
           def load_existing_observations(currency):
               path = f'rates/{currency}.json'
               if not os.path.exists(path):
@@ -98,39 +62,31 @@ jobs:
                       data = json.load(f)
                   return data.get('observations', [])
               except Exception as e:
-                  print(f"    ⚠️ No se pudo leer histórico existente para {currency}: {e}")
+                  print(f"    Warning: could not read existing history for {currency}: {e}")
                   return []
 
           def merge_observations(existing, new_obs):
               """
-              Combina la nueva observación con el histórico existente.
-              - Si ya existe una observación con la misma fecha, la sobreescribe
-                (para corregir valores en caso de revisión del BC).
-              - Mantiene ordenamiento más reciente primero.
-              - Limita el histórico a 36 meses para no inflar el JSON.
+              Merges new observation with existing history.
+              - Deduplicates by date (new value overwrites if same date).
+              - Keeps sorted most-recent first.
+              - Caps at 36 months.
               """
-              # Crear diccionario por fecha para deduplicar
               obs_map = {o['date']: o for o in existing}
-              
-              # Agregar/sobreescribir con la nueva observación
               obs_map[new_obs['date']] = new_obs
-              
-              # Ordenar más reciente primero
               sorted_obs = sorted(obs_map.values(), key=lambda x: x['date'], reverse=True)
-              
-              # Limitar a 36 meses de histórico
               return sorted_obs[:36]
           
           def fetch_trading_economics():
               print("\n" + "="*70)
-              print("SOURCE 1: Trading Economics (with Reference date)")
+              print("SOURCE: Trading Economics (Interest Rates)")
               print("="*70)
               
               try:
                   url = "https://tradingeconomics.com/country-list/interest-rate?continent=world"
                   r = requests.get(url, headers=HEADERS, timeout=15)
                   if r.status_code == 429:
-                      print("  ⚠️ Rate limited, waiting 30s...")
+                      print("  Rate limited, waiting 30s...")
                       time.sleep(30)
                       r = requests.get(url, headers=HEADERS, timeout=15)
                   r.raise_for_status()
@@ -139,7 +95,7 @@ jobs:
                   rates = {}
                   country_map = {
                       'United States': 'USD',
-                      'Euro Area': 'EUR', 
+                      'Euro Area': 'EUR',
                       'United Kingdom': 'GBP',
                       'Japan': 'JPY',
                       'Canada': 'CAD',
@@ -150,7 +106,7 @@ jobs:
                   
                   table = soup.find('table', {'class': 'table'})
                   if not table:
-                      print("  ❌ No table found")
+                      print("  ERROR: No table found")
                       return rates
                   
                   headers_row = table.find('thead')
@@ -160,15 +116,11 @@ jobs:
                                       for th in headers_row.find_all('th')]
                   
                   last_idx = 1
-                  reference_idx = 3
-                  
                   if header_texts:
                       if 'last' in header_texts:
                           last_idx = header_texts.index('last')
                       elif 'actual' in header_texts:
                           last_idx = header_texts.index('actual')
-                      if 'reference' in header_texts:
-                          reference_idx = header_texts.index('reference')
                   
                   for row in table.find_all('tr')[1:]:
                       cols = row.find_all('td')
@@ -182,28 +134,17 @@ jobs:
                               rate_text = cols[last_idx].get_text(strip=True) if last_idx < len(cols) else ''
                               rate = clean_rate(rate_text)
                               
-                              ref_date_text = ''
-                              if reference_idx < len(cols):
-                                  ref_date_text = cols[reference_idx].get_text(strip=True)
-                              
-                              reference_date = parse_reference_date(ref_date_text)
-                              
                               if rate is not None:
-                                  rates[currency] = {
-                                      'value': rate,
-                                      'date': reference_date,
-                                      'rawDate': ref_date_text,
-                                      'source': 'TradingEconomics'
-                                  }
-                                  print(f"  ✓ {currency}: {rate}% | Reference: '{ref_date_text}' → {reference_date}")
+                                  rates[currency] = rate
+                                  print(f"  OK {currency}: {rate}%")
                               break
                   
                   return rates
                   
               except Exception as e:
-                  print(f"  ❌ Error: {e}")
+                  print(f"  ERROR: {e}")
                   return {}
-          
+
           def fetch_global_rates_fallback(currency):
               urls = {
                   'USD': 'central-bank-america/fed-interest-rate.aspx',
@@ -215,15 +156,12 @@ jobs:
                   'AUD': 'central-bank-australia/rba-interest-rate.aspx',
                   'NZD': 'central-bank-new-zealand/rbnz-interest-rate.aspx'
               }
-              
               if currency not in urls:
                   return None
-              
               try:
                   url = f"https://www.global-rates.com/en/interest-rates/central-banks/{urls[currency]}"
                   r = requests.get(url, headers=HEADERS, timeout=10)
                   soup = BeautifulSoup(r.content, 'lxml')
-                  
                   for table in soup.find_all('table'):
                       rows = table.find_all('tr')
                       if len(rows) >= 2:
@@ -231,106 +169,88 @@ jobs:
                           if len(cols) >= 2:
                               rate = clean_rate(cols[1].get_text(strip=True))
                               if rate:
-                                  date_text = cols[0].get_text(strip=True)
-                                  data_date = parse_reference_date(date_text)
-                                  return {
-                                      'value': rate,
-                                      'date': data_date,
-                                      'rawDate': date_text,
-                                      'source': 'GlobalRates'
-                                  }
+                                  print(f"  OK {currency}: {rate}% (fallback global-rates.com)")
+                                  return rate
               except Exception as e:
-                  print(f"    Error fetching fallback for {currency}: {e}")
-              
+                  print(f"    Fallback error for {currency}: {e}")
               return None
-          
+
           # ============================================
-          # MAIN EXECUTION
+          # MAIN
           # ============================================
-          
-          print("\n" + "="*70)
-          print("ACTUALIZANDO TASAS CON ACUMULACIÓN HISTÓRICA")
-          print("="*70)
-          
-          final_rates = {}
-          
-          te_rates = fetch_trading_economics()
-          final_rates.update(te_rates)
-          
-          time.sleep(1)
-          
-          currencies_needed = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'NZD']
-          missing = [c for c in currencies_needed if c not in final_rates]
-          
-          if missing:
-              print("\n" + "="*70)
-              print(f"SOURCE 2: Global-Rates.com fallback for: {', '.join(missing)}")
-              print("="*70)
-              
-              for currency in missing:
-                  result = fetch_global_rates_fallback(currency)
-                  if result:
-                      final_rates[currency] = result
-                      print(f"  ✓ {currency}: {result['value']}% | date: {result['date']}")
-                  time.sleep(0.5)
-          
-          # ============================================
-          # GUARDAR CON ACUMULACIÓN HISTÓRICA
-          # ── DIFERENCIA CLAVE vs workflow original ──
-          # En lugar de sobreescribir todo el JSON, cargamos el histórico
-          # previo y agregamos la nueva observación, preservando el backfill.
-          # ============================================
-          
-          print("\n" + "="*70)
-          print("GUARDANDO CON ACUMULACIÓN HISTÓRICA")
-          print("="*70)
-          
+
           today = str(date.today())
-          
-          for currency, data in final_rates.items():
-              # Cargar histórico existente (del backfill o ejecuciones previas)
+          currencies_needed = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'NZD']
+
+          print(f"\nDate: {today}")
+
+          final_rates = fetch_trading_economics()
+          time.sleep(1)
+
+          missing = [c for c in currencies_needed if c not in final_rates]
+          if missing:
+              print(f"\nFallback for: {', '.join(missing)}")
+              for currency in missing:
+                  rate = fetch_global_rates_fallback(currency)
+                  if rate:
+                      final_rates[currency] = rate
+                  time.sleep(0.5)
+
+          # ============================================
+          # SAVE — always use today as the observation date
+          # This guarantees the scraped value is always observations[0]
+          # regardless of what reference period TE shows.
+          # ============================================
+
+          print("\n" + "="*70)
+          print("SAVING WITH HISTORICAL ACCUMULATION")
+          print("="*70)
+
+          for currency in currencies_needed:
+              if currency not in final_rates:
+                  print(f"  SKIP {currency}: no data obtained")
+                  continue
+
               existing_obs = load_existing_observations(currency)
-              
-              # Crear nueva observación de hoy
+
+              # KEY FIX: date = today, not TE's reference period
+              # This ensures observations[0] is always the latest scraped value
               new_observation = {
-                  'value': data['value'],
-                  'date': data.get('date', today),
-                  'rawDate': data.get('rawDate', ''),
-                  'source': data['source']
+                  'value': final_rates[currency],
+                  'date': today,
+                  'source': 'TradingEconomics'
               }
-              
-              # Combinar con histórico (deduplicando por fecha)
+
               merged_obs = merge_observations(existing_obs, new_observation)
-              
+
               rate_data = {
                   'observations': merged_obs,
                   'lastUpdate': today,
                   'totalObservations': len(merged_obs)
               }
-              
+
               with open(f'rates/{currency}.json', 'w') as f:
                   json.dump(rate_data, f, indent=2)
-              
-              print(f"  💾 {currency}: {data['value']}% | total histórico: {len(merged_obs)} obs | más antigua: {merged_obs[-1]['date']}")
-          
+
+              print(f"  SAVED {currency}: {final_rates[currency]}% | history: {len(merged_obs)} obs")
+
           missing_final = [c for c in currencies_needed if c not in final_rates]
-          
           if missing_final:
-              print(f"\n❌ MISSING: {', '.join(missing_final)}")
+              print(f"\nMISSING: {', '.join(missing_final)}")
               exit(1)
           else:
-              print(f"\n✅ TODAS LAS DIVISAS ACTUALIZADAS CON HISTÓRICO PRESERVADO!")
-          
+              print(f"\nALL CURRENCIES UPDATED OK")
+
           EOFPYTHON
           
           python fetch_rates.py
       
-      - name: Display rates summary
+      - name: Display summary
         run: |
           echo ""
-          echo "╔════════════════════════════════════════════════╗"
-          echo "║         INTEREST RATES SUMMARY                 ║"
-          echo "╚════════════════════════════════════════════════╝"
+          echo "========================================"
+          echo "         INTEREST RATES SUMMARY"
+          echo "========================================"
           echo ""
           for currency in USD EUR GBP JPY CAD AUD CHF NZD; do
             if [ -f "rates/$currency.json" ]; then
@@ -339,16 +259,12 @@ jobs:
           import json
           with open('rates/$currency.json') as f:
               data = json.load(f)
-              obs = data['observations']
-              print(f\"  Rate actual:    {obs[0]['value']}%\")
-              print(f\"  Período:        {obs[0]['date']}\")
-              print(f\"  Total histórico: {len(obs)} observaciones\")
-              print(f\"  Más antigua:    {obs[-1]['date']} = {obs[-1]['value']}%\")
-              print(f\"  Actualizado:    {data['lastUpdate']}\")
+          obs = data['observations']
+          print(f'  Rate:     {obs[0][\"value\"]}%')
+          print(f'  Date:     {obs[0][\"date\"]}')
+          print(f'  History:  {len(obs)} observations')
+          print(f'  Oldest:   {obs[-1][\"date\"]} = {obs[-1][\"value\"]}%')
           "
-              echo ""
-            else
-              echo "[$currency] - No data"
               echo ""
             fi
           done
@@ -361,7 +277,7 @@ jobs:
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes"
           else
-            git commit -m "🔄 Rates $(date +'%Y-%m-%d') + histórico acumulado"
+            git commit -m "Rates $(date +'%Y-%m-%d') - TradingEconomics scraping"
             git pull --rebase origin main || true
             git push
           fi
