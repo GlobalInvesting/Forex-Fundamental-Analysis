@@ -1,6 +1,11 @@
 {
   "observations": [
     {
+      "value": "0.75",
+      "date": "2026-02-22",
+      "source": "TradingEconomics"
+    },
+    {
       "date": "2026-02-01",
       "value": "0.75",
       "source": "investing-com-exact"
@@ -132,5 +137,5 @@
     }
   ],
   "lastUpdate": "2026-02-22",
-  "totalObservations": 26
+  "totalObservations": 27
 }
