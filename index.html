@@ -3136,7 +3136,7 @@ if (!data?.labels || !data?.rates || data.source === 'unavailable') {
                                     labels: data.labels,
 datasets: [
     {
-        label: 'Tasa de Interés % (datos reales - FRED)',
+        label: 'Tasa de Interés % (datos reales - Investing.com)',
         data: data.rates,
         borderColor: '#1e88e5',
         backgroundColor: 'rgba(30, 136, 229, 0.1)',
@@ -4598,8 +4598,8 @@ const sentiment = getSentiment(strength);
 }}>
     <strong style={{ color: 'var(--green-strong)' }}>✅ Datos reales:</strong>{' '}
     La línea de <strong>Tasa de Interés</strong> refleja datos históricos reales
-    obtenidos desde <strong>FRED (Federal Reserve)</strong> y actualizados diariamente
-    via Trading Economics. Fuente oficial de cada banco central.
+    obtenidos desde <strong>Investing.com</strong> (decisiones oficiales de cada banco central)
+    y actualizados diariamente via Trading Economics.
 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(500px, 100%), 1fr))', gap: '1.5rem' }}>
